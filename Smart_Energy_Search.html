@@ -1442,10 +1442,13 @@ window.sesUpdateBellBadge = function(){
   sesLastUnreadCount = unread;
 }
 
+// "01:21 pm - 20 September 2026" — used under each notification.
 window.sesFormatNotifTime = function(iso){
   try{
     var d = new Date(iso);
-    return d.toLocaleDateString("en-IN", { month: "short", day: "numeric" }) + " · " + d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+    var timeStr = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }).toLowerCase();
+    var dateStr = d.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+    return timeStr + " - " + dateStr;
   }catch(e){ return ""; }
 }
 

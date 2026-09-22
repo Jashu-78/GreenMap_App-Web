@@ -1534,6 +1534,14 @@ function formatOrderDate(createdAtDate){
     " · " + createdAtDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
 }
 
+// "01:21 pm - 20 September 2026" — used under each tracker stage.
+function formatStampFull(date){
+  if (!date) return "";
+  var timeStr = date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }).toLowerCase();
+  var dateStr = date.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  return timeStr + " - " + dateStr;
+}
+
 // Fires exactly once per order when its tracker reaches "Handed Over" —
 // a simple "delivered" ping for the buyer, and a fuller one (who + what)
 // for the shop owner. Guarded by localStorage so re-rendering/refreshing
@@ -1636,16 +1644,24 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
   // actually elapsed, so "Handed Over" gets its own moment as the current
   // stage before flipping to fully complete.
   var totalWindowMs = order.deliveryWindowMs || (TRACKER_STAGES.length * 30000);
+  var stageDurationMs = totalWindowMs / TRACKER_STAGES.length;
   var msElapsedTotal = createdAtDate ? (Date.now() - createdAtDate.getTime()) : 0;
   var trackerFinished = msElapsedTotal >= totalWindowMs;
   if (trackerFinished) maybeNotifyDelivered(orderId, order, itemsToShow, showBuyerInfo);
 
   var trackerHtml = trackerFinished
-    ? '<div class="order-delivered-line">✅ Delivered — order complete</div>'
+    ? '<div class="order-delivered-line">✅ Delivered — order complete' +
+        (createdAtDate ? '<div style="font-size:11px;color:var(--textMuted);margin-top:2px;font-weight:normal;">' + formatStampFull(new Date(createdAtDate.getTime() + totalWindowMs)) + '</div>' : '') +
+      '</div>'
     : '<div class="order-tracker-v">' + TRACKER_STAGES.map(function(label, i){
+        var stageTimeHtml = "";
+        if (i <= stageIdx && createdAtDate){
+          var stageTime = new Date(createdAtDate.getTime() + i * stageDurationMs);
+          stageTimeHtml = '<div class="tracker-v-time" style="font-size:11px;color:var(--textMuted);margin-top:1px;">' + formatStampFull(stageTime) + '</div>';
+        }
         return '<div class="tracker-v-step' + (i <= stageIdx ? ' done' : '') + (i === stageIdx ? ' current' : '') + '">' +
           '<div class="tv-dot">' + (i < stageIdx ? '✓' : (i === stageIdx ? '●' : '')) + '</div>' +
-          '<div class="tracker-v-label">' + label + (i === stageIdx ? ' <span class="tv-now">(current)</span>' : '') + '</div>' +
+          '<div class="tracker-v-label">' + label + (i === stageIdx ? ' <span class="tv-now">(current)</span>' : '') + stageTimeHtml + '</div>' +
         '</div>';
       }).join("") + '</div>';
 

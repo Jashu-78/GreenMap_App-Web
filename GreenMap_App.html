@@ -776,6 +776,14 @@ function notifIconFor(type){
   return "🔔";
 }
 
+// "01:21 pm - 20 September 2026" — used under each notification.
+function formatStampFull(date){
+  if (!date) return "";
+  var timeStr = date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }).toLowerCase();
+  var dateStr = date.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  return timeStr + " - " + dateStr;
+}
+
 async function fetchNotifications(){
   await window.GM_authReady; // don't decide "not for this person" before sign-in has been checked
   var q = query(collection(db, "notifications"), orderBy("createdAt", "desc"), limit(30));
@@ -857,9 +865,11 @@ async function renderNotificationList(){
           '<div class="notif-text">' +
             '<div class="notif-title"></div>' +
             '<div class="notif-sub"></div>' +
+            '<div class="notif-time" style="font-size:11px;color:var(--textMuted);margin-top:2px;"></div>' +
           '</div>';
         row.querySelector(".notif-title").textContent = n.title;
         row.querySelector(".notif-sub").textContent = n.message;
+        row.querySelector(".notif-time").textContent = n.time ? formatStampFull(new Date(n.time)) : "";
         if (n.link){
           row.classList.add("notif-clickable");
           row.innerHTML += '<div class="notif-chevron">›</div>';
