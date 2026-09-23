@@ -967,7 +967,7 @@
 // Firebase setup
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, doc, query, orderBy, where, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, Timestamp, doc, query, orderBy, where, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
@@ -986,7 +986,7 @@ const auth = getAuth(app);
 const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
 
-window.EHUB = { db, auth, provider, collection, getDocs, getDoc, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, signInWithRedirect, signInWithPopup, getRedirectResult, doc, query, orderBy, where, increment, storage, storageRef: ref, uploadBytes, getDownloadURL };
+window.EHUB = { db, auth, provider, collection, getDocs, getDoc, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, Timestamp, signInWithRedirect, signInWithPopup, getRedirectResult, doc, query, orderBy, where, increment, storage, storageRef: ref, uploadBytes, getDownloadURL };
 
 // Try popup first (works fine on a real https page in mobile Chrome), and
 // only fall back to a full-page redirect if the popup gets blocked.
@@ -1601,15 +1601,25 @@ function notifyStageAdvance(orderId, order, stageIdx){
   var lastNotified = typeof order.lastNotifiedStageIndex === "number" ? order.lastNotifiedStageIndex : -1;
   if (stageIdx <= lastNotified) return;
 
+  // Each stage's notification is backdated to the moment that stage was
+  // actually crossed in the simulated timeline (not "now") — otherwise
+  // catching up on several stages at once (e.g. after being away) would
+  // stamp them all with the same current time and list them out of order.
+  var createdAtDate = order.createdAt && order.createdAt.toDate ? order.createdAt.toDate() : null;
+  var totalWindowMs = order.deliveryWindowMs || (TRACKER_STAGES.length * 30000);
+  var stageDurationMs = totalWindowMs / TRACKER_STAGES.length;
+
   for (var i = lastNotified + 1; i <= stageIdx; i++){
     var msg = STAGE_NOTIFY_MESSAGES[i];
     if (msg){
+      var stageTime = createdAtDate ? new Date(createdAtDate.getTime() + i * stageDurationMs) : null;
       addNotification({
         type: "order",
         title: msg.title,
         message: msg.body + " (Order #" + orderId.slice(-6).toUpperCase() + ")",
         targetUids: [order.buyerUid],
-        link: "EnergyHub.html?openOrders=1"
+        link: "EnergyHub.html?openOrders=1",
+        createdAt: stageTime
       });
     }
   }
@@ -2738,9 +2748,13 @@ function resetShopPhotoPicker(){
 // ---------------------------------------------------------------------------
 async function addNotification(data){
   try {
-    await window.EHUB.addDoc(window.EHUB.collection(window.EHUB.db, "notifications"), Object.assign({
-      createdAt: window.EHUB.serverTimestamp()
-    }, data));
+    // data.createdAt lets a caller backdate a notification (e.g. an order
+    // stage that was actually crossed earlier but is only being recorded
+    // now); otherwise it's stamped with the current server time as usual.
+    var createdAt = data.createdAt instanceof Date ? window.EHUB.Timestamp.fromDate(data.createdAt) : window.EHUB.serverTimestamp();
+    await window.EHUB.addDoc(window.EHUB.collection(window.EHUB.db, "notifications"), Object.assign({}, data, {
+      createdAt: createdAt
+    }));
   } catch (err){
     console.warn("Could not write notification:", err);
   }
