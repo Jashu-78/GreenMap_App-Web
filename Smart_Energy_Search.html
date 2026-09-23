@@ -1509,7 +1509,12 @@ const sesApp = initializeApp(firebaseConfig);
 const sesAuth = getAuth(sesApp);
 const sesDb = getFirestore(sesApp);
 
+var sesAuthReadyResolve;
+window.SES_authReady = new Promise(function(resolve){ sesAuthReadyResolve = resolve; });
+var sesAuthReadyDone = false;
+
 async function sesFetchFirebaseNotifs(){
+  await window.SES_authReady; // don't read auth.currentUser before sign-in has been checked
   try{
     var clearedBefore = (typeof sesNotifGetClearedBefore === "function") ? sesNotifGetClearedBefore() : 0;
     var q = query(collection(sesDb, "notifications"), orderBy("createdAt", "desc"), limit(30));
@@ -1542,7 +1547,10 @@ async function sesFetchFirebaseNotifs(){
   }
 }
 
-onAuthStateChanged(sesAuth, function(){ sesFetchFirebaseNotifs(); });
+onAuthStateChanged(sesAuth, function(){
+  if (!sesAuthReadyDone){ sesAuthReadyDone = true; sesAuthReadyResolve(); }
+  sesFetchFirebaseNotifs();
+});
 sesFetchFirebaseNotifs();
 </script>
 </body>

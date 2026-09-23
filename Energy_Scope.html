@@ -1136,7 +1136,12 @@ const esApp = initializeApp(firebaseConfig);
 const esAuth = getAuth(esApp);
 const esDb = getFirestore(esApp);
 
+var esAuthReadyResolve;
+window.ES_authReady = new Promise(function(resolve){ esAuthReadyResolve = resolve; });
+var esAuthReadyDone = false;
+
 async function esFetchFirebaseNotifs(){
+  await window.ES_authReady; // don't read auth.currentUser before sign-in has been checked
   try{
     var clearedBefore = (typeof esGetClearedBefore === "function") ? esGetClearedBefore() : 0;
     var q = query(collection(esDb, "notifications"), orderBy("createdAt", "desc"), limit(30));
@@ -1169,7 +1174,10 @@ async function esFetchFirebaseNotifs(){
   }
 }
 
-onAuthStateChanged(esAuth, function(){ esFetchFirebaseNotifs(); });
+onAuthStateChanged(esAuth, function(){
+  if (!esAuthReadyDone){ esAuthReadyDone = true; esAuthReadyResolve(); }
+  esFetchFirebaseNotifs();
+});
 esFetchFirebaseNotifs();
 </script>
 

@@ -1658,7 +1658,12 @@ const gsDb = getFirestore(gsApp);
 
 window.GS_firebaseNotifs = [];
 
+var gsAuthReadyResolve;
+window.GS_authReady = new Promise(function(resolve){ gsAuthReadyResolve = resolve; });
+var gsAuthReadyDone = false;
+
 async function gsFetchFirebaseNotifs(){
+  await window.GS_authReady; // don't read auth.currentUser before sign-in has been checked
   try{
     var clearedBefore = (typeof gmGetClearedBefore === "function") ? gmGetClearedBefore() : 0;
     var q = query(collection(gsDb, "notifications"), orderBy("createdAt", "desc"), limit(30));
@@ -1691,7 +1696,10 @@ async function gsFetchFirebaseNotifs(){
   }
 }
 
-onAuthStateChanged(gsAuth, function(){ gsFetchFirebaseNotifs(); });
+onAuthStateChanged(gsAuth, function(){
+  if (!gsAuthReadyDone){ gsAuthReadyDone = true; gsAuthReadyResolve(); }
+  gsFetchFirebaseNotifs();
+});
 gsFetchFirebaseNotifs();
 </script>
 </body>

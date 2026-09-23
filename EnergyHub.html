@@ -1655,9 +1655,10 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
       '</div>'
     : '<div class="order-tracker-v">' + TRACKER_STAGES.map(function(label, i){
         var stageTimeHtml = "";
-        if (i <= stageIdx && createdAtDate){
+        if (createdAtDate){
           var stageTime = new Date(createdAtDate.getTime() + i * stageDurationMs);
-          stageTimeHtml = '<div class="tracker-v-time" style="font-size:11px;color:var(--textMuted);margin-top:1px;">' + formatStampFull(stageTime) + '</div>';
+          var stageTimeLabel = i <= stageIdx ? formatStampFull(stageTime) : "Estimated: " + formatStampFull(stageTime);
+          stageTimeHtml = '<div class="tracker-v-time" style="font-size:11px;color:var(--textMuted);margin-top:1px;">' + stageTimeLabel + '</div>';
         }
         return '<div class="tracker-v-step' + (i <= stageIdx ? ' done' : '') + (i === stageIdx ? ' current' : '') + '">' +
           '<div class="tv-dot">' + (i < stageIdx ? '✓' : (i === stageIdx ? '●' : '')) + '</div>' +
