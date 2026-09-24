@@ -187,6 +187,22 @@
   #homeScreen .about-team-list{display:flex;flex-direction:column;gap:10px;margin-top:8px;}
   #homeScreen .about-thanks{font-size:12.5px;color:var(--textMuted);margin-top:14px;font-style:italic;}
 
+/* --- Energy Agent floating icon + chat panel --- */
+#homeScreen .energy-agent-fab{position:fixed;bottom:22px;right:18px;width:56px;height:56px;border-radius:50%;background:linear-gradient(145deg,var(--accent),var(--accentDeep));display:flex;align-items:center;justify-content:center;box-shadow:0 6px 18px rgba(0,0,0,.28);z-index:40;cursor:pointer;font-size:26px;border:none;}
+#homeScreen .agent-panel{width:min(100vw,480px)!important;}
+#homeScreen .agent-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--bg);}
+#homeScreen .agent-msg{max-width:85%;padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.42;}
+#homeScreen .agent-msg.bot{align-self:flex-start;background:var(--card);color:var(--textDark);border-bottom-left-radius:4px;}
+#homeScreen .agent-msg.user{align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:4px;}
+#homeScreen .agent-chip-row{display:flex;flex-wrap:wrap;gap:7px;padding:10px 12px;border-top:1px solid var(--line);background:#fff;}
+#homeScreen .agent-chip{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 6px 5px 12px;font-size:12px;color:var(--textDark);}
+#homeScreen .agent-chip button{width:20px;height:20px;border-radius:50%;border:none;background:var(--primary);color:#fff;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+#homeScreen .agent-chip .qty{min-width:14px;text-align:center;font-weight:700;}
+#homeScreen .agent-input-row{display:flex;gap:8px;align-items:center;padding:10px 12px;border-top:1px solid var(--line);background:#fff;}
+#homeScreen .agent-input-row input{flex:1;border:1px solid var(--line);border-radius:999px;padding:9px 14px;font-size:13.5px;background:var(--bg);color:var(--textDark);}
+#homeScreen .agent-input-row button{background:var(--primary);color:#fff;border:none;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;}
+#homeScreen .agent-calc-btn{margin:2px 12px 10px;background:var(--accent);color:var(--primaryDeep);border:none;border-radius:10px;padding:10px;font-weight:800;font-size:13.5px;cursor:pointer;}
+#homeScreen .agent-link{display:block;color:var(--sky);font-weight:700;text-decoration:none;margin-top:4px;font-size:12.5px;}
 </style>
 </head>
 <body>
@@ -302,6 +318,23 @@
   </div>
 </div>
 
+<!-- EMBER (Energy Monitoring & Behavioral Efficiency Recommender): floating icon + chat panel -->
+<button class="energy-agent-fab" id="energyAgentFab" onclick="toggleEnergyAgent(true)" title="EMBER — Energy Advisor">⚡</button>
+<div class="notif-overlay" id="agentOverlay" onclick="toggleEnergyAgent(false)"></div>
+<div class="notif-panel agent-panel" id="agentPanel">
+  <div class="notif-header">
+    <span>⚡ EMBER<div style="font-size:10px;font-weight:500;opacity:.8;">Energy Monitoring &amp; Behavioral Efficiency Recommender</div></span>
+    <button class="notif-close" onclick="toggleEnergyAgent(false)">✕</button>
+  </div>
+  <div class="agent-body" id="agentChatBody"></div>
+  <div class="agent-chip-row" id="agentChipRow"></div>
+  <button class="agent-calc-btn" id="agentCalcBtn" onclick="agentCalculate()">Calculate my usage &amp; savings</button>
+  <div class="agent-input-row">
+    <input id="agentTextInput" placeholder="Or type e.g. 2 bulbs, 1 fan" onkeydown="if(event.key==='Enter')agentSendText();">
+    <button onclick="agentSendText()">Send</button>
+  </div>
+</div>
+
 <div id="langOverlay" class="notif-overlay" onclick="toggleLanguage(false)"></div>
 <div id="langPanel" class="notif-panel">
   <div class="notif-header">
@@ -390,6 +423,157 @@
     document.getElementById('notifOverlay').classList.toggle('open', open);
     document.getElementById('notifPanel').classList.toggle('open', open);
     if (open && window.GM_onBellOpen) window.GM_onBellOpen();
+  }
+
+  // ============= EMBER: Energy Monitoring & Behavioral Efficiency Recommender =============
+  // Typical Indian household wattages and default daily-use hours. These are
+  // reasonable defaults the person can still override by typing exact numbers.
+  var AGENT_APPLIANCES = [
+    { key: "bulb_small",  label: "Small LED bulb",  watts: 7,   hours: 6,  keywords: ["small bulb","philips small","small led","7w bulb","9w bulb"] },
+    { key: "bulb_big",    label: "Big LED bulb",    watts: 18,  hours: 6,  keywords: ["big bulb","large bulb","philips big","18w bulb","20w bulb"] },
+    { key: "tube",        label: "Tube light",      watts: 20,  hours: 5,  keywords: ["tube light","tubelight","tube"] },
+    { key: "fan",         label: "Ceiling fan",     watts: 75,  hours: 10, keywords: ["ceiling fan","normal fan","local fan","fan"] },
+    { key: "table_fan",   label: "Table fan",       watts: 55,  hours: 6,  keywords: ["table fan"] },
+    { key: "cooler",      label: "Air cooler",      watts: 170, hours: 6,  keywords: ["cooler","air cooler"] },
+    { key: "ac1",         label: "AC (1 ton)",      watts: 1000,hours: 6,  keywords: ["1 ton ac","ac 1 ton","ac"] },
+    { key: "ac1_5",       label: "AC (1.5 ton)",    watts: 1500,hours: 6,  keywords: ["1.5 ton ac","ac 1.5 ton","1.5ton ac"] },
+    { key: "fridge",      label: "Refrigerator",    watts: 150, hours: 24, keywords: ["fridge","refrigerator"] },
+    { key: "wash",        label: "Washing machine", watts: 500, hours: 1,  keywords: ["washing machine","washer"] },
+    { key: "tv",          label: "TV",              watts: 100, hours: 4,  keywords: ["tv","television"] },
+    { key: "geyser",      label: "Water heater/geyser", watts: 2000, hours: 0.5, keywords: ["geyser","water heater"] },
+    { key: "pump",        label: "Water pump/motor",watts: 750, hours: 1,  keywords: ["water pump","motor","pump"] },
+    { key: "mixer",       label: "Mixer grinder",   watts: 500, hours: 0.3,keywords: ["mixer","mixer grinder","grinder"] },
+    { key: "iron",        label: "Iron box",        watts: 1000,hours: 0.5,keywords: ["iron","iron box"] },
+    { key: "laptop",      label: "Laptop/computer", watts: 65,  hours: 5,  keywords: ["laptop","computer","pc"] },
+    { key: "induction",   label: "Induction cooktop",watts: 1500,hours: 1, keywords: ["induction","induction cooktop"] }
+  ];
+  var AGENT_UNITS_PER_KW_PER_DAY = 4.3; // typical AP solar yield, units/kW/day
+  var AGENT_DEFAULT_RATE = 7; // ₹ per unit, editable in a future version
+
+  var agentState = { items: {} }; // key -> qty
+
+  function agentAppliance(key){
+    for (var i=0;i<AGENT_APPLIANCES.length;i++){ if (AGENT_APPLIANCES[i].key===key) return AGENT_APPLIANCES[i]; }
+    return null;
+  }
+
+  function agentAddMsg(text, who){
+    var body = document.getElementById("agentChatBody");
+    var div = document.createElement("div");
+    div.className = "agent-msg " + (who || "bot");
+    div.innerHTML = text;
+    body.appendChild(div);
+    body.scrollTop = body.scrollHeight;
+  }
+
+  function agentRenderChips(){
+    var row = document.getElementById("agentChipRow");
+    row.innerHTML = AGENT_APPLIANCES.map(function(a){
+      var qty = agentState.items[a.key] || 0;
+      return '<div class="agent-chip">' + a.label +
+        '<button onclick="agentChangeQty(\'' + a.key + '\',-1)">−</button>' +
+        '<span class="qty">' + qty + '</span>' +
+        '<button onclick="agentChangeQty(\'' + a.key + '\',1)">+</button>' +
+      '</div>';
+    }).join("");
+  }
+
+  function agentChangeQty(key, delta){
+    var cur = agentState.items[key] || 0;
+    var next = Math.max(0, cur + delta);
+    if (next === 0) delete agentState.items[key]; else agentState.items[key] = next;
+    agentRenderChips();
+  }
+
+  // Very small free-text parser: looks for "<number> <appliance phrase>"
+  // segments separated by commas/"and"/newlines and matches each phrase
+  // against the keyword list above. Not full NLP — good enough for short,
+  // list-style input like "2 bulbs, 1 fan and an ac".
+  function agentParseText(text){
+    var segments = text.toLowerCase().split(/,|\band\b|\n/);
+    var added = [];
+    var unmatched = [];
+    segments.forEach(function(seg){
+      seg = seg.trim();
+      if (!seg) return;
+      var m = seg.match(/^(\d+)?\s*(.*)$/);
+      var qty = m && m[1] ? parseInt(m[1], 10) : 1;
+      var phrase = (m ? m[2] : seg).replace(/\bi have\b|\bi've got\b|\bmy\b|\ba\b|\ban\b/g, "").trim();
+      if (!phrase) return;
+      var best = null;
+      AGENT_APPLIANCES.forEach(function(a){
+        a.keywords.forEach(function(k){
+          if (phrase.indexOf(k) !== -1 && (!best || k.length > best.matchLen)){
+            best = { key: a.key, matchLen: k.length };
+          }
+        });
+      });
+      if (best){
+        agentState.items[best.key] = (agentState.items[best.key] || 0) + qty;
+        added.push(qty + "× " + agentAppliance(best.key).label);
+      } else {
+        unmatched.push(seg);
+      }
+    });
+    return { added: added, unmatched: unmatched };
+  }
+
+  function agentSendText(){
+    var input = document.getElementById("agentTextInput");
+    var text = input.value.trim();
+    if (!text) return;
+    agentAddMsg(text, "user");
+    input.value = "";
+    var result = agentParseText(text);
+    agentRenderChips();
+    if (result.added.length){
+      agentAddMsg("Added: " + result.added.join(", ") + ".", "bot");
+    }
+    if (result.unmatched.length){
+      agentAddMsg("I couldn't recognise: \"" + result.unmatched.join("; ") + "\" — try the quick-add list below, or use simpler words like \"fan\", \"fridge\", \"AC\".", "bot");
+    }
+    if (!result.added.length && !result.unmatched.length){
+      agentAddMsg("Tell me what you have, e.g. \"2 bulbs, 1 fan\" — or tap items below.", "bot");
+    }
+  }
+
+  function agentCalculate(){
+    var keys = Object.keys(agentState.items);
+    if (!keys.length){
+      agentAddMsg("Add at least one appliance first — type it above or tap the quick-add list below.", "bot");
+      return;
+    }
+    var totalWattHours = 0;
+    var lines = keys.map(function(key){
+      var a = agentAppliance(key);
+      var qty = agentState.items[key];
+      var wh = a.watts * qty * a.hours;
+      totalWattHours += wh;
+      return qty + "× " + a.label + " (" + a.watts + "W × " + a.hours + "h) = " + (wh/1000).toFixed(2) + " kWh/day";
+    });
+    var dailyUnits = totalWattHours / 1000;
+    var dailyCost = dailyUnits * AGENT_DEFAULT_RATE;
+    var monthlyCost = dailyCost * 30;
+    var suggestedKw = Math.ceil((dailyUnits / AGENT_UNITS_PER_KW_PER_DAY) * 2) / 2; // round to nearest 0.5 kW
+
+    var html = "<b>Your estimated usage</b><br>" + lines.join("<br>") +
+      "<br><br><b>Daily:</b> " + dailyUnits.toFixed(2) + " units (₹" + dailyCost.toFixed(0) + ")" +
+      "<br><b>Monthly (approx):</b> ₹" + monthlyCost.toFixed(0) +
+      "<br><br>To cover this with solar, you'd need roughly a <b>" + suggestedKw + " kW</b> system (at ~" + AGENT_UNITS_PER_KW_PER_DAY + " units/kW/day for this area)." +
+      "<br><br>Rates use a default ₹" + AGENT_DEFAULT_RATE + "/unit and typical usage hours — your actual bill may vary." +
+      '<a class="agent-link" href="Smart_Energy_Search.html">🔎 See matching solar panels in Smart Energy Search</a>' +
+      '<a class="agent-link" href="Energy_Scope.html">🗺️ Check solar/wind potential for your area in Energy Scope</a>' +
+      '<a class="agent-link" href="Govt_Schemes.html">🏛️ See government subsidy schemes</a>';
+    agentAddMsg(html, "bot");
+  }
+
+  function toggleEnergyAgent(open){
+    document.getElementById('agentOverlay').classList.toggle('open', open);
+    document.getElementById('agentPanel').classList.toggle('open', open);
+    if (open && !document.getElementById("agentChatBody").children.length){
+      agentRenderChips();
+      agentAddMsg("Hi, I'm <b>EMBER</b> ⚡ — your energy advisor. Tell me what's in your room — e.g. \"2 bulbs, 1 fan, a fridge\" — or tap items below, then hit Calculate.", "bot");
+    }
   }
   function toggleSettings(open){
     document.getElementById('settingsOverlay').classList.toggle('open', open);
