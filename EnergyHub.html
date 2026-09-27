@@ -969,17 +969,17 @@
 // Firebase setup
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, doc, query, orderBy, where, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, getDocs, getDoc, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, Timestamp, doc, query, orderBy, where, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { getAuth, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDbi-gQfQTYSI3naZX0679JXZBKiLGmygE",
-  authDomain: "energyhub-af4da.firebaseapp.com",
-  projectId: "energyhub-af4da",
-  storageBucket: "energyhub-af4da.firebasestorage.app",
-  messagingSenderId: "1013915721842",
-  appId: "1:1013915721842:web:c19916e3b0155a5f1b22eb"
+  apiKey: "AIzaSyAWp6wb0nSg2xOMNDCDzpwBV6k27AxIBn4",
+  authDomain: "greenmap-ai.firebaseapp.com",
+  projectId: "greenmap-ai",
+  storageBucket: "greenmap-ai.firebasestorage.app",
+  messagingSenderId: "824986564861",
+  appId: "1:824986564861:web:b24aa09625840061d3a694"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -988,7 +988,7 @@ const auth = getAuth(app);
 const storage = getStorage(app);
 const provider = new GoogleAuthProvider();
 
-window.EHUB = { db, auth, provider, collection, getDocs, getDoc, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, signInWithRedirect, signInWithPopup, getRedirectResult, doc, query, orderBy, where, increment, storage, storageRef: ref, uploadBytes, getDownloadURL };
+window.EHUB = { db, auth, provider, collection, getDocs, getDoc, addDoc, updateDoc, setDoc, deleteDoc, serverTimestamp, Timestamp, signInWithRedirect, signInWithPopup, getRedirectResult, doc, query, orderBy, where, increment, storage, storageRef: ref, uploadBytes, getDownloadURL };
 
 // Try popup first (works fine on a real https page in mobile Chrome), and
 // only fall back to a full-page redirect if the popup gets blocked.
@@ -1533,7 +1533,15 @@ function trackerStageIndex(createdAtDate, deliveryWindowMs){
 function formatOrderDate(createdAtDate){
   if (!createdAtDate) return "";
   return createdAtDate.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }) +
-    " · " + createdAtDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    " · " + createdAtDate.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+}
+
+// "01:21 pm - 20 September 2026" — used under each tracker stage and notification.
+function formatStampFull(date){
+  if (!date) return "";
+  var timeStr = date.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }).toLowerCase();
+  var dateStr = date.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" });
+  return timeStr + " - " + dateStr;
 }
 
 // Fires exactly once per order when its tracker reaches "Handed Over" —
@@ -1595,15 +1603,25 @@ function notifyStageAdvance(orderId, order, stageIdx){
   var lastNotified = typeof order.lastNotifiedStageIndex === "number" ? order.lastNotifiedStageIndex : -1;
   if (stageIdx <= lastNotified) return;
 
+  // Each stage's notification is backdated to the moment that stage was
+  // actually crossed in the simulated timeline (not "now") — otherwise
+  // catching up on several stages at once (e.g. after being away) would
+  // stamp them all with the same current time and list them out of order.
+  var createdAtDate = order.createdAt && order.createdAt.toDate ? order.createdAt.toDate() : null;
+  var totalWindowMs = order.deliveryWindowMs || (TRACKER_STAGES.length * 30000);
+  var stageDurationMs = totalWindowMs / TRACKER_STAGES.length;
+
   for (var i = lastNotified + 1; i <= stageIdx; i++){
     var msg = STAGE_NOTIFY_MESSAGES[i];
     if (msg){
+      var stageTime = createdAtDate ? new Date(createdAtDate.getTime() + i * stageDurationMs) : null;
       addNotification({
         type: "order",
         title: msg.title,
         message: msg.body + " (Order #" + orderId.slice(-6).toUpperCase() + ")",
         targetUids: [order.buyerUid],
-        link: "EnergyHub.html?openOrders=1"
+        link: "EnergyHub.html?openOrders=1",
+        createdAt: stageTime
       });
     }
   }
@@ -1638,16 +1656,25 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
   // actually elapsed, so "Handed Over" gets its own moment as the current
   // stage before flipping to fully complete.
   var totalWindowMs = order.deliveryWindowMs || (TRACKER_STAGES.length * 30000);
+  var stageDurationMs = totalWindowMs / TRACKER_STAGES.length;
   var msElapsedTotal = createdAtDate ? (Date.now() - createdAtDate.getTime()) : 0;
   var trackerFinished = msElapsedTotal >= totalWindowMs;
   if (trackerFinished) maybeNotifyDelivered(orderId, order, itemsToShow, showBuyerInfo);
 
   var trackerHtml = trackerFinished
-    ? '<div class="order-delivered-line">✅ Delivered — order complete</div>'
+    ? '<div class="order-delivered-line">✅ Delivered — order complete' +
+        (createdAtDate ? '<div style="font-size:11px;color:var(--textMuted);margin-top:2px;font-weight:normal;">' + formatStampFull(new Date(createdAtDate.getTime() + totalWindowMs)) + '</div>' : '') +
+      '</div>'
     : '<div class="order-tracker-v">' + TRACKER_STAGES.map(function(label, i){
+        var stageTimeHtml = "";
+        if (createdAtDate){
+          var stageTime = new Date(createdAtDate.getTime() + i * stageDurationMs);
+          var stageTimeLabel = i <= stageIdx ? formatStampFull(stageTime) : "Estimated: " + formatStampFull(stageTime);
+          stageTimeHtml = '<div class="tracker-v-time" style="font-size:11px;color:var(--textMuted);margin-top:1px;">' + stageTimeLabel + '</div>';
+        }
         return '<div class="tracker-v-step' + (i <= stageIdx ? ' done' : '') + (i === stageIdx ? ' current' : '') + '">' +
           '<div class="tv-dot">' + (i < stageIdx ? '✓' : (i === stageIdx ? '●' : '')) + '</div>' +
-          '<div class="tracker-v-label">' + label + (i === stageIdx ? ' <span class="tv-now">(current)</span>' : '') + '</div>' +
+          '<div class="tracker-v-label">' + label + (i === stageIdx ? ' <span class="tv-now">(current)</span>' : '') + stageTimeHtml + '</div>' +
         '</div>';
       }).join("") + '</div>';
 
@@ -1657,7 +1684,7 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
 
   var expectedDeliveryHtml = (!showBuyerInfo && !trackerFinished && order.expectedDeliveryAt)
     ? '<div style="font-size:11.5px;color:var(--textMuted);padding:0 16px 6px;">📅 Expected delivery by ' +
-        new Date(order.expectedDeliveryAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + '</div>'
+        formatDeliveryDateTime(order.expectedDeliveryAt) + '</div>'
     : '';
 
   return '<div class="order-card">' +
@@ -2723,9 +2750,13 @@ function resetShopPhotoPicker(){
 // ---------------------------------------------------------------------------
 async function addNotification(data){
   try {
-    await window.EHUB.addDoc(window.EHUB.collection(window.EHUB.db, "notifications"), Object.assign({
-      createdAt: window.EHUB.serverTimestamp()
-    }, data));
+    // data.createdAt lets a caller backdate a notification (e.g. an order
+    // stage that was actually crossed earlier but is only being recorded
+    // now); otherwise it's stamped with the current server time as usual.
+    var createdAt = data.createdAt instanceof Date ? window.EHUB.Timestamp.fromDate(data.createdAt) : window.EHUB.serverTimestamp();
+    await window.EHUB.addDoc(window.EHUB.collection(window.EHUB.db, "notifications"), Object.assign({}, data, {
+      createdAt: createdAt
+    }));
   } catch (err){
     console.warn("Could not write notification:", err);
   }
@@ -3658,11 +3689,11 @@ function formatDeliveryDateTime(ms){
   var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   var startOfTarget = new Date(target.getFullYear(), target.getMonth(), target.getDate());
   var dayDiff = Math.round((startOfTarget - startOfToday) / 86400000);
-  var timeStr = target.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  var timeStr = target.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }).toLowerCase();
   var dayStr;
   if (dayDiff === 0) dayStr = "Today";
   else if (dayDiff === 1) dayStr = "Tomorrow";
-  else dayStr = target.toLocaleDateString([], { month: "short", day: "numeric" });
+  else dayStr = target.toLocaleDateString("en-IN", { month: "short", day: "numeric" });
   return dayStr + ", " + timeStr;
 }
 

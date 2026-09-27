@@ -462,7 +462,22 @@ var PRODUCTS = [
     specs:[["Cell Type","Monocrystalline"],["Wattage","400 W"],["Efficiency","19.5%"],["Warranty","15 years performance"],["Dimensions","1998 x 1002 x 32 mm"],["Weight","21.5 kg"]],
     pros:["Solid efficiency at a mid-range price","Reliable mid-tier warranty","Good availability & service network"],
     cons:["Not the most efficient option available","Mid-pack on price, not the cheapest"],
-    why:"A balanced middle ground when neither pure budget nor pure premium fits the brief." }
+    why:"A balanced middle ground when neither pure budget nor pure premium fits the brief." },
+  { id:"p9", type:"Solar Panel", icon:"sun", brand:"Waaree", name:"Waaree Bifacial 545", price:12500, capacityLabel:"545 W", efficiency:21.17, warranty:30, score:95, userRating:0, userCount:0, expertRating:0, bestFor:"Rooftops wanting top-tier efficiency at a lower price point",
+    specs:[["Cell Type","Mono PERC Half-Cut Bifacial"],["Wattage","545 W"],["Efficiency","21.17%"],["Warranty","30 years power output, 12 years product"],["Dimensions","2272 x 1133 x 35 mm"],["Weight","27.5 kg"]],
+    pros:["Excellent efficiency-to-price ratio","Bifacial design adds extra rear-side generation","Long 30-year power output warranty","From India's largest solar panel manufacturer"],
+    cons:["Bifacial gain needs a reflective or elevated mount to fully pay off","Street price can vary by retailer and region"],
+    why:"A real, currently available panel from Waaree — India's largest solar panel manufacturer — with genuine specs, not a demo figure." },
+  { id:"p10", type:"Solar Panel", icon:"sun", brand:"Vikram Solar", name:"Vikram Solar HYPERSOL 440", price:8500, capacityLabel:"440 W", efficiency:22.02, warranty:30, score:93, userRating:0, userCount:0, expertRating:0, bestFor:"Rooftops wanting the highest per-panel efficiency in this catalog",
+    specs:[["Cell Type","Monocrystalline PERC"],["Wattage","440 W"],["Efficiency","22.02%"],["Warranty","30 years performance, 12 years product"],["Manufacturer","Vikram Solar, est. 2006, Kolkata"],["Dimensions","Standard 54-cell module"]],
+    pros:["Among the highest per-panel efficiency available","Strong 30-year performance warranty","Established Indian manufacturer since 2006"],
+    cons:["Lower total wattage per panel than the largest panels here","Fewer standard dimension listings publicly available"],
+    why:"Real panel specs from Vikram Solar, one of India's oldest solar manufacturers." },
+  { id:"p11", type:"Hybrid Kit", icon:"zap", brand:"Luminous", name:"Luminous Hybrid TX 5kVA Solar Combo", price:223395, capacityLabel:"5 kVA inverter + 2.36 kW solar", efficiency:93, warranty:6, score:90, userRating:0, userCount:0, expertRating:0, bestFor:"Homes wanting a complete, ready-to-install solar + battery + inverter system",
+    specs:[["System","5kVA Hybrid Inverter + 4×590W Bifacial Panels (2.36 kW)"],["Battery","4×150Ah Tubular (600Ah total)"],["MPPT Efficiency",">93%"],["Battery Warranty","72 months"],["Panel Warranty","25 years performance"],["Features","Grid export, Wi-Fi monitoring, DSP control"]],
+    pros:["Complete, ready-to-install kit from a trusted Indian brand","Grid export capability offsets cost further","Wi-Fi monitoring for real-time tracking"],
+    cons:["Tubular batteries need more upkeep than lithium","Highest upfront cost among hybrid options here"],
+    why:"A real Luminous combo kit — inverter, batteries and bifacial panels bundled — priced at the manufacturer's own online store." }
 ];
 
 var BRANDS = Array.from(new Set(PRODUCTS.map(function(p){ return p.brand; })));
