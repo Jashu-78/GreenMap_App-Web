@@ -188,12 +188,12 @@
   #homeScreen .about-thanks{font-size:12.5px;color:var(--textMuted);margin-top:14px;font-style:italic;}
 
 /* --- Energy Agent floating icon + chat panel --- */
-#homeScreen .energy-agent-fab{position:fixed;bottom:18px;right:14px;width:66px;height:72px;background:transparent;border:none;padding:0;z-index:40;cursor:pointer;}
+#homeScreen .energy-agent-fab{position:fixed;bottom:18px;right:14px;width:66px;height:66px;background:transparent;border-radius:50%;border:1.5px solid rgba(255,255,255,.6);box-shadow:0 4px 10px rgba(0,0,0,.18);padding:0;z-index:40;cursor:pointer;}
 #homeScreen .ember-scene{position:relative;width:100%;height:100%;overflow:hidden;}
 #homeScreen .ember-hole{position:absolute;left:50%;bottom:0;width:64px;height:38px;transform:translateX(-50%);background-repeat:no-repeat;background-position:center bottom;background-size:contain;pointer-events:none;}
 #homeScreen .ember-figure{position:absolute;left:50%;bottom:10px;width:74%;height:74%;object-fit:contain;transform:translate(-50%,0);transition:transform 1.6s ease-out;}
 #homeScreen .energy-agent-fab.idle .ember-figure{transform:translate(-50%,130%);transition:transform .7s ease-in;}
-#homeScreen .ember-scene.mini{width:34px;height:32px;flex-shrink:0;}
+#homeScreen .ember-scene.mini{width:34px;height:34px;flex-shrink:0;border-radius:50%;border:1px solid rgba(255,255,255,.5);}
 #homeScreen .ember-scene.mini .ember-hole{width:32px;height:19px;}
 #homeScreen .ember-scene.mini .ember-figure{width:76%;height:76%;bottom:5px;object-fit:contain;}
 #homeScreen .agent-panel{width:min(100vw,480px)!important;}
