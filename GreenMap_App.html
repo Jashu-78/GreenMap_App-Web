@@ -188,15 +188,14 @@
   #homeScreen .about-thanks{font-size:12.5px;color:var(--textMuted);margin-top:14px;font-style:italic;}
 
 /* --- Energy Agent floating icon + chat panel --- */
-#homeScreen .energy-agent-fab{position:fixed;bottom:22px;right:18px;width:60px;height:60px;background:transparent;display:flex;align-items:center;justify-content:center;z-index:40;cursor:pointer;border:none;padding:0;}
 #homeScreen .energy-agent-fab{position:fixed;bottom:18px;right:14px;width:66px;height:72px;background:transparent;border:none;padding:0;z-index:40;cursor:pointer;}
 #homeScreen .ember-scene{position:relative;width:100%;height:100%;overflow:hidden;}
 #homeScreen .ember-hole{position:absolute;left:50%;bottom:0;width:64px;height:38px;transform:translateX(-50%);background-repeat:no-repeat;background-position:center bottom;background-size:contain;pointer-events:none;}
-#homeScreen .ember-figure{position:absolute;left:50%;bottom:15px;width:56%;height:56%;object-fit:cover;border-radius:50%;transform:translate(-50%,0);transition:transform 1.6s ease-out;box-shadow:0 2px 6px rgba(0,0,0,.25);}
+#homeScreen .ember-figure{position:absolute;left:50%;bottom:10px;width:74%;height:74%;object-fit:contain;transform:translate(-50%,0);transition:transform 1.6s ease-out;}
 #homeScreen .energy-agent-fab.idle .ember-figure{transform:translate(-50%,130%);transition:transform .7s ease-in;}
 #homeScreen .ember-scene.mini{width:34px;height:32px;flex-shrink:0;}
 #homeScreen .ember-scene.mini .ember-hole{width:32px;height:19px;}
-#homeScreen .ember-scene.mini .ember-figure{width:56%;height:56%;bottom:7px;}
+#homeScreen .ember-scene.mini .ember-figure{width:76%;height:76%;bottom:5px;object-fit:contain;}
 #homeScreen .agent-panel{width:min(100vw,480px)!important;}
 #homeScreen .agent-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--bg);}
 #homeScreen .agent-msg{max-width:85%;padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.42;}
@@ -648,6 +647,24 @@
     return gmT("ans_default");
   }
 
+  // Casual replies (thanks, bye, yes/no, how are you) that aren't appliance
+  // talk and aren't a data question either — handled so EMBER never just
+  // dead-ends on ordinary conversation. Returns null if nothing matches.
+  function agentSmallTalk(text){
+    var q = text.trim().toLowerCase();
+    if (/^(bye|goodbye|good\s?night|see\s?you|see\s?ya)\b/.test(q) || gmHasAny(q, ["బై","వీడ్కోలు","బాయ్"]))
+      return gmT("ember_bye");
+    if (/^(thanks?( you)?|thank\s?you|thnx|ty)\b/.test(q) || gmHasAny(q, ["ధన్యవాదాలు","థాంక్స్"]))
+      return gmT("ember_thanks");
+    if (/^(how are you|how r u|how's it going|what's up|whats up)\b/.test(q) || gmHasAny(q, ["ఎలా ఉన్నారు"]))
+      return gmT("ember_howareyou");
+    if (/^(no+|nah|nope|not now|not really|no thanks)\b/.test(q) || gmHasAny(q, ["వద్దు","లేదు"]))
+      return gmT("ember_no");
+    if (/^(yes+|yeah+|yep|ok(ay)?|sure|alright|fine)\b/.test(q) || gmHasAny(q, ["అవును","సరే"]))
+      return gmT("ember_yes");
+    return null;
+  }
+
   function agentSendText(){
     var input = document.getElementById("agentTextInput");
     var text = input.value.trim();
@@ -666,6 +683,12 @@
       || gmHasAny(text, ["నమస్తే","నమస్కారం","హాయ్"]);
     if (isGreeting){
       agentAddMsg(gmT("ember_greeting"), "bot");
+      return;
+    }
+
+    var smallTalk = agentSmallTalk(text);
+    if (smallTalk){
+      agentAddMsg(smallTalk, "bot");
       return;
     }
 
@@ -749,6 +772,11 @@
       ember_pick: "Tap 🧮 to pick your appliances, or type e.g. \"2 bulbs, 1 fan\".",
       ember_unrecognised: "I couldn't recognise: \"{list}\" — try words like \"fan\", \"fridge\", \"AC\".",
       ember_greeting: "Hi there! 👋 Tell me what's in your room (e.g. \"2 bulbs, 1 fan\"), or tap 🧮 to pick appliances.",
+      ember_bye: "Take care! Come back anytime you want to check your energy usage. 👋",
+      ember_thanks: "You're welcome! Happy to help with your energy usage anytime. 😊",
+      ember_howareyou: "Doing great, thanks for asking! How can I help with your energy usage today?",
+      ember_no: "No problem — I'll be here. Tap 🧮 whenever you're ready to add appliances.",
+      ember_yes: "Great! Tap 🧮 to add your appliances, or just type them here.",
       chart_note_24h: "This chat clears automatically after 24 hours.",
       chart_title: "Your daily usage", chart_units_day: "units/day", chart_month: "/month", chart_kw_solar: "~{kw} kW solar",
       ans_add_first: "Add your appliances first (tap 🧮), then ask me anything about them.",
@@ -783,6 +811,11 @@
       ember_pick: "🧮 నొక్కి మీ ఉపకరణాలను ఎంచుకోండి, లేదా ఇలా టైప్ చేయండి: \"2 బల్బులు, 1 ఫ్యాన్\".",
       ember_unrecognised: "నాకు అర్థం కాలేదు: \"{list}\" — \"ఫ్యాన్\", \"ఫ్రిజ్\", \"ఏసీ\" వంటి పదాలు వాడండి.",
       ember_greeting: "నమస్కారం! 👋 మీ గదిలో ఏమున్నాయో చెప్పండి (ఉదా. \"2 బల్బులు, 1 ఫ్యాన్\"), లేదా 🧮 నొక్కి ఉపకరణాలను ఎంచుకోండి.",
+      ember_bye: "సరే, జాగ్రత్త! మీ ఇంధన వినియోగం చూడాలనుకున్నప్పుడు మళ్ళీ రండి. 👋",
+      ember_thanks: "పర్వాలేదు! మీ ఇంధన వినియోగంలో సహాయం చేయడం సంతోషం. 😊",
+      ember_howareyou: "బాగున్నాను, అడిగినందుకు ధన్యవాదాలు! మీ ఇంధన వినియోగంలో ఎలా సహాయం చేయగలను?",
+      ember_no: "పర్వాలేదు — నేను ఇక్కడే ఉంటాను. సిద్ధమైనప్పుడు 🧮 నొక్కండి.",
+      ember_yes: "చాలా బాగుంది! ఉపకరణాలను జోడించడానికి 🧮 నొక్కండి, లేదా ఇక్కడ టైప్ చేయండి.",
       chart_note_24h: "ఈ చాట్ 24 గంటల తర్వాత స్వయంచాలకంగా తొలగిపోతుంది.",
       chart_title: "మీ రోజువారీ వినియోగం", chart_units_day: "యూనిట్లు/రోజు", chart_month: "/నెల", chart_kw_solar: "~{kw} kW సోలార్",
       ans_add_first: "ముందు మీ ఉపకరణాలను జోడించండి (🧮 నొక్కండి), తర్వాత వాటి గురించి ఏదైనా అడగండి.",
