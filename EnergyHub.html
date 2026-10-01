@@ -1387,6 +1387,11 @@ window.EHUB_setCurrentUser = function(user){
   if (typeof updateUserChip === "function") updateUserChip();
   if (typeof refreshOwnedShops === "function") refreshOwnedShops();
   if (typeof healStaleFollowNames === "function") healStaleFollowNames();
+  if (user && window.EHUB){
+    window.EHUB.setDoc(window.EHUB.doc(window.EHUB.db, "users", user.uid), {
+      name: userLabel(user), email: user.email || ""
+    }, { merge: true }).catch(function(e){ console.warn("Could not save profile:", e); });
+  }
 };
 
 // One-time self-heal: older follow records saved before the currentUser
@@ -2498,7 +2503,30 @@ async function openFollowersSheet(shop){
       return;
     }
     listEl.innerHTML = "";
-    snap.forEach(function(docSnap){
+    // Old follow records may have no usable name. Look the person up from
+    // their reviews on this shop or from the users profile collection.
+    var reviewNames = {};
+    try {
+      var rs = await window.EHUB.getDocs(window.EHUB.collection(window.EHUB.db, "shops", shop.id, "reviews"));
+      rs.forEach(function(r){ var d = r.data(); if (d.userUid && d.userName && d.userName !== "Anonymous" && d.userName !== "Someone") reviewNames[d.userUid] = d.userName; });
+    } catch (e){}
+    var docs = [];
+    snap.forEach(function(d){ docs.push(d); });
+    for (var di = 0; di < docs.length; di++){
+      var fd = Object.assign({}, docs[di].data());
+      if (!fd.userName || fd.userName === "Someone"){
+        var found = reviewNames[fd.userId] || "";
+        if (!found){
+          try {
+            var us = await window.EHUB.getDoc(window.EHUB.doc(window.EHUB.db, "users", fd.userId));
+            if (us.exists()) found = us.data().name || (us.data().email ? us.data().email.split("@")[0] : "");
+          } catch (e){}
+        }
+        if (found) fd.userName = found;
+      }
+      docs[di] = { data: (function(x){ return function(){ return x; }; })(fd) };
+    }
+    docs.forEach(function(docSnap){
       var f = docSnap.data();
       var row = document.createElement("div");
       row.className = "menu-shop-card";
