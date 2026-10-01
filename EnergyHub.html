@@ -695,13 +695,19 @@
     <div id="profProductList"></div>
 
     <div class="reviews-head">
-      <h4>Reviews</h4>
+      <h4>Shop Reviews</h4>
       <span class="reviews-avg" id="profReviewsAvg"></span>
     </div>
     <div style="padding:0 18px 10px;">
       <button type="button" class="write-review-btn" id="profWriteReviewBtn">✍️ Write a Review</button>
     </div>
     <div id="profReviewsList"></div>
+
+    <div class="reviews-head" style="margin-top:14px;">
+      <h4>&#128230; Parcel &amp; Product Ratings</h4>
+      <span class="reviews-avg" id="profParcelAvg"></span>
+    </div>
+    <div id="profParcelList"></div>
   </div>
 </div>
 
@@ -1715,22 +1721,26 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
 
   var rateHtml = "";
   if (!showBuyerInfo && trackerFinished){
-    var seenShops = {};
-    (order.items || []).forEach(function(it){ seenShops[it.shopId] = it.shopName; });
+    var seenShops = {}, seenItems = {};
+    (order.items || []).forEach(function(it){
+      seenShops[it.shopId] = it.shopName;
+      (seenItems[it.shopId] = seenItems[it.shopId] || []).push(it.name || it.productName || "item");
+    });
+    var sections = [
+      { kind: "shop",   title: "Rate the shop",            hint: "How was the shop and its service?" },
+      { kind: "parcel", title: "Rate the parcel / product", hint: "How was the product and the delivery?" }
+    ];
     Object.keys(seenShops).forEach(function(sid){
-      var given = order.ratings && order.ratings[sid];
-      rateHtml += '<div class="rate10-box" style="padding:10px 16px;border-top:1px solid var(--line);">' +
-        '<div style="font-size:12.5px;font-weight:700;color:var(--textDark);margin-bottom:6px;">Rate ' + escapeHtml(seenShops[sid]) + ' (1\u201310)</div>';
-      if (given){
-        rateHtml += '<div style="font-size:13px;color:var(--primary2);font-weight:700;">\u2705 You rated ' + given + '/10. Thank you!</div>';
-      } else {
-        rateHtml += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+      sections.forEach(function(sec){
+        rateHtml += '<div class="rate10-box" data-kind="' + sec.kind + '" data-order="' + orderId + '" data-shop="' + sid + '" style="padding:10px 16px;border-top:1px solid var(--line);">' +
+          '<div style="font-size:12.5px;font-weight:700;color:var(--textDark);">' + sec.title + ' (1\u201310)</div>' +
+          '<div style="font-size:11.5px;color:var(--textMute,#6b7a63);margin-bottom:6px;">' + sec.hint + ' \u00b7 ' + escapeHtml(seenShops[sid]) + '</div>' +
+          '<div class="rate10-row" style="display:flex;flex-wrap:wrap;gap:6px;">';
         for (var n = 1; n <= 10; n++){
-          rateHtml += '<button type="button" class="rate10-btn" data-val="' + n + '" data-order="' + orderId + '" data-shop="' + sid + '" data-shopname="' + escapeHtml(seenShops[sid]) + '" style="width:30px;height:30px;border-radius:8px;border:1px solid var(--primary2);background:#fff;color:var(--primary);font-weight:700;font-size:13px;">' + n + '</button>';
+          rateHtml += '<button type="button" class="rate10-btn" data-val="' + n + '" data-kind="' + sec.kind + '" data-order="' + orderId + '" data-shop="' + sid + '" data-shopname="' + escapeHtml(seenShops[sid]) + '" data-items="' + escapeHtml((seenItems[sid] || []).join(", ")) + '" style="width:30px;height:30px;border-radius:8px;border:1px solid var(--primary2);background:#fff;color:var(--primary);font-weight:700;font-size:13px;">' + n + '</button>';
         }
-        rateHtml += '</div>';
-      }
-      rateHtml += '</div>';
+        rateHtml += '</div></div>';
+      });
     });
   }
 
@@ -3128,6 +3138,7 @@ async function openShopProfile(shop){
   }
 
   loadReviews(shop.id);
+  loadParcelRatings(shop.id);
 }
 
 // ---------------------------------------------------------------------------
@@ -3608,38 +3619,128 @@ document.getElementById("reviewForm").addEventListener("submit", async function(
 // 1-10 delivery rating: shown on a delivered order. Saves on the order,
 // adds a review on the shop, and notifies the shop owner.
 // ---------------------------------------------------------------------------
+var RATING_DONE_HTML = function(v){ return '<div style="font-size:13px;color:var(--primary2);font-weight:700;">\u2705 You rated ' + v + '/10. Thank you!</div>'; };
+
+// Shows "already rated" on a rating box if this buyer has rated before.
+async function hydrateRatingBox(box){
+  if (box.dataset.hydrated || !currentUser) return;
+  box.dataset.hydrated = "1";
+  try {
+    var coll = box.dataset.kind === "parcel" ? "parcelRatings" : "reviews";
+    var snap = await window.EHUB.getDoc(window.EHUB.doc(window.EHUB.db, "shops", box.dataset.shop, coll, box.dataset.order + "_" + currentUser.uid));
+    if (snap.exists()){
+      var row = box.querySelector(".rate10-row");
+      if (row) row.outerHTML = RATING_DONE_HTML(snap.data().rating10);
+    }
+  } catch (e){ /* not rated yet, or rules block the read; buttons stay */ }
+}
+new MutationObserver(function(muts){
+  muts.forEach(function(m){
+    m.addedNodes.forEach(function(n){
+      if (n.nodeType !== 1) return;
+      if (n.matches && n.matches(".rate10-box")) hydrateRatingBox(n);
+      else if (n.querySelectorAll) n.querySelectorAll(".rate10-box").forEach(hydrateRatingBox);
+    });
+  });
+}).observe(document.body, { childList: true, subtree: true });
+
+// Two separate ratings per delivered order:
+//  - shop rating   -> shops/{shop}/reviews/{order}_{uid}        (shown under "Shop Reviews")
+//  - parcel rating -> shops/{shop}/parcelRatings/{order}_{uid}  (shown under "Parcel & Product Ratings")
 document.addEventListener("click", async function(e){
   var btn = e.target.closest ? e.target.closest(".rate10-btn") : null;
   if (!btn || !currentUser) return;
   var box = btn.closest(".rate10-box");
-  var val = Number(btn.dataset.val), orderId = btn.dataset.order, shopId = btn.dataset.shop, shopName = btn.dataset.shopname;
+  var val = Number(btn.dataset.val), kind = btn.dataset.kind || "shop";
+  var orderId = btn.dataset.order, shopId = btn.dataset.shop, shopName = btn.dataset.shopname, itemsTxt = btn.dataset.items || "";
   box.querySelectorAll(".rate10-btn").forEach(function(b){ b.disabled = true; });
+  var docId = orderId + "_" + currentUser.uid;
+  try {
+    if (kind === "parcel"){
+      await window.EHUB.setDoc(window.EHUB.doc(window.EHUB.db, "shops", shopId, "parcelRatings", docId), {
+        rating10: val, products: itemsTxt, orderId: orderId, shopId: shopId,
+        userName: userLabel(currentUser), userUid: currentUser.uid,
+        createdAt: window.EHUB.serverTimestamp()
+      });
+    } else {
+      await window.EHUB.setDoc(window.EHUB.doc(window.EHUB.db, "shops", shopId, "reviews", docId), {
+        rating: Math.max(1, Math.round(val / 2)), rating10: val, comment: "", kind: "shop",
+        orderId: orderId, userName: userLabel(currentUser), userUid: currentUser.uid,
+        createdAt: window.EHUB.serverTimestamp()
+      });
+    }
+  } catch (err){
+    console.error("Rating save failed:", err);
+    box.querySelectorAll(".rate10-btn").forEach(function(b){ b.disabled = false; });
+    alert("Could not submit your rating (" + (err.code || err.message) + "). " +
+      (String(err.code).indexOf("permission") !== -1 ? "The shop's Firestore rules need to allow ratings. See FIREBASE_UPDATE.md." : "Please try again."));
+    return;
+  }
+
+  // The rating is saved. Everything below is best-effort and must not undo it.
+  box.querySelector(".rate10-row").outerHTML = RATING_DONE_HTML(val);
+  try {
+    var upd = {}; upd["ratings." + kind + "_" + shopId] = val;
+    await window.EHUB.updateDoc(window.EHUB.doc(window.EHUB.db, "orders", orderId), upd);
+  } catch (e){ console.warn("Could not mark order as rated:", e); }
   try {
     var shopSnap = await window.EHUB.getDoc(window.EHUB.doc(window.EHUB.db, "shops", shopId));
     var ownerUid = shopSnap.exists() ? shopSnap.data().ownerUid : null;
-    var upd = {}; upd["ratings." + shopId] = val;
-    await window.EHUB.updateDoc(window.EHUB.doc(window.EHUB.db, "orders", orderId), upd);
-    await window.EHUB.addDoc(window.EHUB.collection(window.EHUB.db, "shops", shopId, "reviews"), {
-      rating: Math.max(1, Math.round(val / 2)), rating10: val, comment: "",
-      userName: userLabel(currentUser), userUid: currentUser.uid, orderId: orderId,
-      createdAt: window.EHUB.serverTimestamp()
-    });
     if (ownerUid){
       addNotification({
         type: "review",
-        title: userLabel(currentUser) + " rated order #" + orderId.slice(-6).toUpperCase() + ": " + val + "/10 \u2b50",
-        message: "Delivery rating for " + shopName,
+        title: kind === "parcel"
+          ? userLabel(currentUser) + " rated the parcel " + val + "/10 \u2b50"
+          : userLabel(currentUser) + " rated your shop " + val + "/10 \u2b50",
+        message: kind === "parcel"
+          ? "Order #" + orderId.slice(-6).toUpperCase() + " \u00b7 " + (itemsTxt || shopName)
+          : "Shop rating for " + shopName + " \u00b7 order #" + orderId.slice(-6).toUpperCase(),
         targetUids: [ownerUid],
-        link: "EnergyHub.html?openSellerOrders=1&shop=" + encodeURIComponent(shopId)
+        link: "EnergyHub.html?shop=" + encodeURIComponent(shopId)
       });
     }
-    box.innerHTML = '<div style="font-size:13px;color:var(--primary2);font-weight:700;">\u2705 You rated ' + val + '/10. Thank you!</div>';
-  } catch (err){
-    console.error("Rating failed:", err);
-    box.querySelectorAll(".rate10-btn").forEach(function(b){ b.disabled = false; });
-    alert("Could not submit your rating right now.");
-  }
+  } catch (e){ console.warn("Could not notify owner:", e); }
+  try {
+    if (currentProfileShop && currentProfileShop.id === shopId){ loadReviews(shopId); loadParcelRatings(shopId); }
+  } catch (e){}
 });
+
+// Shop profile: "Parcel & Product Ratings" section, separate from shop reviews.
+async function loadParcelRatings(shopId){
+  var listEl = document.getElementById("profParcelList");
+  var avgEl = document.getElementById("profParcelAvg");
+  if (!listEl) return;
+  listEl.innerHTML = '<div class="no-reviews">Loading...</div>';
+  try {
+    var q = window.EHUB.query(
+      window.EHUB.collection(window.EHUB.db, "shops", shopId, "parcelRatings"),
+      window.EHUB.orderBy("createdAt", "desc")
+    );
+    var snap = await window.EHUB.getDocs(q);
+    if (snap.empty){
+      listEl.innerHTML = '<div class="no-reviews">No parcel ratings yet.</div>';
+      avgEl.textContent = "";
+      return;
+    }
+    var total = 0, count = 0;
+    listEl.innerHTML = "";
+    snap.forEach(function(d){
+      var r = d.data();
+      total += Number(r.rating10 || 0); count++;
+      var card = document.createElement("div");
+      card.className = "review-card";
+      card.innerHTML =
+        '<div class="rv-stars">\u2605 ' + escapeHtml(String(r.rating10)) + '/10</div>' +
+        '<div class="rv-name">' + escapeHtml(r.userName || "Anonymous") + '</div>' +
+        (r.products ? '<div class="rv-comment">\ud83d\udce6 ' + escapeHtml(r.products) + '</div>' : '');
+      listEl.appendChild(card);
+    });
+    avgEl.textContent = "\u2605 " + (total / count).toFixed(1) + "/10 (" + count + ")";
+  } catch (err){
+    listEl.innerHTML = '<div class="no-reviews">Could not load parcel ratings right now.</div>';
+    console.error(err);
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Phase 4: Cart — stored locally on this device, grouped by shop
