@@ -1699,6 +1699,15 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
     ? '<div class="order-buyer-info">👤 ' + escapeHtml(order.buyerName || "Guest") + '</div>'
     : '';
 
+  var da = order.deliveryAddress;
+  var deliveryAddrHtml = da
+    ? '<div style="padding:8px 16px;font-size:12.5px;color:var(--textDark);line-height:1.4;border-top:1px solid var(--line);">' +
+        '<div style="font-weight:700;margin-bottom:2px;">\ud83d\udccd Deliver to (' + escapeHtml(da.label || "Address") + ')</div>' +
+        escapeHtml(da.fullName) + ' \u00b7 ' + escapeHtml(da.phone) + '<br>' + escapeHtml(da.text) +
+        (da.lat && da.lng ? '<br><a href="https://www.google.com/maps?q=' + da.lat + ',' + da.lng + '" target="_blank" rel="noopener" style="color:var(--primary2);font-weight:700;">Open in Maps</a>' : '') +
+      '</div>'
+    : '';
+
   var expectedDeliveryHtml = (!showBuyerInfo && !trackerFinished && order.expectedDeliveryAt)
     ? '<div style="font-size:11.5px;color:var(--textMuted);padding:0 16px 6px;">📅 Expected delivery by ' +
         formatDeliveryDateTime(order.expectedDeliveryAt) + '</div>'
@@ -1731,6 +1740,7 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
       '<span class="order-status-badge">' + TRACKER_STAGES[stageIdx] + '</span>' +
     '</div>' +
     buyerInfoHtml +
+    deliveryAddrHtml +
     itemsHtml +
     trackerHtml +
     expectedDeliveryHtml +
@@ -3994,6 +4004,23 @@ async function completeOrder(){
     var deliveryWindowMs = pickDeliveryWindowMs();
     var expectedDeliveryMs = Date.now() + deliveryWindowMs;
 
+    // Copy the chosen delivery address onto the order so the shop owner
+    // (and the buyer's order history) can see where it is going.
+    var deliveryAddress = null;
+    if (checkoutSelectedAddressId){
+      try {
+        var addrSnap = await window.EHUB.getDoc(window.EHUB.doc(window.EHUB.db, "addresses", checkoutSelectedAddressId));
+        if (addrSnap.exists()){
+          var ad = addrSnap.data();
+          deliveryAddress = {
+            label: ad.label || "", fullName: ad.fullName || "", phone: ad.phone || "",
+            text: [ad.house, ad.area, ad.landmark, (ad.city || "") + " - " + (ad.pincode || "")].filter(Boolean).join(", "),
+            city: ad.city || "", lat: ad.lat || null, lng: ad.lng || null
+          };
+        }
+      } catch (e){ console.warn("Could not read delivery address:", e); }
+    }
+
     var order = {
       buyerUid: currentUser.uid,
       buyerName: userLabel(currentUser),
@@ -4008,6 +4035,7 @@ async function completeOrder(){
       shopOwnerUids: Object.keys(shopOwnerUidsSet),
       total: pendingOrderTotal,
       status: "placed",
+      deliveryAddress: deliveryAddress,
       expectedDeliveryAt: expectedDeliveryMs,
       deliveryWindowMs: deliveryWindowMs,
       lastNotifiedStageIndex: -1,
@@ -4061,7 +4089,7 @@ async function completeOrder(){
         addNotification({
           type: "order",
           title: userLabel(currentUser) + " placed an order in " + s.shopName,
-          message: "Product: " + s.items.join(", ") + " | Placed by: " + userLabel(currentUser),
+          message: "Product: " + s.items.join(", ") + " | Placed by: " + userLabel(currentUser) + (deliveryAddress ? " | Deliver to: " + deliveryAddress.fullName + ", " + deliveryAddress.city : ""),
           targetUids: [s.ownerUid],
           link: "EnergyHub.html?openSellerOrders=1&shop=" + encodeURIComponent(shopId)
         });

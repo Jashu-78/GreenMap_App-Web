@@ -419,7 +419,10 @@ var SCHEMES = [
       ["Subsidy", "₹30,000 for 1kW, ₹60,000 for 2kW, ₹78,000 for 3kW+"],
       ["Eligible", "Residential rooftop solar owners"],
       ["Apply via", "pmsuryaghar.gov.in national portal"],
-      ["Payout time", "Typically 30-45 days after commissioning"]
+      ["Payout time", "Typically 30-45 days after commissioning"],
+      ["Progress (Aug 2026)", "50+ lakh households benefited, about ₹28,000 crore subsidy released, 14.6+ GW added"],
+      ["Budget 2026-27", "₹22,000 crore (raised from ₹17,000 crore in 2025-26)"],
+      ["Target", "1 crore households by March 2027"]
     ],
     steps: [
       "Go to the pmsuryaghar.gov.in national portal and register with your state, DISCOM, and electricity consumer number.",
@@ -447,7 +450,9 @@ var SCHEMES = [
       ["Subsidy", "30% central + 30% state, farmer pays ~10% (rest loan)"],
       ["Components", "A: Solar plants · B: Standalone pumps · C: Pump solarization"],
       ["Eligible", "Individual farmers, cooperatives, panchayats, FPOs"],
-      ["Apply via", "pmkusum.mnre.gov.in"]
+      ["Apply via", "pmkusum.mnre.gov.in"],
+      ["Status (2026)", "Completion deadline extended to 31 Mar 2027 for eligible projects; pending liabilities move to PM-KUSUM 2.0"],
+      ["PM-KUSUM 2.0", "Proposed upgrade, may add battery storage; not yet launched"]
     ],
     steps: [
       "Visit pmkusum.mnre.gov.in and pick the component that fits you: A (solar plant), B (standalone pump), or C (pump solarization).",
@@ -457,7 +462,7 @@ var SCHEMES = [
       "Get the system inspected and commissioned to trigger the central + state subsidy payout."
     ],
     regDate: "Launched 2019 — extended, ongoing",
-    expiryDate: "Extended to 31 Mar 2026 (may be revised further)",
+    expiryDate: "Original deadline 31 Mar 2026. Projects with PPA/NTP issued by 31 Dec 2025 can finish by 31 Mar 2027. PM-KUSUM 2.0 is being formulated.",
     benefitsFromGovt: "60% combined central + state subsidy on system cost",
     source: "https://mnre.gov.in/en/pradhan-mantri-kisan-urja-suraksha-evam-utthaan-mahabhiyaan-pm-kusum/",
     trust: 100
@@ -503,7 +508,9 @@ var SCHEMES = [
       ["Benefit", "Free 2kWp system + 5 years maintenance"],
       ["Eligible", "SC/ST households in Andhra Pradesh"],
       ["Backward Class support", "Up to ₹80,000 subsidy (₹60k central + ₹20k state)"],
-      ["Coordinated by", "DISCOMs and NREDCAP"]
+      ["Coordinated by", "DISCOMs and NREDCAP"],
+      ["Rollout scale", "NREDCAP programme covers about 1,198 MWp for roughly 5.99 lakh SC/ST beneficiaries"],
+      ["Jan 2026 auction", "233 MW of up-to-2 kW systems for 1,16,663 households, 19 developers selected"]
     ],
     steps: [
       "Confirm eligibility through your local welfare/DISCOM office with SC/ST community certificate.",
@@ -513,9 +520,9 @@ var SCHEMES = [
       "Five years of maintenance is covered automatically — no extra application needed."
     ],
     regDate: "AP state welfare initiative — ongoing",
-    expiryDate: "Target: 3 lakh connections by June 2025 (rolling)",
+    expiryDate: "Rolling rollout through NREDCAP tenders (latest auction Jan 2026)",
     benefitsFromGovt: "Fully free 2kWp system + 5 years free maintenance",
-    source: "https://www.eqmagpro.com/andhra-pradesh-targets-three-lakh-rooftop-solar-connections-by-june-2025-eq/",
+    source: "https://energetica-india.net/news/nredcap-announces-19-winners-for-233-mw-rooftop-solar-auction-in-andhra-pradesh",
     trust: 85
   },
   {
@@ -749,6 +756,148 @@ var SCHEMES = [
     benefitsFromGovt: "Commissioning extension + ALMM List-II exemption for qualifying projects",
     source: "https://solarquarter.com/2026/06/09/mnre-sets-june-30-2026-deadline-for-solar-project-extension-and-almm-exemption-applications-through-nise-portal/",
     trust: 100
+  },
+  {
+    id: "pm-surya-sarovar",
+    title: "PM Surya Sarovar Yojana (Floating Solar)",
+    org: "Ministry of New & Renewable Energy (MNRE)",
+    cat: ["central","solar"],
+    iconName: "sun",
+    domain: "mnre.gov.in",
+    benefit: "\u20b95,070 crore for 5,000 MW floating solar",
+    desc: "A new central scheme approved by the Union Cabinet in August 2026 to build 5,000 MW of floating solar on reservoirs and water bodies, paired with energy storage of at least two hours. It saves land and supports domestic making of floating platforms, cells, modules and batteries. It is aimed at states, utilities and developers, not individual households.",
+    specs: [
+      ["Outlay", "\u20b95,070 crore"],
+      ["Capacity", "5,000 MW floating solar PV"],
+      ["Storage", "Co-located storage of at least 2 hours (about 10,000 MWh)"],
+      ["Period", "FY2026-27 to FY2030-31, assistance continues to FY2032-33"],
+      ["Coverage", "All states and Union Territories"]
+    ],
+    steps: [
+      "Check whether your state or developer has suitable reservoirs or water bodies for floating solar.",
+      "Watch MNRE and your state nodal agency for the operational guidelines and bid calls.",
+      "Prepare a project proposal that includes the co-located storage requirement.",
+      "Use domestically made floating platforms, cells and modules where the guidelines require it.",
+      "Apply for central financial assistance once your project is selected."
+    ],
+    regDate: "Cabinet approved Aug 2026",
+    expiryDate: "Implementation FY2026-27 to FY2030-31",
+    benefitsFromGovt: "Central financial assistance for floating solar with storage",
+    source: "https://www.outlookbusiness.com/news/cabinet-clears-5070-cr-floating-solar-scheme-to-add-5000-mw-capacity",
+    trust: 90
+  },
+  {
+    id: "gobardhan-bioenergy",
+    title: "GOBARdhan: National Circular Bioenergy Scheme",
+    org: "Government of India (Union Cabinet approved)",
+    cat: ["central","farmer"],
+    iconName: "hybrid",
+    domain: "mnre.gov.in",
+    benefit: "\u20b923,731 crore outlay for compressed biogas",
+    desc: "A national scheme approved in August 2026 to expand compressed biogas (CBG) production from farm waste, cattle dung and other organic waste. It runs for ten years and can create extra income for farmers and rural communities. Detailed guidelines for applicants should be checked on official portals.",
+    specs: [
+      ["Outlay", "\u20b923,731 crore (\u20b9237.31 billion)"],
+      ["Period", "2026-27 to 2035-36"],
+      ["Focus", "Compressed biogas from organic and agricultural waste"],
+      ["Who benefits", "Farmers, rural communities, biogas plant developers"]
+    ],
+    steps: [
+      "Check official MNRE and state announcements for GOBARdhan guidelines and application windows.",
+      "Find out whether your village, cooperative or farm group can supply enough organic waste.",
+      "Register with your state nodal agency once applications open.",
+      "Prepare a plant or supply proposal with waste sourcing details.",
+      "Apply for the assistance available under the scheme and follow approval steps."
+    ],
+    regDate: "Cabinet approved Aug 2026",
+    expiryDate: "Scheme period 2026-27 to 2035-36",
+    benefitsFromGovt: "Central support for compressed biogas projects and rural waste-to-energy",
+    source: "https://mercomindia.com/daily-news-wrap-up-tamil-nadu-announces-top-up-subsidy-for-rooftop-solar",
+    trust: 85
+  },
+  {
+    id: "small-hydro-scheme",
+    title: "Small Hydro Power Development Scheme",
+    org: "Ministry of New & Renewable Energy (MNRE)",
+    cat: ["central"],
+    iconName: "hybrid",
+    domain: "mnre.gov.in",
+    benefit: "Support to add 1,500 MW small hydro by 2031",
+    desc: "A central scheme approved in March 2026 to speed up small hydropower projects and add about 1,500 MW of capacity by 2031. It is mainly for project developers, state agencies and hilly or canal-fed areas with suitable water flow.",
+    specs: [
+      ["Target", "1,500 MW small hydro by 2031"],
+      ["Approved", "Union Cabinet, March 2026"],
+      ["Who can apply", "Developers, state agencies, eligible local bodies"],
+      ["Check", "Official MNRE guidelines for outlay and eligibility"]
+    ],
+    steps: [
+      "Identify a site with reliable water flow, such as a canal drop or hill stream.",
+      "Contact your state nodal agency for hydro site clearance.",
+      "Prepare a detailed project report and get grid connection approval.",
+      "Apply under MNRE guidelines when the application window is open.",
+      "Build, test and commission the plant to claim the assistance."
+    ],
+    regDate: "Cabinet approved Mar 2026",
+    expiryDate: "Capacity target by 2031",
+    benefitsFromGovt: "Central assistance for small hydro development",
+    source: "https://indianinfrastructure.com/2026/09/11/policy-impetus-key-developments-in-the-renewable-energy-sector/",
+    trust: 80
+  },
+  {
+    id: "tn-rooftop-top-up",
+    title: "Tamil Nadu Rooftop Solar Top-Up Subsidy",
+    org: "Government of Tamil Nadu (with PM Surya Ghar)",
+    cat: ["otherstates","solar"],
+    iconName: "home",
+    domain: "tn.gov.in",
+    benefit: "Up to \u20b91,00,000 total for 3 kW",
+    desc: "Announced in Tamil Nadu's revised Budget 2026-27, this scheme adds a state top-up of \u20b922,000 on top of the \u20b978,000 central PM Surya Ghar subsidy, so a 3 kW home system can get up to \u20b91 lakh in total. The state has set aside \u20b950 crore. Final operating details should be confirmed with TNPDCL before applying.",
+    specs: [
+      ["Total subsidy", "Up to \u20b91,00,000 for a 3 kW system"],
+      ["Central share", "\u20b978,000 (PM Surya Ghar)"],
+      ["State top-up", "\u20b922,000"],
+      ["State allocation", "\u20b950 crore"],
+      ["Apply via", "PM Surya Ghar national portal (select Tamil Nadu)"]
+    ],
+    steps: [
+      "Open pmsuryaghar.gov.in and register by selecting Tamil Nadu and your electricity consumer number.",
+      "Apply for rooftop solar and wait for DISCOM feasibility approval.",
+      "Install through an empanelled vendor using panels that meet the ALMM list rules.",
+      "Submit the work completion report on the state rooftop portal.",
+      "Receive the central subsidy and, once the state scheme is operational, the top-up."
+    ],
+    regDate: "Announced Aug 2026 (revised Budget 2026-27)",
+    expiryDate: "Subject to \u20b950 crore state allocation",
+    benefitsFromGovt: "\u20b978,000 central + \u20b922,000 state subsidy for 3 kW",
+    source: "https://www.energetica-india.net/news/tamil-nadu-announces-residential-rooftop-solar-subsidy-of-up-to-inr-1-lakh",
+    trust: 90
+  },
+  {
+    id: "bihar-rooftop-top-up",
+    title: "Bihar Rooftop Solar Top-Up Subsidy",
+    org: "Government of Bihar (with PM Surya Ghar)",
+    cat: ["otherstates","solar"],
+    iconName: "home",
+    domain: "bihar.gov.in",
+    benefit: "Extra \u20b910,000/kW, up to \u20b920,000",
+    desc: "The Bihar Cabinet approved a \u20b91,000 crore state subsidy programme in August 2026 for residential rooftop solar. It gives \u20b910,000 per kW, up to \u20b920,000 per consumer, over and above the central PM Surya Ghar subsidy.",
+    specs: [
+      ["State top-up", "\u20b910,000 per kW, max \u20b920,000 per consumer"],
+      ["State outlay", "\u20b91,000 crore"],
+      ["Stacks with", "Central PM Surya Ghar subsidy"],
+      ["Apply via", "PM Surya Ghar national portal and Bihar DISCOMs"]
+    ],
+    steps: [
+      "Register on pmsuryaghar.gov.in with your Bihar DISCOM and consumer number.",
+      "Apply for rooftop solar and get DISCOM feasibility approval.",
+      "Install using an empanelled vendor.",
+      "Complete net metering and commissioning inspection.",
+      "Claim the central subsidy and then the state top-up as per Bihar guidelines."
+    ],
+    regDate: "Cabinet approved Aug 2026",
+    expiryDate: "Subject to state programme funding",
+    benefitsFromGovt: "Central subsidy + up to \u20b920,000 state top-up",
+    source: "https://www.energetica-india.net/keyword/pm-surya-ghar-muft-bijli-yojana-state-top-up",
+    trust: 85
   },
   {
     id: "test-expired-demo",

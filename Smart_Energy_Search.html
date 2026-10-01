@@ -477,7 +477,22 @@ var PRODUCTS = [
     specs:[["System","5kVA Hybrid Inverter + 4×590W Bifacial Panels (2.36 kW)"],["Battery","4×150Ah Tubular (600Ah total)"],["MPPT Efficiency",">93%"],["Battery Warranty","72 months"],["Panel Warranty","25 years performance"],["Features","Grid export, Wi-Fi monitoring, DSP control"]],
     pros:["Complete, ready-to-install kit from a trusted Indian brand","Grid export capability offsets cost further","Wi-Fi monitoring for real-time tracking"],
     cons:["Tubular batteries need more upkeep than lithium","Highest upfront cost among hybrid options here"],
-    why:"A real Luminous combo kit — inverter, batteries and bifacial panels bundled — priced at the manufacturer's own online store." }
+    why:"A real Luminous combo kit — inverter, batteries and bifacial panels bundled — priced at the manufacturer's own online store." },
+  { id:"p12", type:"Solar Panel", icon:"sun", brand:"JinkoSolar", name:"JinkoSolar Tiger Neo 590 (JKM590N-72HL4-BDV)", price:13000, capacityLabel:"590 W", efficiency:22.84, warranty:30, score:90, userRating:0, userCount:0, expertRating:0, bestFor:"Roof or ground sites that want the most power per panel from N-type TOPCon",
+    specs:[["Cell Type","N-type TOPCon, bifacial, glass-glass"],["Wattage","590 W"],["Efficiency","22.84%"],["Warranty","30 years linear power, 12 years product"],["Dimensions","About 2278 x 1134 mm (144 half-cell, 590 W class)"],["Price basis","Approx. street price, about Rs 22 per watt, varies by seller"]],
+    pros:["High 22.84% module efficiency","Bifacial design can add rear-side generation","Low degradation N-type cells with a 30-year power warranty"],
+    cons:["Imported brand: check ALMM/DCR eligibility before counting on PM Surya Ghar subsidy","Large, heavy panel needs a strong mounting structure","Prices differ widely between sellers, so compare Rs per watt"],
+    why:"Retailer listings show the same core specs for this 590 W model: 22.84% efficiency, bifacial TOPCon, and a 30-year power warranty. Compare Rs per watt, not Rs per panel." },
+  { id:"p13", type:"Wind Turbine", icon:"wind", brand:"SM Windsol", name:"SM Windsol WM-2000 (2 kW)", price:140000, capacityLabel:"2 kW", efficiency:0, warranty:0, score:72, userRating:0, userCount:0, expertRating:0, bestFor:"Open, windy sites with average wind above about 4.5 m/s",
+    specs:[["Turbine Type","Horizontal Axis, on-grid and hybrid options"],["Rated Power","2 kW"],["Rotor Diameter","3.2 m"],["Rated Wind Speed","9 m/s"],["Start-up Wind Speed","3 m/s"],["Price basis","Indicative estimate only. Supplier lists 'Get latest price', so ask for a quote"]],
+    pros:["Starts generating at a low 3 m/s wind speed","Small 3.2 m rotor suits smaller plots","Indian supplier with a full 0.45 kW to 20 kW range"],
+    cons:["Needs about 4.5 m/s average wind to make economic sense","Tower, installation and battery cost extra","No direct residential subsidy for small wind in India"],
+    why:"Real model data from an Indian supplier listing. Small wind pays off only on sites with steady wind, so measure your wind speed first." },
+  { id:"p14", type:"Wind Turbine", icon:"wind", brand:"SM Windsol", name:"SM Windsol WM-3000 (3 kW)", price:210000, capacityLabel:"3 kW", efficiency:0, warranty:0, score:72, userRating:0, userCount:0, expertRating:0, bestFor:"Farms and open plots with steady wind and higher power needs",
+    specs:[["Turbine Type","Horizontal Axis, on-grid and hybrid options"],["Rated Power","3 kW"],["Rotor Diameter","4 m"],["Rated Wind Speed","10 m/s"],["Start-up Wind Speed","3 m/s"],["Price basis","Indicative estimate only. Supplier lists 'Get latest price', so ask for a quote"]],
+    pros:["Low 3 m/s start-up wind speed","3 kW output suits farms and small commercial loads","Part of a scalable range from 1 kW to 20 kW"],
+    cons:["Rated output only at 10 m/s wind, so real output is lower on average sites","Installation, tower and batteries add to the total","Needs open land clear of buildings and trees"],
+    why:"Real model data from an Indian supplier listing. Check wind data for your exact site, because output falls sharply at lower wind speeds." }
 ];
 
 var BRANDS = Array.from(new Set(PRODUCTS.map(function(p){ return p.brand; })));
