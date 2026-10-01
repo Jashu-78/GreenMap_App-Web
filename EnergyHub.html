@@ -1389,7 +1389,7 @@ window.EHUB_setCurrentUser = function(user){
   if (typeof healStaleFollowNames === "function") healStaleFollowNames();
   if (user && window.EHUB){
     window.EHUB.setDoc(window.EHUB.doc(window.EHUB.db, "users", user.uid), {
-      name: userLabel(user), email: user.email || ""
+      name: userLabel(user), email: user.email || "", photoURL: user.photoURL || ""
     }, { merge: true }).catch(function(e){ console.warn("Could not save profile:", e); });
   }
 };
@@ -1409,8 +1409,8 @@ async function healStaleFollowNames(){
     var updates = [];
     snap.forEach(function(docSnap){
       var data = docSnap.data();
-      if (data.userName !== userLabel(currentUser)){
-        updates.push(window.EHUB.updateDoc(docSnap.ref, { userName: userLabel(currentUser), userEmail: currentUser.email || "" }));
+      if (data.userName !== userLabel(currentUser) || (currentUser.photoURL && data.userPhoto !== currentUser.photoURL)){
+        updates.push(window.EHUB.updateDoc(docSnap.ref, { userName: userLabel(currentUser), userEmail: currentUser.email || "", userPhoto: currentUser.photoURL || "" }));
       }
     });
     if (updates.length) await Promise.all(updates);
@@ -2514,14 +2514,18 @@ async function openFollowersSheet(shop){
     snap.forEach(function(d){ docs.push(d); });
     for (var di = 0; di < docs.length; di++){
       var fd = Object.assign({}, docs[di].data());
-      if (!fd.userName || fd.userName === "Someone"){
-        var found = reviewNames[fd.userId] || "";
-        if (!found){
-          try {
-            var us = await window.EHUB.getDoc(window.EHUB.doc(window.EHUB.db, "users", fd.userId));
-            if (us.exists()) found = us.data().name || (us.data().email ? us.data().email.split("@")[0] : "");
-          } catch (e){}
-        }
+      var needName = !fd.userName || fd.userName === "Someone";
+      var needPhoto = !fd.userPhoto;
+      if (needName || needPhoto){
+        var found = needName ? (reviewNames[fd.userId] || "") : "";
+        try {
+          var us = await window.EHUB.getDoc(window.EHUB.doc(window.EHUB.db, "users", fd.userId));
+          if (us.exists()){
+            var ud = us.data();
+            if (needName && !found) found = ud.name || (ud.email ? ud.email.split("@")[0] : "");
+            if (needPhoto && ud.photoURL) fd.userPhoto = ud.photoURL;
+          }
+        } catch (e){}
         if (found) fd.userName = found;
       }
       docs[di] = { data: (function(x){ return function(){ return x; }; })(fd) };
@@ -2534,7 +2538,11 @@ async function openFollowersSheet(shop){
       row.style.alignItems = "center";
       row.style.gap = "10px";
       row.innerHTML =
-        '<div class="menu-shop-icon">' + escapeHtml(followerName(f).charAt(0).toUpperCase()) + '</div>' +
+        '<div class="menu-shop-icon" style="overflow:hidden;padding:0;">' +
+          (f.userPhoto
+            ? '<img src="' + escapeHtml(f.userPhoto) + '" alt="" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;display:block;" onerror="this.outerHTML=\'' + escapeHtml(followerName(f).charAt(0).toUpperCase()) + '\'">'
+            : escapeHtml(followerName(f).charAt(0).toUpperCase())) +
+        '</div>' +
         '<div class="menu-shop-name">' + escapeHtml(followerName(f)) + '</div>';
       listEl.appendChild(row);
     });
@@ -3160,6 +3168,7 @@ document.getElementById("profFollowBtn").addEventListener("click", async functio
         userId: currentUser.uid,
         userName: userLabel(currentUser),
         userEmail: currentUser.email || "",
+        userPhoto: currentUser.photoURL || "",
         shopId: shop.id,
         shopName: shop.name || "",
         createdAt: window.EHUB.serverTimestamp()
