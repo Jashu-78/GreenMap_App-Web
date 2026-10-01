@@ -354,6 +354,33 @@
   <div class="menu-items">
     <div class="menu-item" onclick="toggleMenu(false); toggleSettings(true);"><span class="menu-item-icon">⚙️</span> <span data-i18n="settings">Settings</span></div>
     <div class="menu-item" onclick="toggleMenu(false); toggleAbout(true);"><span class="menu-item-icon">ℹ️</span> <span data-i18n="app_info">App Info</span></div>
+    <div class="menu-item" onclick="toggleMenu(false); toggleFeedback(true);"><span class="menu-item-icon">💬</span> <span>Feedback</span></div>
+    <div class="menu-item" id="adminUpdateMenuItem" style="display:none;" onclick="toggleMenu(false); toggleAdminUpdate(true);"><span class="menu-item-icon">📢</span> <span>Post App Update (Admin)</span></div>
+  </div>
+</div>
+
+
+<div id="feedbackOverlay" class="notif-overlay" onclick="toggleFeedback(false)"></div>
+<div id="feedbackPanel" class="notif-panel">
+  <div class="notif-header"><span>Feedback</span><button class="notif-close" onclick="toggleFeedback(false)">✕</button></div>
+  <div class="about-body">
+    <div class="about-text">How are you finding GreenMap AI? Rate us from 1 to 10 and tell us what to improve.</div>
+    <div id="fbRatingRow" style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;"></div>
+    <textarea id="fbMessage" rows="5" placeholder="Write your feedback..." style="width:100%;padding:10px;border:1px solid #DCEAE1;border-radius:10px;font-family:inherit;font-size:14px;"></textarea>
+    <button type="button" id="fbSubmitBtn" onclick="submitFeedback()" style="margin-top:12px;width:100%;padding:12px;border:none;border-radius:10px;background:#1B4332;color:#fff;font-weight:700;font-size:14px;">Send Feedback</button>
+    <div id="fbStatus" style="margin-top:10px;font-size:13px;"></div>
+  </div>
+</div>
+
+<div id="adminUpdateOverlay" class="notif-overlay" onclick="toggleAdminUpdate(false)"></div>
+<div id="adminUpdatePanel" class="notif-panel">
+  <div class="notif-header"><span>Post App Update</span><button class="notif-close" onclick="toggleAdminUpdate(false)">✕</button></div>
+  <div class="about-body">
+    <div class="about-text">Sends a notification to every user. List the new features and their details.</div>
+    <input id="auTitle" type="text" placeholder="Title (e.g. Version 2.1 is live)" style="width:100%;margin-top:10px;padding:10px;border:1px solid #DCEAE1;border-radius:10px;font-size:14px;">
+    <textarea id="auDetails" rows="6" placeholder="New features and details..." style="width:100%;margin-top:10px;padding:10px;border:1px solid #DCEAE1;border-radius:10px;font-family:inherit;font-size:14px;"></textarea>
+    <button type="button" onclick="publishAppUpdate()" style="margin-top:12px;width:100%;padding:12px;border:none;border-radius:10px;background:#1B4332;color:#fff;font-weight:700;font-size:14px;">Publish to all users</button>
+    <div id="auStatus" style="margin-top:10px;font-size:13px;"></div>
   </div>
 </div>
 
@@ -941,6 +968,33 @@
     document.getElementById('aboutOverlay').classList.toggle('open', open);
     document.getElementById('aboutPanel').classList.toggle('open', open);
   }
+  var fbRating = 0;
+  function toggleFeedback(open){
+    document.getElementById('feedbackOverlay').classList.toggle('open', open);
+    document.getElementById('feedbackPanel').classList.toggle('open', open);
+    if (open){
+      var row = document.getElementById('fbRatingRow');
+      if (!row.children.length){
+        for (var n = 1; n <= 10; n++){
+          var b = document.createElement('button');
+          b.type = 'button'; b.textContent = n; b.dataset.val = n;
+          b.style.cssText = 'width:32px;height:32px;border-radius:8px;border:1px solid #2D6A4F;background:#fff;color:#1B4332;font-weight:700;';
+          b.onclick = function(){
+            fbRating = Number(this.dataset.val);
+            Array.prototype.forEach.call(row.children, function(x){
+              var on = Number(x.dataset.val) <= fbRating;
+              x.style.background = on ? '#1B4332' : '#fff'; x.style.color = on ? '#fff' : '#1B4332';
+            });
+          };
+          row.appendChild(b);
+        }
+      }
+    }
+  }
+  function toggleAdminUpdate(open){
+    document.getElementById('adminUpdateOverlay').classList.toggle('open', open);
+    document.getElementById('adminUpdatePanel').classList.toggle('open', open);
+  }
   function toggleLanguage(open){
     document.getElementById('langOverlay').classList.toggle('open', open);
     document.getElementById('langPanel').classList.toggle('open', open);
@@ -1268,7 +1322,7 @@ window.addEventListener('load', function(){
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, where, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAWp6wb0nSg2xOMNDCDzpwBV6k27AxIBn4",
@@ -1340,6 +1394,9 @@ window.GM_onLangChange = function(){ updateProfileUI(auth.currentUser); };
 // already signed in from the EnergyHub page), and also updates live.
 onAuthStateChanged(auth, function(user){
   updateProfileUI(user);
+  var adminItem = document.getElementById("adminUpdateMenuItem");
+  if (adminItem) adminItem.style.display = (user && user.email === ADMIN_EMAIL) ? "flex" : "none";
+  registerUserAndNotify(user);
 });
 
 // Resolves the first time Firebase Auth finishes restoring (or confirming
@@ -1435,6 +1492,77 @@ async function notifyAdminOfLogin(user){
   }
 }
 
+
+// ---------------------------------------------------------------------------
+// New-user alert, feedback, and admin app-update broadcast
+// ---------------------------------------------------------------------------
+async function registerUserAndNotify(user){
+  if (!user || !user.email) return;
+  try {
+    var uref = doc(db, "users", user.uid);
+    var usnap = await getDoc(uref);
+    if (usnap.exists()) return;
+    await setDoc(uref, { email: user.email, name: user.displayName || "", createdAt: serverTimestamp() });
+    if (user.email !== ADMIN_EMAIL){
+      await addDoc(collection(db, "notifications"), {
+        type: "new_user",
+        title: "New user: " + (user.displayName || user.email),
+        message: user.email + " signed in with Google for the first time",
+        targetEmails: [ADMIN_EMAIL],
+        createdAt: serverTimestamp()
+      });
+    }
+  } catch (err){
+    console.warn("Could not register user:", err);
+  }
+}
+
+window.submitFeedback = async function(){
+  var msg = document.getElementById("fbMessage").value.trim();
+  var status = document.getElementById("fbStatus");
+  var rating = window.fbRating || (typeof fbRating !== "undefined" ? fbRating : 0);
+  if (!rating){ status.style.color = "#b3261e"; status.textContent = "Please pick a rating from 1 to 10."; return; }
+  var user = auth.currentUser;
+  var who = user ? (user.displayName || user.email) : "Guest";
+  try {
+    await addDoc(collection(db, "feedback"), {
+      rating: rating, message: msg, userName: who, email: user ? user.email : "",
+      uid: user ? user.uid : "", createdAt: serverTimestamp()
+    });
+    await addDoc(collection(db, "notifications"), {
+      type: "feedback",
+      title: "Feedback from " + who + ": " + rating + "/10",
+      message: msg || "No written message",
+      targetEmails: [ADMIN_EMAIL],
+      createdAt: serverTimestamp()
+    });
+    status.style.color = "#1B4332"; status.textContent = "Thank you! Your feedback was sent.";
+    document.getElementById("fbMessage").value = "";
+  } catch (err){
+    console.error(err);
+    status.style.color = "#b3261e"; status.textContent = "Could not send feedback right now.";
+  }
+};
+
+window.publishAppUpdate = async function(){
+  var user = auth.currentUser;
+  var status = document.getElementById("auStatus");
+  if (!user || user.email !== ADMIN_EMAIL){ status.textContent = "Admin only."; return; }
+  var title = document.getElementById("auTitle").value.trim();
+  var details = document.getElementById("auDetails").value.trim();
+  if (!title || !details){ status.style.color = "#b3261e"; status.textContent = "Add a title and details."; return; }
+  try {
+    await addDoc(collection(db, "notifications"), {
+      type: "update", title: "\ud83d\ude80 " + title, message: details, createdAt: serverTimestamp()
+    });
+    status.style.color = "#1B4332"; status.textContent = "Published to all users.";
+    document.getElementById("auTitle").value = ""; document.getElementById("auDetails").value = "";
+  } catch (err){
+    console.error(err);
+    status.style.color = "#b3261e"; status.textContent = "Could not publish right now.";
+  }
+};
+
 window.toggleLogin = async function(){
   var loginBtn = document.getElementById("loginBtn");
   try {
@@ -1509,6 +1637,10 @@ function notifIconFor(type){
   if (type === "update") return "🆕";
   if (type === "order") return "📦";
   if (type === "login") return "👤";
+  if (type === "payment") return "\ud83d\udcb0";
+  if (type === "review") return "\u2b50";
+  if (type === "feedback") return "\ud83d\udcac";
+  if (type === "new_user") return "\ud83c\udd95";
   if (type === "follow") return "👥";
   return "🔔";
 }

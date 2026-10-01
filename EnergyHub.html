@@ -1363,6 +1363,18 @@ async function findPlaceOnMap(){
 // Phase 2: Add My Shop — sign in, drop a pin, fill details, save to Firestore
 // ---------------------------------------------------------------------------
 var currentUser = null;
+// Best available display name: Google name -> email prefix -> "Someone".
+function userLabel(u){
+  if (!u) return "Someone";
+  if (u.displayName && u.displayName.trim()) return u.displayName.trim();
+  if (u.email) return u.email.split("@")[0];
+  return "Someone";
+}
+function followerName(f){
+  if (f.userName && f.userName !== "Someone") return f.userName;
+  if (f.userEmail) return f.userEmail.split("@")[0];
+  return "Someone";
+}
 // Keeps the local `currentUser` (used everywhere in this script) in sync
 // with `window.currentUser` (set by the Firebase auth listener in the
 // module script). Without this, an already-signed-in session (auto
@@ -1382,7 +1394,7 @@ window.EHUB_setCurrentUser = function(user){
 // follower's name. Whenever someone signs in with a real display name,
 // quietly fix up any of THEIR OWN follow docs that don't match it yet.
 async function healStaleFollowNames(){
-  if (!currentUser || !currentUser.displayName) return;
+  if (!currentUser) return;
   try {
     var q = window.EHUB.query(
       window.EHUB.collection(window.EHUB.db, "follows"),
@@ -1392,8 +1404,8 @@ async function healStaleFollowNames(){
     var updates = [];
     snap.forEach(function(docSnap){
       var data = docSnap.data();
-      if (data.userName !== currentUser.displayName){
-        updates.push(window.EHUB.updateDoc(docSnap.ref, { userName: currentUser.displayName }));
+      if (data.userName !== userLabel(currentUser)){
+        updates.push(window.EHUB.updateDoc(docSnap.ref, { userName: userLabel(currentUser), userEmail: currentUser.email || "" }));
       }
     });
     if (updates.length) await Promise.all(updates);
@@ -1578,7 +1590,7 @@ function maybeNotifyDelivered(orderId, order, itemsForThisView, showBuyerInfo){
     addNotification({
       type: "order",
       title: "How was your order? ⭐",
-      message: "Tap to rate your order #" + orderId.slice(-6).toUpperCase() + " and leave feedback.",
+      message: "Rate your order #" + orderId.slice(-6).toUpperCase() + " from 1 to 10. Your rating goes straight to the shop owner.",
       targetUids: [order.buyerUid],
       link: "EnergyHub.html?openOrders=1"
     });
@@ -1687,6 +1699,27 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
         formatDeliveryDateTime(order.expectedDeliveryAt) + '</div>'
     : '';
 
+  var rateHtml = "";
+  if (!showBuyerInfo && trackerFinished){
+    var seenShops = {};
+    (order.items || []).forEach(function(it){ seenShops[it.shopId] = it.shopName; });
+    Object.keys(seenShops).forEach(function(sid){
+      var given = order.ratings && order.ratings[sid];
+      rateHtml += '<div class="rate10-box" style="padding:10px 16px;border-top:1px solid var(--line);">' +
+        '<div style="font-size:12.5px;font-weight:700;color:var(--textDark);margin-bottom:6px;">Rate ' + escapeHtml(seenShops[sid]) + ' (1\u201310)</div>';
+      if (given){
+        rateHtml += '<div style="font-size:13px;color:var(--primary2);font-weight:700;">\u2705 You rated ' + given + '/10. Thank you!</div>';
+      } else {
+        rateHtml += '<div style="display:flex;flex-wrap:wrap;gap:6px;">';
+        for (var n = 1; n <= 10; n++){
+          rateHtml += '<button type="button" class="rate10-btn" data-val="' + n + '" data-order="' + orderId + '" data-shop="' + sid + '" data-shopname="' + escapeHtml(seenShops[sid]) + '" style="width:30px;height:30px;border-radius:8px;border:1px solid var(--primary2);background:#fff;color:var(--primary);font-weight:700;font-size:13px;">' + n + '</button>';
+        }
+        rateHtml += '</div>';
+      }
+      rateHtml += '</div>';
+    });
+  }
+
   return '<div class="order-card">' +
     '<div class="order-card-head">' +
       '<span class="order-id-text">' + formatOrderDate(createdAtDate) + ' · #' + orderId.slice(-6).toUpperCase() + '</span>' +
@@ -1697,6 +1730,7 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
     trackerHtml +
     expectedDeliveryHtml +
     '<div class="order-total-row"><span>' + (showBuyerInfo ? "Your items total" : "Order Total") + '</span><span>₹' + (showBuyerInfo ? itemsSubtotal : order.total).toLocaleString("en-IN") + '</span></div>' +
+    rateHtml +
   '</div>';
 }
 
@@ -2472,8 +2506,8 @@ async function openFollowersSheet(shop){
       row.style.alignItems = "center";
       row.style.gap = "10px";
       row.innerHTML =
-        '<div class="menu-shop-icon">' + escapeHtml((f.userName || "?").charAt(0).toUpperCase()) + '</div>' +
-        '<div class="menu-shop-name">' + escapeHtml(f.userName || "Someone") + '</div>';
+        '<div class="menu-shop-icon">' + escapeHtml(followerName(f).charAt(0).toUpperCase()) + '</div>' +
+        '<div class="menu-shop-name">' + escapeHtml(followerName(f)) + '</div>';
       listEl.appendChild(row);
     });
   } catch (err){
@@ -3096,7 +3130,8 @@ document.getElementById("profFollowBtn").addEventListener("click", async functio
     } else {
       await window.EHUB.setDoc(ref, {
         userId: currentUser.uid,
-        userName: currentUser.displayName || "Someone",
+        userName: userLabel(currentUser),
+        userEmail: currentUser.email || "",
         shopId: shop.id,
         shopName: shop.name || "",
         createdAt: window.EHUB.serverTimestamp()
@@ -3105,8 +3140,8 @@ document.getElementById("profFollowBtn").addEventListener("click", async functio
       if (shop.ownerUid){
         addNotification({
           type: "follow",
-          title: (currentUser.displayName || "Someone") + " started following your shop",
-          message: shop.name,
+          title: "New follower: " + userLabel(currentUser),
+          message: userLabel(currentUser) + " started following " + shop.name,
           targetUids: [shop.ownerUid],
           link: "EnergyHub.html?openFollowers=1&shop=" + encodeURIComponent(shop.id)
         });
@@ -3430,7 +3465,7 @@ async function loadReviews(shopId){
       var card = document.createElement("div");
       card.className = "review-card";
       card.innerHTML =
-        '<div class="rv-stars">' + "★".repeat(r.rating || 0) + "☆".repeat(5 - (r.rating || 0)) + '</div>' +
+        '<div class="rv-stars">' + (r.rating10 ? "★ " + r.rating10 + "/10" : "★".repeat(r.rating || 0) + "☆".repeat(5 - (r.rating || 0))) + '</div>' +
         '<div class="rv-name">' + escapeHtml(r.userName || "Anonymous") + '</div>' +
         (r.comment ? '<div class="rv-comment">' + escapeHtml(r.comment) + '</div>' : '');
       listEl.appendChild(card);
@@ -3489,7 +3524,7 @@ document.getElementById("reviewForm").addEventListener("submit", async function(
   var newReview = {
     rating: selectedReviewStars,
     comment: document.getElementById("reviewComment").value.trim(),
-    userName: currentUser.displayName || "Anonymous",
+    userName: userLabel(currentUser),
     userUid: currentUser.uid,
     createdAt: window.EHUB.serverTimestamp()
   };
@@ -3499,6 +3534,15 @@ document.getElementById("reviewForm").addEventListener("submit", async function(
       window.EHUB.collection(window.EHUB.db, "shops", currentProfileShop.id, "reviews"),
       newReview
     );
+    if (currentProfileShop.ownerUid){
+      addNotification({
+        type: "review",
+        title: userLabel(currentUser) + " rated your shop " + selectedReviewStars + "/5 \u2b50",
+        message: newReview.comment ? "\u201c" + newReview.comment + "\u201d" : "No written comment",
+        targetUids: [currentProfileShop.ownerUid],
+        link: "EnergyHub.html?shop=" + encodeURIComponent(currentProfileShop.id)
+      });
+    }
     saveBtn.disabled = false;
     saveBtn.textContent = originalLabel;
     closeSheet(reviewSheet);
@@ -3509,6 +3553,44 @@ document.getElementById("reviewForm").addEventListener("submit", async function(
     errorBox.textContent = "Could not submit your review. Please try again.";
     errorBox.classList.add("show");
     console.error(err);
+  }
+});
+
+
+// ---------------------------------------------------------------------------
+// 1-10 delivery rating: shown on a delivered order. Saves on the order,
+// adds a review on the shop, and notifies the shop owner.
+// ---------------------------------------------------------------------------
+document.addEventListener("click", async function(e){
+  var btn = e.target.closest ? e.target.closest(".rate10-btn") : null;
+  if (!btn || !currentUser) return;
+  var box = btn.closest(".rate10-box");
+  var val = Number(btn.dataset.val), orderId = btn.dataset.order, shopId = btn.dataset.shop, shopName = btn.dataset.shopname;
+  box.querySelectorAll(".rate10-btn").forEach(function(b){ b.disabled = true; });
+  try {
+    var shopSnap = await window.EHUB.getDoc(window.EHUB.doc(window.EHUB.db, "shops", shopId));
+    var ownerUid = shopSnap.exists() ? shopSnap.data().ownerUid : null;
+    var upd = {}; upd["ratings." + shopId] = val;
+    await window.EHUB.updateDoc(window.EHUB.doc(window.EHUB.db, "orders", orderId), upd);
+    await window.EHUB.addDoc(window.EHUB.collection(window.EHUB.db, "shops", shopId, "reviews"), {
+      rating: Math.max(1, Math.round(val / 2)), rating10: val, comment: "",
+      userName: userLabel(currentUser), userUid: currentUser.uid, orderId: orderId,
+      createdAt: window.EHUB.serverTimestamp()
+    });
+    if (ownerUid){
+      addNotification({
+        type: "review",
+        title: userLabel(currentUser) + " rated order #" + orderId.slice(-6).toUpperCase() + ": " + val + "/10 \u2b50",
+        message: "Delivery rating for " + shopName,
+        targetUids: [ownerUid],
+        link: "EnergyHub.html?openSellerOrders=1&shop=" + encodeURIComponent(shopId)
+      });
+    }
+    box.innerHTML = '<div style="font-size:13px;color:var(--primary2);font-weight:700;">\u2705 You rated ' + val + '/10. Thank you!</div>';
+  } catch (err){
+    console.error("Rating failed:", err);
+    box.querySelectorAll(".rate10-btn").forEach(function(b){ b.disabled = false; });
+    alert("Could not submit your rating right now.");
   }
 });
 
@@ -3877,7 +3959,7 @@ async function completeOrder(){
 
     var order = {
       buyerUid: currentUser.uid,
-      buyerName: currentUser.displayName || "Guest",
+      buyerName: userLabel(currentUser),
       items: pendingOrderItems.map(function(it){
         return {
           shopId: it.shopId, shopName: it.shopName, productId: it.productId,
@@ -3934,8 +4016,15 @@ async function completeOrder(){
       if (s.ownerUid){
         addNotification({
           type: "order",
-          title: (currentUser.displayName || "Someone") + " placed an order in " + s.shopName,
-          message: s.items.join(", "),
+          title: "Payment received \u20b9" + s.revenue.toLocaleString("en-IN") + " \ud83d\udcb0",
+          message: "Paid successfully by " + userLabel(currentUser) + " for: " + s.items.join(", "),
+          targetUids: [s.ownerUid],
+          link: "EnergyHub.html?openSellerOrders=1&shop=" + encodeURIComponent(shopId)
+        });
+        addNotification({
+          type: "order",
+          title: userLabel(currentUser) + " placed an order in " + s.shopName,
+          message: "Product: " + s.items.join(", ") + " | Placed by: " + userLabel(currentUser),
           targetUids: [s.ownerUid],
           link: "EnergyHub.html?openSellerOrders=1&shop=" + encodeURIComponent(shopId)
         });
