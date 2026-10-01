@@ -244,7 +244,7 @@
 #homeScreen .agent-icon-btn{width:38px;height:38px;border-radius:50%;background:var(--accent);color:var(--primaryDeep);border:none;font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .15s ease,transform .1s ease;}
 #homeScreen .agent-icon-btn:active{transform:scale(0.93);}
 #homeScreen .agent-icon-btn.is-open{background:var(--primaryDeep);color:#fff;}
-#homeScreen .agent-options-popup{display:none;border-top:1px solid var(--line);background:#fff;}
+#homeScreen .agent-options-popup{display:none;border-top:1px solid var(--line);background:#fff;max-height:38vh;overflow-y:auto;flex-shrink:0;}
 #homeScreen .agent-options-popup.open{display:block;}
 #homeScreen .agent-chart-popup{display:none;padding:12px;border-top:1px solid var(--line);background:#fff;max-height:260px;overflow-y:auto;font-size:12.5px;color:var(--textDark);}
 #homeScreen .agent-chart-popup.open{display:block;}
@@ -700,26 +700,28 @@
 
 
   // ---------- EMBER quick replies + advice (rule-based, uses the app's own data) ----------
-  var EMBER_LINKS = [
-    { href: "Smart_Energy_Search.html", label: "\uD83D\uDD0D Smart Energy Search" },
-    { href: "Energy_Scope.html", label: "\uD83D\uDDFA\uFE0F EnergyScope" },
-    { href: "EnergyHub.html", label: "\uD83C\uDFEA EnergyHub" },
-    { href: "Govt_Schemes.html", label: "\uD83C\uDFDB\uFE0F Govt Schemes" }
-  ];
+  function EMBER_LINKS(){
+    return [
+      { id: "Smart Energy Search", href: "Smart_Energy_Search.html", label: gmT("link_ses_short") },
+      { id: "EnergyScope", href: "Energy_Scope.html", label: gmT("link_es_short") },
+      { id: "EnergyHub", href: "EnergyHub.html", label: gmT("link_hub_short") },
+      { id: "Govt Schemes", href: "Govt_Schemes.html", label: gmT("link_govt_short") }
+    ];
+  }
 
   // ---------- EMBER follow-up questions: random, based on what was just answered ----------
   var EMBER_QS = [
-    { id: "solar",  t: "Do you want to check solar panels?", href: "Smart_Energy_Search.html", page: "Smart Energy Search", on: ["chart","overview","reduce","habits","link"] },
-    { id: "wind",   t: "Do you want to check wind turbines?", href: "Smart_Energy_Search.html", page: "Smart Energy Search", on: ["chart","overview","link"] },
-    { id: "compare",t: "Want to compare products by AI suitability score, price and rating?", href: "Smart_Energy_Search.html", page: "Smart Energy Search", on: ["reduce","overview","link"] },
-    { id: "temp",   t: "Do you want to check your area temperature?", href: "Energy_Scope.html", page: "EnergyScope", on: ["overview","habits","link","chart"] },
-    { id: "potent", t: "Do you want to see solar and wind potential in your district?", href: "Energy_Scope.html", page: "EnergyScope", on: ["chart","overview","link"] },
-    { id: "shops",  t: "Do you want to check nearby shops?", href: "EnergyHub.html", page: "EnergyHub", on: ["chart","reduce","overview","link","habits"] },
-    { id: "trend",  t: "Want to see top and trending products in local shops?", href: "EnergyHub.html", page: "EnergyHub", on: ["reduce","link"] },
-    { id: "subsidy",t: "Do you want to check government subsidies for solar?", href: "Govt_Schemes.html", page: "Govt Schemes", on: ["chart","overview","habits","link"] },
-    { id: "notify", t: "Want to get notified when new government schemes open?", href: "Govt_Schemes.html", page: "Govt Schemes", on: ["overview","link"] },
-    { id: "farmer", t: "Are you a farmer? Want to see schemes for farmers?", href: "Govt_Schemes.html", page: "Govt Schemes", on: ["link","overview"] },
-    { id: "usage",  t: "Do you want to see your usage chart?", href: "", page: "", on: ["habits","link","overview"] }
+    { id: "solar",  key: "q_solar",  href: "Smart_Energy_Search.html", page: "Smart Energy Search", on: ["chart","overview","reduce","habits","link"] },
+    { id: "wind",   key: "q_wind",   href: "Smart_Energy_Search.html", page: "Smart Energy Search", on: ["chart","overview","link"] },
+    { id: "compare",key: "q_compare",href: "Smart_Energy_Search.html", page: "Smart Energy Search", on: ["reduce","overview","link"] },
+    { id: "temp",   key: "q_temp",   href: "Energy_Scope.html", page: "EnergyScope", on: ["overview","habits","link","chart"] },
+    { id: "potent", key: "q_potent", href: "Energy_Scope.html", page: "EnergyScope", on: ["chart","overview","link"] },
+    { id: "shops",  key: "q_shops",  href: "EnergyHub.html", page: "EnergyHub", on: ["chart","reduce","overview","link","habits"] },
+    { id: "trend",  key: "q_trend",  href: "EnergyHub.html", page: "EnergyHub", on: ["reduce","link"] },
+    { id: "subsidy",key: "q_subsidy",href: "Govt_Schemes.html", page: "Govt Schemes", on: ["chart","overview","habits","link"] },
+    { id: "notify", key: "q_notify", href: "Govt_Schemes.html", page: "Govt Schemes", on: ["overview","link"] },
+    { id: "farmer", key: "q_farmer", href: "Govt_Schemes.html", page: "Govt Schemes", on: ["link","overview"] },
+    { id: "usage",  key: "q_usage",  href: "", page: "", on: ["habits","link","overview"] }
   ];
   var emberAsked = [], emberPendingQ = null;
   function emberAskRandom(topic){
@@ -732,15 +734,15 @@
     emberAsked.push(q.id); if (emberAsked.length > 5) emberAsked.shift();
     emberPendingQ = q;
     var yes = q.href
-      ? '<a class="ember-chip" href="' + q.href + '">Yes, take me</a>'
-      : '<button class="ember-chip" onclick="emberAsk(\'Show my usage chart\')">Yes, show it</button>';
-    agentAddMsg('<div>' + q.t + '</div><div class="ember-sug">' + yes +
-      '<button class="ember-chip" onclick="emberDecline()">No thanks</button></div>', "bot");
+      ? '<a class="ember-chip" href="' + q.href + '">' + gmT("yes_take_me") + '</a>'
+      : '<button class="ember-chip" onclick="emberAsk(\'' + gmT("opt_chart") + '\')">' + gmT("yes_show_it") + '</button>';
+    agentAddMsg('<div>' + gmT(q.key) + '</div><div class="ember-sug">' + yes +
+      '<button class="ember-chip" onclick="emberDecline()">' + gmT("no_thanks") + '</button></div>', "bot");
   }
   function emberDecline(){
-    agentAddMsg("No thanks", "user");
+    agentAddMsg(gmT("no_thanks"), "user");
     emberPendingQ = null;
-    agentAddMsg("No problem!", "bot");
+    agentAddMsg(gmT("no_problem"), "bot");
     emberAskRandom("link");
   }
   // Typed "yes"/"no" answers to the last question. Returns true if handled.
@@ -748,15 +750,17 @@
     if (!emberPendingQ) return false;
     var q = text.trim().toLowerCase(), pq = emberPendingQ;
     emberPendingQ = null;
-    if (/^(yes+|yeah+|yep|y|ok(ay)?|sure|go|take me)\b/.test(q)){
+    var yesWords = ["అవును","సరే","ఓకే","తీసుకెళ్లు","చూపించు"];
+    var noWords = ["వద్దు","కాదు","ఇప్పుడు వద్దు"];
+    if (/^(yes+|yeah+|yep|y|ok(ay)?|sure|go|take me)\b/.test(q) || gmHasAny(q, yesWords)){
       if (pq.href){
-        agentAddMsg("Opening " + pq.page + "\u2026", "bot");
+        agentAddMsg(gmT("ember_opening", { page: pq.page }), "bot");
         setTimeout(function(){ window.location.href = pq.href; }, 700);
       } else if (Object.keys(agentState.items).length) agentPostChart();
       return true;
     }
-    if (/^(no+|nah|nope|not now|no thanks)\b/.test(q)){
-      agentAddMsg("No problem!", "bot");
+    if (/^(no+|nah|nope|not now|no thanks)\b/.test(q) || gmHasAny(q, noWords)){
+      agentAddMsg(gmT("no_problem"), "bot");
       emberAskRandom("link");
       return true;
     }
@@ -767,35 +771,34 @@
   var EMBER_GLOGO = '<svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
   function emberGoogleRow(text){
     var url = "https://www.google.com/search?q=" + encodeURIComponent(text);
-    return '<div class="ember-sug"><a class="ember-chip ember-gbtn" href="' + url + '" target="_blank" rel="noopener">' + EMBER_GLOGO + '<span>Search on Google</span></a></div>';
+    return '<div class="ember-sug"><a class="ember-chip ember-gbtn" href="' + url + '" target="_blank" rel="noopener">' + EMBER_GLOGO + '<span>' + gmT("ember_google_btn") + '</span></a></div>';
   }
   function emberOptions(){
-    var qs = ["Show my usage chart", "How to save the current?", "Do you want energy saving?", "What is this app?"];
-    return '<div class="ember-sug"><button class="ember-chip" onclick="toggleAgentOptions(true)">\uD83E\uDDEE Add my appliances</button>' +
-      qs.map(function(q){ return '<button class="ember-chip" onclick="emberAsk(\'' + q + '\')">' + q + '</button>'; }).join("") +
-      '</div><div class="ember-sug-title">Explore the app</div>' +
+    var qs = ["opt_chart", "opt_save", "opt_energy", "opt_about"];
+    return '<div class="ember-sug"><button class="ember-chip" onclick="toggleAgentOptions(true)">' + gmT("opt_add") + '</button>' +
+      qs.map(function(k){ return '<button class="ember-chip" onclick="emberAsk(\'' + gmT(k) + '\')">' + gmT(k) + '</button>'; }).join("") +
+      '</div><div class="ember-sug-title">' + gmT("explore_title") + '</div>' +
       emberLinkRow(["Smart Energy Search", "EnergyScope", "EnergyHub", "Govt Schemes"]);
   }
   function emberMenu(intro){ agentAddMsg('<div>' + intro + '</div>' + emberOptions(), "bot"); }
   function emberFallback(text){
-    agentAddMsg("<div>Sorry, I did not understand that. \uD83D\uDE0A This app can help you with these things:</div>" + emberOptions() +
-      '<div class="ember-sug-title">Or search it online</div>' + emberGoogleRow(text), "bot");
+    agentAddMsg('<div>' + gmT("ember_sorry") + '</div>' + emberOptions() +
+      '<div class="ember-sug-title">' + gmT("ember_search_online") + '</div>' + emberGoogleRow(text), "bot");
   }
-  var EMBER_INFO = {
-    what: "<b>GreenMap AI</b> is a smart renewable energy app for Andhra Pradesh. It brings together <b>Smart Energy Search</b> (compare solar and wind products), <b>EnergyScope AP</b> (solar and wind potential across the state), <b>EnergyHub</b> (local renewable energy shops) and <b>Govt Schemes</b>. I am EMBER, your energy advisor inside it.",
-    how: "<b>How it works</b><br>1. Tell me your appliances (for example \"2 bulbs, 1 fan\").<br>2. I show your daily units, monthly cost and the solar size you need.<br>3. Then explore: compare products, check your area's solar and wind potential and temperature, find nearby shops, and check government schemes.",
-    start: "<b>How it began</b><br>GreenMap AI started as a final-year college project with a simple goal: make it easier for people in Andhra Pradesh to discover renewable energy \u2014 where sun and wind are strongest, which local shops sell the equipment, and how to compare products before buying.",
-    team: "<b>Team 13</b><br>\u2022 <b>Jashu</b> \u2014 Creator &amp; Developer<br>\u2022 <b>Stephen</b> \u2014 Team Member<br>\u2022 <b>Hemanth</b> \u2014 Team Member<br>With guidance from <b>Dr. B Venkatesh</b> sir."
-  };
+  var EMBER_INFO_KEYS = { what: "info_what", how: "info_how", start: "info_start", team: "info_team" };
   function emberAppInfo(q){
     var k = null;
-    if (/creator|creat(ed|es)|developer|who (made|built|created|developed)|team|founder|made this|behind (this|the) app/.test(q)) k = "team";
-    else if (/how.*(start|began|begin)|when.*(start|began|begin)|history|origin/.test(q)) k = "start";
-    else if (/how.*(work|use)|how does|how it will|features|what can (you|this)/.test(q)) k = "how";
-    else if (/what is (this|the|greenmap)|about (this |the )?app|about greenmap|tell me about|who are you|what are you/.test(q)) k = "what";
-    else if (/^(help|menu|options)\b|what do you do/.test(q)){ emberMenu("This app can help you with these things:"); return true; }
+    if (/creator|creat(ed|es)|developer|who (made|built|created|developed)|team|founder|made this|behind (this|the) app/.test(q)
+      || gmHasAny(q, ["సృష్టికర్త","డెవలపర్","టీమ్","ఎవరు తయారు","ఎవరు చేశారు"])) k = "team";
+    else if (/how.*(start|began|begin)|when.*(start|began|begin)|history|origin/.test(q)
+      || gmHasAny(q, ["ఎలా మొదలైంది","ఎప్పుడు మొదలైంది","చరిత్ర"])) k = "start";
+    else if (/how.*(work|use)|how does|how it will|features|what can (you|this)/.test(q)
+      || gmHasAny(q, ["ఎలా పనిచేస్తుంది","ఎలా ఉపయోగించాలి","ఏమి చేయగలవు"])) k = "how";
+    else if (/what is (this|the|greenmap)|about (this |the )?app|about greenmap|tell me about|who are you|what are you/.test(q)
+      || gmHasAny(q, ["యాప్ అంటే ఏమిటి","యాప్ గురించి","నువ్వు ఎవరు","మీరు ఎవరు"])) k = "what";
+    else if (/^(help|menu|options)\b|what do you do/.test(q) || gmHasAny(q, ["సహాయం","మెనూ"])){ emberMenu(gmT("ember_help_menu")); return true; }
     if (!k) return false;
-    agentAddMsg(EMBER_INFO[k], "bot");
+    agentAddMsg(gmT(EMBER_INFO_KEYS[k]), "bot");
     emberAskRandom("link");
     return true;
   }
@@ -804,7 +807,7 @@
     i.value = t; agentSendText();
   }
   function emberLink(name){
-    return EMBER_LINKS.filter(function(l){ return l.label.indexOf(name) !== -1; })[0];
+    return EMBER_LINKS().filter(function(l){ return l.id === name; })[0];
   }
   function emberLinkRow(names){
     return '<div class="ember-sug">' + names.map(function(n){
@@ -812,10 +815,10 @@
     }).join("") + '</div>';
   }
   function emberSuggest(){
-    var qs = ["Do you want energy saving?", "How to save the current?", "How can I reduce my usage?"];
-    var html = '<div>What would you like to do next?</div><div class="ember-sug">' +
-      qs.map(function(q){ return '<button class="ember-chip" onclick="emberAsk(\'' + q + '\')">' + q + '</button>'; }).join("") +
-      '</div><div class="ember-sug-title">Explore the app</div>' +
+    var qs = ["opt_energy", "opt_save", "opt_reduce"];
+    var html = '<div>' + gmT("next_title") + '</div><div class="ember-sug">' +
+      qs.map(function(k){ return '<button class="ember-chip" onclick="emberAsk(\'' + gmT(k) + '\')">' + gmT(k) + '</button>'; }).join("") +
+      '</div><div class="ember-sug-title">' + gmT("explore_title") + '</div>' +
       emberLinkRow(["Smart Energy Search", "EnergyScope", "EnergyHub", "Govt Schemes"]);
     agentAddMsg(html, "bot");
     emberAskRandom("chart");
@@ -824,16 +827,16 @@
     var d = computeApplianceUsage();
     var rs = function(n){ return "\u20B9" + Math.round(n); };
     if (kind === "habits"){
-      agentAddMsg("<b>Easy ways to save current</b><br>\u2022 Switch off lights and fans when you leave the room<br>\u2022 Use LED bulbs and 5-star rated appliances<br>\u2022 Set AC to 24\u201326\u00B0C<br>\u2022 Unplug chargers and TVs on standby<br>\u2022 Run washing machines with full loads", "bot");
+      agentAddMsg(gmT("habits_tips"), "bot");
       emberAskRandom("habits"); return;
     }
     if (!d.rows.length){ agentAddMsg(gmT("ans_add_first"), "bot"); return; }
     var top = d.rows.slice().sort(function(a, b){ return b.kwh - a.kwh; })[0];
     if (kind === "reduce"){
       var save = top.watts * top.qty / 1000 * AGENT_DEFAULT_RATE * 30;
-      agentAddMsg("<b>" + top.label + "</b> uses the most (" + Math.round(top.kwh / d.daily * 100) + "% of your " + d.daily.toFixed(2) + " units/day). Using it 1 hour less a day saves about <b>" + rs(save) + "/month</b>. Swapping to an efficient model can save even more." + emberLinkRow(["Smart Energy Search", "EnergyHub"]), "bot");
+      agentAddMsg(gmT("advice_reduce", { label: agentLabel(agentAppliance(top.key)), pct: Math.round(top.kwh / d.daily * 100), daily: d.daily.toFixed(2), save: rs(save) }) + emberLinkRow(["Smart Energy Search", "EnergyHub"]), "bot");
     } else {
-      agentAddMsg("You spend about <b>" + rs(d.monthlyCost) + "/month</b>. A ~" + d.solarKw + " kW solar system could offset most of it, and government subsidies can lower the cost." + emberLinkRow(["Govt Schemes", "EnergyScope", "Smart Energy Search"]), "bot");
+      agentAddMsg(gmT("advice_overview", { amt: rs(d.monthlyCost), kw: d.solarKw }) + emberLinkRow(["Govt Schemes", "EnergyScope", "Smart Energy Search"]), "bot");
     }
     emberAskRandom(kind);
   }
@@ -842,15 +845,15 @@
     var q = text.toLowerCase();
     var has = Object.keys(agentState.items).length > 0;
     if (emberAppInfo(q)) return true;
-    if (/reduce|lower|cut down|less (power|current|usage)/.test(q)){ emberAdvice("reduce"); return true; }
-    if (/how.*(save|saving)/.test(q)){ emberAdvice("habits"); return true; }
-    if (/saving|want.*sav|save money/.test(q)){ emberAdvice("overview"); return true; }
+    if (/reduce|lower|cut down|less (power|current|usage)/.test(q) || gmHasAny(q, ["తగ్గించ","తగ్గ"])){ emberAdvice("reduce"); return true; }
+    if (/how.*(save|saving)/.test(q) || gmHasAny(q, ["ఎలా ఆదా","ఎలా పొదుపు"])){ emberAdvice("habits"); return true; }
+    if (/saving|want.*sav|save money/.test(q) || gmHasAny(q, ["ఆదా","పొదుపు"])){ emberAdvice("overview"); return true; }
     var links = [];
-    if (/smart energy|compare|search/.test(q)) links.push("Smart Energy Search");
-    if (/scope|map|wind|potential/.test(q)) links.push("EnergyScope");
-    if (/hub|shop|local|store/.test(q)) links.push("EnergyHub");
-    if (/scheme|subsid|govt|government/.test(q)) links.push("Govt Schemes");
-    if (links.length){ agentAddMsg("Here you go:" + emberLinkRow(links), "bot"); emberAskRandom("link"); return true; }
+    if (/smart energy|compare|search/.test(q) || gmHasAny(q, ["పోల్చ","వెతక"])) links.push("Smart Energy Search");
+    if (/scope|map|wind|potential/.test(q) || gmHasAny(q, ["గాలి","అవకాశ"])) links.push("EnergyScope");
+    if (/hub|shop|local|store/.test(q) || gmHasAny(q, ["దుకాణ"])) links.push("EnergyHub");
+    if (/scheme|subsid|govt|government/.test(q) || gmHasAny(q, ["పథక","సబ్సిడీ","ప్రభుత్వ"])) links.push("Govt Schemes");
+    if (links.length){ agentAddMsg(gmT("here_you_go") + emberLinkRow(links), "bot"); emberAskRandom("link"); return true; }
     if (/chart|graph|flow|diagram|show.*(usage|using|current)|(current|my).*(usage|using)|consumption/.test(q)){
       if (has) agentPostChart(); else agentAddMsg(gmT("ans_add_first"), "bot");
       return true;
@@ -866,7 +869,7 @@
     if (!text){
       // Send with nothing typed = "show me what I picked in the calculator"
       if (hasItems){ toggleAgentOptions(false); agentPostChart(); }
-      else emberMenu("This app can help you with these things:");
+      else emberMenu(gmT("ember_help_menu"));
       return;
     }
     agentAddMsg(text, "user");
@@ -876,7 +879,7 @@
     var isGreeting = /^(hi+|hai+|hello+|hey+|hlo+|helo+|namaste|namaskaram|good\s?(morning|afternoon|evening|night))\b/i.test(text.trim())
       || gmHasAny(text, ["నమస్తే","నమస్కారం","హాయ్"]);
     if (isGreeting){
-      emberMenu("Hai! \uD83D\uDC4B How can I help you?");
+      emberMenu(gmT("ember_hello"));
       return;
     }
 
@@ -989,7 +992,38 @@
       ans_month: "About {amt} per month.",
       ans_day: "{units} units/day ({amt}).",
       ans_bill: "About {amt}/month ({day}/day).",
-      ans_default: "I can tell you your cost, solar size, biggest consumer, or savings — what would you like to know?"
+      ans_default: "I can tell you your cost, solar size, biggest consumer, or savings — what would you like to know?",
+      // --- EMBER rule-based bot (menu / app info / advice / follow-ups) ---
+      ember_hello: "Hai! 👋 How can I help you?",
+      ember_help_menu: "This app can help you with these things:",
+      opt_chart: "Show my usage chart", opt_save: "How to save the current?", opt_energy: "Do you want energy saving?", opt_about: "What is this app?",
+      opt_add: "🧮 Add my appliances", explore_title: "Explore the app",
+      link_ses_short: "🔍 Smart Energy Search", link_es_short: "🗺️ EnergyScope", link_hub_short: "🏪 EnergyHub", link_govt_short: "🏛️ Govt Schemes",
+      ember_sorry: "Sorry, I did not understand that. 😊 This app can help you with these things:",
+      ember_search_online: "Or search it online", ember_google_btn: "Search on Google",
+      ember_opening: "Opening {page}…",
+      yes_take_me: "Yes, take me", yes_show_it: "Yes, show it", no_thanks: "No thanks", no_problem: "No problem!",
+      next_title: "What would you like to do next?",
+      opt_reduce: "How can I reduce my usage?",
+      info_what: "<b>GreenMap AI</b> is a smart renewable energy app for Andhra Pradesh. It brings together <b>Smart Energy Search</b> (compare solar and wind products), <b>EnergyScope AP</b> (solar and wind potential across the state), <b>EnergyHub</b> (local renewable energy shops) and <b>Govt Schemes</b>. I am EMBER, your energy advisor inside it.",
+      info_how: "<b>How it works</b><br>1. Tell me your appliances (for example \"2 bulbs, 1 fan\").<br>2. I show your daily units, monthly cost and the solar size you need.<br>3. Then explore: compare products, check your area's solar and wind potential and temperature, find nearby shops, and check government schemes.",
+      info_start: "<b>How it began</b><br>GreenMap AI started as a final-year college project with a simple goal: make it easier for people in Andhra Pradesh to discover renewable energy — where sun and wind are strongest, which local shops sell the equipment, and how to compare products before buying.",
+      info_team: "<b>Team 13</b><br>• <b>Jashu</b> — Creator &amp; Developer<br>• <b>Stephen</b> — Team Member<br>• <b>Hemanth</b> — Team Member<br>With guidance from <b>Dr. B Venkatesh</b> sir.",
+      habits_tips: "<b>Easy ways to save current</b><br>• Switch off lights and fans when you leave the room<br>• Use LED bulbs and 5-star rated appliances<br>• Set AC to 24–26°C<br>• Unplug chargers and TVs on standby<br>• Run washing machines with full loads",
+      advice_reduce: "<b>{label}</b> uses the most ({pct}% of your {daily} units/day). Using it 1 hour less a day saves about <b>{save}/month</b>. Swapping to an efficient model can save even more.",
+      advice_overview: "You spend about <b>{amt}/month</b>. A ~{kw} kW solar system could offset most of it, and government subsidies can lower the cost.",
+      here_you_go: "Here you go:",
+      leaving_title: "Leaving this app", leaving_body: "You are leaving this app to search on Google for:",
+      leaving_confirm_q: "Do you want to proceed?", cancel: "Cancel", confirm: "Confirm",
+      q_solar: "Do you want to check solar panels?", q_wind: "Do you want to check wind turbines?",
+      q_compare: "Want to compare products by AI suitability score, price and rating?",
+      q_temp: "Do you want to check your area temperature?",
+      q_potent: "Do you want to see solar and wind potential in your district?",
+      q_shops: "Do you want to check nearby shops?", q_trend: "Want to see top and trending products in local shops?",
+      q_subsidy: "Do you want to check government subsidies for solar?",
+      q_notify: "Want to get notified when new government schemes open?",
+      q_farmer: "Are you a farmer? Want to see schemes for farmers?",
+      q_usage: "Do you want to see your usage chart?"
     },
     te: {
       greeting_morning: "శుభోదయం", greeting_afternoon: "శుభ మధ్యాహ్నం", greeting_evening: "శుభ సాయంత్రం",
@@ -1028,7 +1062,37 @@
       ans_month: "నెలకు సుమారు {amt}.",
       ans_day: "రోజుకు {units} యూనిట్లు ({amt}).",
       ans_bill: "నెలకు సుమారు {amt} (రోజుకు {day}).",
-      ans_default: "మీ ఖర్చు, సోలార్ సైజు, ఎక్కువ వాడే ఉపకరణం లేదా పొదుపు గురించి చెప్పగలను — మీకు ఏం తెలుసుకోవాలి?"
+      ans_default: "మీ ఖర్చు, సోలార్ సైజు, ఎక్కువ వాడే ఉపకరణం లేదా పొదుపు గురించి చెప్పగలను — మీకు ఏం తెలుసుకోవాలి?",
+      ember_hello: "హాయ్! 👋 నేను మీకు ఎలా సహాయం చేయగలను?",
+      ember_help_menu: "ఈ యాప్ మీకు ఇలా సహాయం చేయగలదు:",
+      opt_chart: "నా వినియోగ చార్ట్ చూపించు", opt_save: "కరెంట్ ఎలా ఆదా చేయాలి?", opt_energy: "మీకు ఇంధన పొదుపు కావాలా?", opt_about: "ఈ యాప్ అంటే ఏమిటి?",
+      opt_add: "🧮 నా ఉపకరణాలను జోడించు", explore_title: "యాప్‌ను అన్వేషించండి",
+      link_ses_short: "🔍 Smart Energy Search", link_es_short: "🗺️ EnergyScope", link_hub_short: "🏪 EnergyHub", link_govt_short: "🏛️ Govt Schemes",
+      ember_sorry: "క్షమించండి, అది నాకు అర్థం కాలేదు. 😊 ఈ యాప్ మీకు ఇలా సహాయం చేయగలదు:",
+      ember_search_online: "లేదా ఆన్‌లైన్‌లో వెతకండి", ember_google_btn: "గూగుల్‌లో వెతకండి",
+      ember_opening: "{page} తెరుస్తోంది…",
+      yes_take_me: "అవును, తీసుకెళ్లు", yes_show_it: "అవును, చూపించు", no_thanks: "వద్దు, ధన్యవాదాలు", no_problem: "ఫర్వాలేదు!",
+      next_title: "తర్వాత మీరు ఏమి చేయాలనుకుంటున్నారు?",
+      opt_reduce: "నా వినియోగాన్ని ఎలా తగ్గించుకోవాలి?",
+      info_what: "<b>GreenMap AI</b> ఆంధ్రప్రదేశ్ కోసం ఒక స్మార్ట్ పునరుత్పాదక ఇంధన యాప్. ఇందులో <b>Smart Energy Search</b> (సౌర, పవన ఉత్పత్తులను పోల్చండి), <b>EnergyScope AP</b> (రాష్ట్రవ్యాప్తంగా సౌర, పవన అవకాశాలు), <b>EnergyHub</b> (స్థానిక పునరుత్పాదక ఇంధన దుకాణాలు) మరియు <b>Govt Schemes</b> ఉన్నాయి. నేను EMBER, ఇందులో మీ ఇంధన సలహాదారుని.",
+      info_how: "<b>ఇది ఎలా పనిచేస్తుంది</b><br>1. మీ ఉపకరణాలను చెప్పండి (ఉదా. \"2 బల్బులు, 1 ఫ్యాన్\").<br>2. నేను మీ రోజువారీ యూనిట్లు, నెలవారీ ఖర్చు మరియు మీకు కావాల్సిన సోలార్ సైజు చూపిస్తాను.<br>3. తర్వాత అన్వేషించండి: ఉత్పత్తులను పోల్చండి, మీ ప్రాంతంలో సౌర, పవన అవకాశాలు మరియు ఉష్ణోగ్రత చూడండి, సమీప దుకాణాలు కనుగొనండి, ప్రభుత్వ పథకాలు చూడండి.",
+      info_start: "<b>ఇది ఎలా మొదలైంది</b><br>GreenMap AI ఒక ఫైనల్ ఇయర్ కాలేజీ ప్రాజెక్టుగా మొదలైంది — ఆంధ్రప్రదేశ్‌లోని ప్రజలకు పునరుత్పాదక ఇంధనాన్ని సులభంగా కనుగొనేలా చేయాలనే లక్ష్యంతో — సూర్యుడు, గాలి ఎక్కడ ఎక్కువగా ఉన్నాయో, స్థానిక దుకాణాలు ఏవి పరికరాలు అమ్ముతున్నాయో, కొనే ముందు ఉత్పత్తులను ఎలా పోల్చాలో తెలుసుకోవడానికి.",
+      info_team: "<b>టీమ్ 13</b><br>• <b>జాషు</b> — సృష్టికర్త &amp; డెవలపర్<br>• <b>స్టీఫెన్</b> — టీమ్ సభ్యుడు<br>• <b>హేమంత్</b> — టీమ్ సభ్యుడు<br><b>Dr. B వెంకటేష్</b> గారి మార్గదర్శకత్వంలో.",
+      habits_tips: "<b>కరెంట్ ఆదా చేసే సులభమైన మార్గాలు</b><br>• గది నుండి బయటకు వెళ్లేటప్పుడు లైట్లు, ఫ్యాన్లు ఆపండి<br>• LED బల్బులు, 5-స్టార్ రేటెడ్ ఉపకరణాలు వాడండి<br>• ఏసీని 24–26°C కు సెట్ చేయండి<br>• చార్జర్లు, టీవీలను స్టాండ్‌బై నుండి తీసేయండి<br>• వాషింగ్ మెషీన్‌ను పూర్తి లోడ్‌తో నడపండి",
+      advice_reduce: "<b>{label}</b> ఎక్కువగా వాడుతోంది (మీ {daily} యూనిట్లు/రోజులో {pct}%). రోజుకు 1 గంట తక్కువ వాడితే నెలకు సుమారు <b>{save}</b> ఆదా అవుతుంది. మరింత సమర్థవంతమైన మోడల్‌కు మారితే ఇంకా ఎక్కువ ఆదా అవుతుంది.",
+      advice_overview: "మీరు నెలకు సుమారు <b>{amt}</b> ఖర్చు చేస్తున్నారు. ~{kw} kW సోలార్ సిస్టమ్ దీన్ని ఎక్కువగా భర్తీ చేయగలదు, ప్రభుత్వ సబ్సిడీలు ఖర్చును మరింత తగ్గించగలవు.",
+      here_you_go: "ఇదిగో:",
+      leaving_title: "యాప్ నుండి బయటకు వెళ్తున్నారు", leaving_body: "మీరు గూగుల్‌లో దీని కోసం వెతకడానికి ఈ యాప్ నుండి బయటకు వెళ్తున్నారు:",
+      leaving_confirm_q: "మీరు కొనసాగించాలనుకుంటున్నారా?", cancel: "రద్దు చేయి", confirm: "సరే",
+      q_solar: "సోలార్ ప్యానెళ్లు చూడాలనుకుంటున్నారా?", q_wind: "విండ్ టర్బైన్‌లు చూడాలనుకుంటున్నారా?",
+      q_compare: "AI అనుకూలత స్కోరు, ధర, రేటింగ్ ప్రకారం ఉత్పత్తులను పోల్చాలనుకుంటున్నారా?",
+      q_temp: "మీ ప్రాంత ఉష్ణోగ్రత చూడాలనుకుంటున్నారా?",
+      q_potent: "మీ జిల్లాలో సౌర, పవన అవకాశాలు చూడాలనుకుంటున్నారా?",
+      q_shops: "సమీప దుకాణాలు చూడాలనుకుంటున్నారా?", q_trend: "స్థానిక దుకాణాల్లో టాప్, ట్రెండింగ్ ఉత్పత్తులు చూడాలనుకుంటున్నారా?",
+      q_subsidy: "సోలార్ కోసం ప్రభుత్వ సబ్సిడీలు చూడాలనుకుంటున్నారా?",
+      q_notify: "కొత్త ప్రభుత్వ పథకాలు వచ్చినప్పుడు తెలియజేయాలా?",
+      q_farmer: "మీరు రైతా? రైతుల కోసం పథకాలు చూడాలనుకుంటున్నారా?",
+      q_usage: "మీ వినియోగ చార్ట్ చూడాలనుకుంటున్నారా?"
     }
   };
   var AGENT_LABELS_TE = {
@@ -1794,7 +1858,7 @@ document.addEventListener('click', function(e){
   var q = ''; try { q = decodeURIComponent(url.split('q=')[1] || ''); } catch(err) {}
   var bg = document.createElement('div');
   bg.className = 'ember-modal-bg';
-  bg.innerHTML = '<div class="ember-modal"><h4>Leaving this app</h4><p>You are leaving this app to search on Google for:<br><b></b><br>Do you want to proceed?</p><div class="ember-modal-row"><button class="ember-modal-cancel">Cancel</button><button class="ember-modal-ok">Confirm</button></div></div>';
+  bg.innerHTML = '<div class="ember-modal"><h4>' + gmT("leaving_title") + '</h4><p>' + gmT("leaving_body") + '<br><b></b><br>' + gmT("leaving_confirm_q") + '</p><div class="ember-modal-row"><button class="ember-modal-cancel">' + gmT("cancel") + '</button><button class="ember-modal-ok">' + gmT("confirm") + '</button></div></div>';
   bg.querySelector('b').textContent = '\u201C' + q + '\u201D';
   document.body.appendChild(bg);
   bg.querySelector('.ember-modal-cancel').onclick = function(){ bg.remove(); };
