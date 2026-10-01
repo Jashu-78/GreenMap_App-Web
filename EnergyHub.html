@@ -1744,6 +1744,12 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
     });
   }
 
+  var ownerRateHtml = "";
+  if (showBuyerInfo && trackerFinished && itemsToShow[0] && order.buyerUid){
+    ownerRateHtml = '<div class="owner-rate-box" data-order="' + orderId + '" data-shop="' + itemsToShow[0].shopId + '" data-buyer="' + order.buyerUid + '" style="padding:10px 16px;border-top:1px solid var(--line);font-size:13px;color:var(--textDark);">' +
+      '<div style="font-weight:700;margin-bottom:4px;">\u2b50 Customer ratings</div><div class="owner-rate-body">Checking...</div></div>';
+  }
+
   return '<div class="order-card">' +
     '<div class="order-card-head">' +
       '<span class="order-id-text">' + formatOrderDate(createdAtDate) + ' · #' + orderId.slice(-6).toUpperCase() + '</span>' +
@@ -1756,6 +1762,7 @@ function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
     expectedDeliveryHtml +
     '<div class="order-total-row"><span>' + (showBuyerInfo ? "Your items total" : "Order Total") + '</span><span>₹' + (showBuyerInfo ? itemsSubtotal : order.total).toLocaleString("en-IN") + '</span></div>' +
     rateHtml +
+    ownerRateHtml +
   '</div>';
 }
 
@@ -2523,8 +2530,6 @@ async function openFollowersSheet(shop){
       return;
     }
     listEl.innerHTML = "";
-    // Old follow records may have no usable name. Look the person up from
-    // their reviews on this shop or from the users profile collection.
     var reviewNames = {};
     try {
       var rs = await window.EHUB.getDocs(window.EHUB.collection(window.EHUB.db, "shops", shop.id, "reviews"));
@@ -3634,12 +3639,39 @@ async function hydrateRatingBox(box){
     }
   } catch (e){ /* not rated yet, or rules block the read; buttons stay */ }
 }
+// Shop owner's Orders screen: show what the customer gave for the shop and the parcel.
+async function hydrateOwnerRating(box){
+  if (box.dataset.hydrated) return;
+  box.dataset.hydrated = "1";
+  var body = box.querySelector(".owner-rate-body");
+  var id = box.dataset.order + "_" + box.dataset.buyer;
+  var shop = box.dataset.shop;
+  try {
+    var res = await Promise.all([
+      window.EHUB.getDoc(window.EHUB.doc(window.EHUB.db, "shops", shop, "reviews", id)),
+      window.EHUB.getDoc(window.EHUB.doc(window.EHUB.db, "shops", shop, "parcelRatings", id))
+    ]);
+    var shopR = res[0].exists() ? res[0].data().rating10 : null;
+    var parcelR = res[1].exists() ? res[1].data().rating10 : null;
+    var pill = function(label, v){
+      return '<span style="display:inline-block;margin:2px 8px 2px 0;padding:4px 10px;border-radius:999px;background:' + (v ? "#eaf5d8" : "#f1f1ec") + ';font-weight:700;">' + label + ': ' + (v ? v + '/10' : 'not rated yet') + '</span>';
+    };
+    body.innerHTML = pill("\ud83c\udfea Shop", shopR) + pill("\ud83d\udce6 Parcel", parcelR);
+  } catch (e){
+    body.textContent = "Could not load ratings.";
+    console.warn("Owner rating load failed:", e);
+  }
+}
 new MutationObserver(function(muts){
   muts.forEach(function(m){
     m.addedNodes.forEach(function(n){
       if (n.nodeType !== 1) return;
       if (n.matches && n.matches(".rate10-box")) hydrateRatingBox(n);
-      else if (n.querySelectorAll) n.querySelectorAll(".rate10-box").forEach(hydrateRatingBox);
+      if (n.matches && n.matches(".owner-rate-box")) hydrateOwnerRating(n);
+      if (n.querySelectorAll){
+        n.querySelectorAll(".rate10-box").forEach(hydrateRatingBox);
+        n.querySelectorAll(".owner-rate-box").forEach(hydrateOwnerRating);
+      }
     });
   });
 }).observe(document.body, { childList: true, subtree: true });
