@@ -8,7 +8,7 @@
 <style>
   :root{
     --primary:#354016; --primary2:#6a802d; --primaryDeep:#232b0f; --mint:#c1de6f;
-    --accent:#FFB703; --accentDeep:#B8860B;
+    --accent:#faa707; --accentDeep:#94c519;
     --bg:#f7fbed; --card:#eff7db; --textDark:#2b3410; --textMuted:#596b26; --line:#e0efb7;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -3711,10 +3711,6 @@ document.addEventListener("click", async function(e){
 
   // The rating is saved. Everything below is best-effort and must not undo it.
   box.querySelector(".rate10-row").outerHTML = RATING_DONE_HTML(val);
-  try {
-    var upd = {}; upd["ratings." + kind + "_" + shopId] = val;
-    await window.EHUB.updateDoc(window.EHUB.doc(window.EHUB.db, "orders", orderId), upd);
-  } catch (e){ console.warn("Could not mark order as rated:", e); }
   try {
     var shopSnap = await window.EHUB.getDoc(window.EHUB.doc(window.EHUB.db, "shops", shopId));
     var ownerUid = shopSnap.exists() ? shopSnap.data().ownerUid : null;

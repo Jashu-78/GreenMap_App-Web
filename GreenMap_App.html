@@ -82,8 +82,8 @@
 
 
   :root{
-    --primary:#1B4332; --primary2:#2D6A4F; --primaryDeep:#224E3B; --mint:#95D5B2;
-    --accent:#FFB703; --accentDeep:#B8860B; --sky:#219EBC; --skyDeep:#0B4C68;
+    --primary:#134627; --primary2:#5fa30e; --primaryDeep:#337e09; --mint:#95D5B2;
+    --accent:#faa707; --accentDeep:#94c519; --sky:#2d96bd; --skyDeep:#0b4e76;
     --bg:#F7FAF7; --card:#E9F4EC; --textDark:#1B2B22; --textMuted:#5C6F63; --line:#DCEAE1;
   }
   #homeScreen{display:none;background:var(--bg);color:var(--textDark);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
@@ -366,7 +366,7 @@
   <div class="about-body">
     <div class="about-text">How are you finding GreenMap AI? Rate us from 1 to 10 and tell us what to improve.</div>
     <div id="fbRatingRow" style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;"></div>
-    <textarea id="fbMessage" rows="5" placeholder="Write your feedback..." style="width:100%;padding:10px;border:1px solid #DCEAE1;border-radius:10px;font-family:inherit;font-size:14px;"></textarea>
+    <textarea id="fbMessage" rows="5" maxlength="450" placeholder="Write your feedback..." style="width:100%;padding:10px;border:1px solid #DCEAE1;border-radius:10px;font-family:inherit;font-size:14px;"></textarea>
     <button type="button" id="fbSubmitBtn" onclick="submitFeedback()" style="margin-top:12px;width:100%;padding:12px;border:none;border-radius:10px;background:#1B4332;color:#fff;font-weight:700;font-size:14px;">Send Feedback</button>
     <div id="fbStatus" style="margin-top:10px;font-size:13px;"></div>
   </div>
@@ -1546,8 +1546,8 @@ window.submitFeedback = async function(){
     });
     await addDoc(collection(db, "notifications"), {
       type: "feedback",
-      title: "Feedback from " + who + ": " + rating + "/10",
-      message: msg || "No written message",
+      title: "Feedback from " + String(who).slice(0, 80) + ": " + rating + "/10",
+      message: (msg || "No written message").slice(0, 450),
       targetEmails: [ADMIN_EMAIL],
       createdAt: serverTimestamp()
     });
@@ -1566,6 +1566,7 @@ window.publishAppUpdate = async function(){
   var title = document.getElementById("auTitle").value.trim();
   var details = document.getElementById("auDetails").value.trim();
   if (!title || !details){ status.style.color = "#b3261e"; status.textContent = "Add a title and details."; return; }
+  if (title.length > 150 || details.length > 480){ status.style.color = "#b3261e"; status.textContent = "Too long: title max 150, details max 480 characters."; return; }
   try {
     await addDoc(collection(db, "notifications"), {
       type: "update", title: "\ud83d\ude80 " + title, message: details, createdAt: serverTimestamp()
