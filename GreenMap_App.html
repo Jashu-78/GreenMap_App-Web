@@ -685,24 +685,24 @@
         return gmT("ans_appliance", { qty: row.qty, label: row.label, kwh: row.kwh.toFixed(2), cost: rs(row.kwh * AGENT_DEFAULT_RATE * 30) });
       }
     }
-    if (/most|highest|biggest|costliest|top/.test(q) || gmHasAny(q, ["ఎక్కువ","అత్యధిక"]))
+    if (/most|highest|biggest|costliest|top/.test(q) || gmHasAny(q, W("most")))
       return gmT("ans_most", { label: top.label, kwh: top.kwh.toFixed(2), pct: Math.round(top.kwh / d.daily * 100) });
-    if (/reduce|lower|cut|tip|less/.test(q) || gmHasAny(q, ["తగ్గించ","తగ్గ","చిట్కా"])){
+    if (/reduce|lower|cut|tip|less/.test(q) || gmHasAny(q, W("reduce"))){
       var saveMonth = top.watts * top.qty / 1000 * AGENT_DEFAULT_RATE * 30;
       return gmT("ans_reduce", { label: top.label, save: rs(saveMonth) });
     }
-    if (/subsid|scheme|govt|government/.test(q) || gmHasAny(q, ["సబ్సిడీ","పథక","ప్రభుత్వ"]))
+    if (/subsid|scheme|govt|government/.test(q) || gmHasAny(q, W("subsidy_scheme")))
       return gmT("ans_scheme");
-    if (/panel|buy|shop|product/.test(q) || gmHasAny(q, ["ప్యానెల్","కొన","దుకాణ","ఉత్పత్తి"]))
+    if (/panel|buy|shop|product/.test(q) || gmHasAny(q, W("panel_shop")))
       return gmT("ans_panel", { kw: d.solarKw });
-    if (/sav/.test(q) || gmHasAny(q, ["ఆదా","పొదుపు"]))
+    if (/sav/.test(q) || gmHasAny(q, W("saving")))
       return gmT("ans_save", { kw: d.solarKw, amt: rs(d.monthlyCost) });
-    if (/solar|kw|size|capacity/.test(q) || gmHasAny(q, ["సోలార్","సౌర","సైజు","సామర్థ్య"]))
+    if (/solar|kw|size|capacity/.test(q) || gmHasAny(q, W("solar_kw")))
       return gmT("ans_solar", { kw: d.solarKw });
-    if (/month/.test(q) || gmHasAny(q, ["నెల"])) return gmT("ans_month", { amt: rs(d.monthlyCost) });
-    if (/day|daily|unit|kwh|usage/.test(q) || gmHasAny(q, ["రోజు","యూనిట్","వినియోగ"]))
+    if (/month/.test(q) || gmHasAny(q, W("month"))) return gmT("ans_month", { amt: rs(d.monthlyCost) });
+    if (/day|daily|unit|kwh|usage/.test(q) || gmHasAny(q, W("day_usage")))
       return gmT("ans_day", { units: d.daily.toFixed(2), amt: rs(d.dailyCost) });
-    if (/bill|cost|pay|price|much/.test(q) || gmHasAny(q, ["బిల్లు","ఖర్చు","ధర","ఎంత"]))
+    if (/bill|cost|pay|price|much/.test(q) || gmHasAny(q, W("bill_cost")))
       return gmT("ans_bill", { amt: rs(d.monthlyCost), day: rs(d.dailyCost) });
     return gmT("ans_default");
   }
@@ -712,15 +712,15 @@
   // dead-ends on ordinary conversation. Returns null if nothing matches.
   function agentSmallTalk(text){
     var q = text.trim().toLowerCase();
-    if (/^(bye|goodbye|good\s?night|see\s?you|see\s?ya)\b/.test(q) || gmHasAny(q, ["బై","వీడ్కోలు","బాయ్"]))
+    if (/^(bye|goodbye|good\s?night|see\s?you|see\s?ya)\b/.test(q) || gmHasAny(q, W("bye")))
       return gmT("ember_bye");
-    if (/^(thanks?( you)?|thank\s?you|thnx|ty)\b/.test(q) || gmHasAny(q, ["ధన్యవాదాలు","థాంక్స్"]))
+    if (/^(thanks?( you)?|thank\s?you|thnx|ty)\b/.test(q) || gmHasAny(q, W("thanks")))
       return gmT("ember_thanks");
-    if (/^(how are you|how r u|how's it going|what's up|whats up)\b/.test(q) || gmHasAny(q, ["ఎలా ఉన్నారు"]))
+    if (/^(how are you|how r u|how's it going|what's up|whats up)\b/.test(q) || gmHasAny(q, W("howareyou")))
       return gmT("ember_howareyou");
-    if (/^(no+|nah|nope|not now|not really|no thanks)\b/.test(q) || gmHasAny(q, ["వద్దు","లేదు"]))
+    if (/^(no+|nah|nope|not now|not really|no thanks)\b/.test(q) || gmHasAny(q, W("smalltalk_no")))
       return gmT("ember_no");
-    if (/^(yes+|yeah+|yep|ok(ay)?|sure|alright|fine)\b/.test(q) || gmHasAny(q, ["అవును","సరే"]))
+    if (/^(yes+|yeah+|yep|ok(ay)?|sure|alright|fine)\b/.test(q) || gmHasAny(q, W("smalltalk_yes")))
       return gmT("ember_yes");
     return null;
   }
@@ -777,8 +777,8 @@
     if (!emberPendingQ) return false;
     var q = text.trim().toLowerCase(), pq = emberPendingQ;
     emberPendingQ = null;
-    var yesWords = ["అవును","సరే","ఓకే","తీసుకెళ్లు","చూపించు"];
-    var noWords = ["వద్దు","కాదు","ఇప్పుడు వద్దు"];
+    var yesWords = W("pending_yes");
+    var noWords = W("pending_no");
     if (/^(yes+|yeah+|yep|y|ok(ay)?|sure|go|take me)\b/.test(q) || gmHasAny(q, yesWords)){
       if (pq.href){
         agentAddMsg(gmT("ember_opening", { page: pq.page }), "bot");
@@ -816,14 +816,14 @@
   function emberAppInfo(q){
     var k = null;
     if (/creator|creat(ed|es)|developer|who (made|built|created|developed)|team|founder|made this|behind (this|the) app/.test(q)
-      || gmHasAny(q, ["సృష్టికర్త","డెవలపర్","టీమ్","ఎవరు తయారు","ఎవరు చేశారు"])) k = "team";
+      || gmHasAny(q, W("info_team"))) k = "team";
     else if (/how.*(start|began|begin)|when.*(start|began|begin)|history|origin/.test(q)
-      || gmHasAny(q, ["ఎలా మొదలైంది","ఎప్పుడు మొదలైంది","చరిత్ర"])) k = "start";
+      || gmHasAny(q, W("info_start"))) k = "start";
     else if (/how.*(work|use)|how does|how it will|features|what can (you|this)/.test(q)
-      || gmHasAny(q, ["ఎలా పనిచేస్తుంది","ఎలా ఉపయోగించాలి","ఏమి చేయగలవు"])) k = "how";
+      || gmHasAny(q, W("info_how"))) k = "how";
     else if (/what is (this|the|greenmap)|about (this |the )?app|about greenmap|tell me about|who are you|what are you/.test(q)
-      || gmHasAny(q, ["యాప్ అంటే ఏమిటి","యాప్ గురించి","నువ్వు ఎవరు","మీరు ఎవరు"])) k = "what";
-    else if (/^(help|menu|options)\b|what do you do/.test(q) || gmHasAny(q, ["సహాయం","మెనూ"])){ emberMenu(gmT("ember_help_menu")); return true; }
+      || gmHasAny(q, W("info_what"))) k = "what";
+    else if (/^(help|menu|options)\b|what do you do/.test(q) || gmHasAny(q, W("info_help"))){ emberMenu(gmT("ember_help_menu")); return true; }
     if (!k) return false;
     agentAddMsg(gmT(EMBER_INFO_KEYS[k]), "bot");
     emberAskRandom("link");
@@ -872,14 +872,14 @@
     var q = text.toLowerCase();
     var has = Object.keys(agentState.items).length > 0;
     if (emberAppInfo(q)) return true;
-    if (/reduce|lower|cut down|less (power|current|usage)/.test(q) || gmHasAny(q, ["తగ్గించ","తగ్గ"])){ emberAdvice("reduce"); return true; }
-    if (/how.*(save|saving)/.test(q) || gmHasAny(q, ["ఎలా ఆదా","ఎలా పొదుపు"])){ emberAdvice("habits"); return true; }
-    if (/saving|want.*sav|save money/.test(q) || gmHasAny(q, ["ఆదా","పొదుపు"])){ emberAdvice("overview"); return true; }
+    if (/reduce|lower|cut down|less (power|current|usage)/.test(q) || gmHasAny(q, W("reduce"))){ emberAdvice("reduce"); return true; }
+    if (/how.*(save|saving)/.test(q) || gmHasAny(q, W("route_habits"))){ emberAdvice("habits"); return true; }
+    if (/saving|want.*sav|save money/.test(q) || gmHasAny(q, W("saving"))){ emberAdvice("overview"); return true; }
     var links = [];
-    if (/smart energy|compare|search/.test(q) || gmHasAny(q, ["పోల్చ","వెతక"])) links.push("Smart Energy Search");
-    if (/scope|map|wind|potential/.test(q) || gmHasAny(q, ["గాలి","అవకాశ"])) links.push("EnergyScope");
-    if (/hub|shop|local|store/.test(q) || gmHasAny(q, ["దుకాణ"])) links.push("EnergyHub");
-    if (/scheme|subsid|govt|government/.test(q) || gmHasAny(q, ["పథక","సబ్సిడీ","ప్రభుత్వ"])) links.push("Govt Schemes");
+    if (/smart energy|compare|search/.test(q) || gmHasAny(q, W("link_ses"))) links.push("Smart Energy Search");
+    if (/scope|map|wind|potential/.test(q) || gmHasAny(q, W("link_es"))) links.push("EnergyScope");
+    if (/hub|shop|local|store/.test(q) || gmHasAny(q, W("link_hub"))) links.push("EnergyHub");
+    if (/scheme|subsid|govt|government/.test(q) || gmHasAny(q, W("subsidy_scheme"))) links.push("Govt Schemes");
     if (links.length){ agentAddMsg(gmT("here_you_go") + emberLinkRow(links), "bot"); emberAskRandom("link"); return true; }
     if (/chart|graph|flow|diagram|show.*(usage|using|current)|(current|my).*(usage|using)|consumption/.test(q)){
       if (has) agentPostChart(); else agentAddMsg(gmT("ans_add_first"), "bot");
@@ -904,7 +904,7 @@
     if (emberPendingReply(text)) return;
 
     var isGreeting = /^(hi+|hai+|hello+|hey+|hlo+|helo+|namaste|namaskaram|good\s?(morning|afternoon|evening|night))\b/i.test(text.trim())
-      || gmHasAny(text, ["నమస్తే","నమస్కారం","హాయ్"]);
+      || gmHasAny(text, W("greeting"));
     if (isGreeting){
       emberMenu(gmT("ember_hello"));
       return;
@@ -918,7 +918,7 @@
 
     if (emberRoute(text)) return;
     var isQuestion = /\?|^(how|what|which|why|when|can|could|should|will|is|are|does|do|tell|show|give|explain)\b|\b(save|saving|cost|bill|reduce|solar|subsid|scheme|most|highest|biggest)\b/.test(text.toLowerCase())
-      || gmHasAny(text, ["?","ఎంత","ఏమిటి","ఎలా","ఎందుకు","ఏది","బిల్లు","ఖర్చు","ఆదా","పొదుపు","తగ్గించ","సోలార్","సబ్సిడీ","పథక","ఎక్కువ"]);
+      || gmHasAny(text, ["?"].concat(W("question_markers")));
     if (isQuestion){
       var ans = agentAnswerQuestion(text);
       if (ans === gmT("ans_default")) emberFallback(text);
@@ -1034,7 +1034,7 @@
       card_govt: "Discover, apply, and save with govt energy schemes",
       settings: "Settings", app_info: "App Info", language: "Language", notif_sound: "Notification Sound",
       choose_language: "Choose Language",
-      lang_note: "Telugu is available now. Hindi, Tamil and Kannada are on the way — until then they will show in English.",
+      lang_note: "Hindi, Tamil, Kannada and Telugu are now available.",
       login: "Login with Google", signout: "Sign Out", guest: "Guest", signed_in: "Signed in",
       notifications: "Notifications", clear_all: "Clear all", loading_notifs: "Loading notifications…",
       no_notifs: "No notifications yet — updates about nearby shops and your followed shops will show up here.",
@@ -1094,6 +1094,213 @@
       q_farmer: "Are you a farmer? Want to see schemes for farmers?",
       q_usage: "Do you want to see your usage chart?"
     },
+    hi: {
+      greeting_morning: "सुप्रभात", greeting_afternoon: "शुभ दोपहर", greeting_evening: "शुभ संध्या",
+      greeting_night: "शुभ रात्रि, थोड़ा आराम करें",
+      greeting_sub: "आज आपका घर कैसा कर रहा है, यहाँ देखें",
+      card_ses: "नवीकरणीय ऊर्जा उत्पाद खोजें, तुलना करें और चुनें",
+      card_es: "आंध्र प्रदेश में सौर और पवन ऊर्जा की संभावनाएं जानें",
+      card_hub: "अपने पास की स्थानीय सौर और पवन ऊर्जा दुकानों से खरीदें",
+      card_govt: "सरकारी ऊर्जा योजनाओं के बारे में जानें, आवेदन करें और बचत करें",
+      settings: "सेटिंग्स", app_info: "ऐप जानकारी", language: "भाषा", notif_sound: "सूचना ध्वनि",
+      choose_language: "भाषा चुनें",
+      lang_note: "हिंदी, तमिल, कन्नड़ और तेलुगु अब उपलब्ध हैं।",
+      login: "गूगल से लॉगिन करें", signout: "साइन आउट", guest: "अतिथि", signed_in: "साइन इन किया गया",
+      notifications: "सूचनाएं", clear_all: "सभी हटाएं", loading_notifs: "सूचनाएं लोड हो रही हैं…",
+      no_notifs: "अभी तक कोई सूचना नहीं — आस-पास की दुकानों और आपके फॉलो किए गए दुकानों की जानकारी यहाँ दिखेगी।",
+      ember_send: "भेजें", ember_placeholder: "या टाइप करें जैसे: 2 बल्ब, 1 पंखा", ember_add_title: "उपकरण जोड़ें",
+      ember_intro: "नमस्ते, मैं <b>EMBER</b> ⚡ हूँ — आपका ऊर्जा सलाहकार। बताएं आपके कमरे में क्या है — जैसे \"2 बल्ब, 1 पंखा, एक फ्रिज\" — या 🧮 दबाकर उपकरण चुनें, फिर भेजें दबाएं।",
+      ember_pick: "अपने उपकरण चुनने के लिए 🧮 दबाएं, या टाइप करें जैसे \"2 बल्ब, 1 पंखा\"।",
+      ember_unrecognised: "मुझे यह समझ नहीं आया: \"{list}\" — \"पंखा\", \"फ्रिज\", \"एसी\" जैसे शब्द आज़माएं।",
+      ember_greeting: "नमस्ते! 👋 बताएं आपके कमरे में क्या है (जैसे \"2 बल्ब, 1 पंखा\"), या 🧮 दबाकर उपकरण चुनें।",
+      ember_bye: "ध्यान रखें! जब भी अपनी ऊर्जा खपत जांचनी हो, वापस आएं। 👋",
+      ember_thanks: "आपका स्वागत है! अपनी ऊर्जा खपत में मदद करके खुशी हुई। 😊",
+      ember_howareyou: "मैं बहुत अच्छा हूँ, पूछने के लिए धन्यवाद! आज आपकी ऊर्जा खपत में मैं कैसे मदद करूं?",
+      ember_no: "कोई बात नहीं — मैं यहीं हूँ। जब तैयार हों, उपकरण जोड़ने के लिए 🧮 दबाएं।",
+      ember_yes: "बढ़िया! अपने उपकरण जोड़ने के लिए 🧮 दबाएं, या यहाँ टाइप करें।",
+      chart_note_24h: "यह चैट 24 घंटे बाद अपने आप साफ़ हो जाती है।",
+      chart_title: "आपकी दैनिक खपत", chart_units_day: "यूनिट/दिन", chart_month: "/माह", chart_kw_solar: "~{kw} kW सोलर",
+      ans_add_first: "पहले अपने उपकरण जोड़ें (🧮 दबाएं), फिर उनके बारे में कुछ भी पूछें।",
+      ans_appliance: "{qty}× {label}: {kwh} यूनिट/दिन, लगभग {cost}/माह।",
+      ans_most: "{label} सबसे ज़्यादा इस्तेमाल होता है — {kwh} यूनिट/दिन (आपके कुल का {pct}%)।",
+      ans_reduce: "{label} से शुरू करें — रोज़ 1 घंटा कम इस्तेमाल करने से लगभग {save}/माह की बचत होगी।",
+      ans_scheme: "देखें <a class=\"agent-link\" href=\"Govt_Schemes.html\">🏛️ सरकारी योजनाएं</a>",
+      ans_panel: "~{kw} kW सिस्टम के लिए <a class=\"agent-link\" href=\"Smart_Energy_Search.html\">🔎 Smart Energy Search</a> देखें।",
+      ans_save: "~{kw} kW का सोलर सिस्टम लगभग {amt}/माह तक बचा सकता है।",
+      ans_solar: "आपकी खपत के लिए लगभग {kw} kW सोलर काफ़ी होगा।",
+      ans_month: "लगभग {amt} प्रति माह।",
+      ans_day: "{units} यूनिट/दिन ({amt})।",
+      ans_bill: "लगभग {amt}/माह ({day}/दिन)।",
+      ans_default: "मैं आपकी लागत, सोलर साइज़, सबसे ज़्यादा खपत करने वाला उपकरण, या बचत बता सकता हूँ — आप क्या जानना चाहेंगे?",
+      ember_hello: "हाय! 👋 मैं आपकी कैसे मदद कर सकता हूँ?",
+      ember_help_menu: "यह ऐप आपकी इन चीज़ों में मदद कर सकता है:",
+      opt_chart: "मेरा खपत चार्ट दिखाएं", opt_save: "करंट कैसे बचाएं?", opt_energy: "क्या आपको ऊर्जा बचत चाहिए?", opt_about: "यह ऐप क्या है?",
+      opt_add: "🧮 मेरे उपकरण जोड़ें", explore_title: "ऐप एक्सप्लोर करें",
+      link_ses_short: "🔍 Smart Energy Search", link_es_short: "🗺️ EnergyScope", link_hub_short: "🏪 EnergyHub", link_govt_short: "🏛️ सरकारी योजनाएं",
+      ember_sorry: "माफ़ कीजिए, मुझे वह समझ नहीं आया। 😊 यह ऐप आपकी इन चीज़ों में मदद कर सकता है:",
+      ember_search_online: "या इसे ऑनलाइन खोजें", ember_google_btn: "गूगल पर खोजें",
+      ember_opening: "{page} खोला जा रहा है…",
+      yes_take_me: "हाँ, ले चलो", yes_show_it: "हाँ, दिखाओ", no_thanks: "नहीं धन्यवाद", no_problem: "कोई बात नहीं!",
+      next_title: "आगे आप क्या करना चाहेंगे?",
+      opt_reduce: "मैं अपनी खपत कैसे कम करूं?",
+      info_what: "<b>GreenMap AI</b> आंध्र प्रदेश के लिए एक स्मार्ट नवीकरणीय ऊर्जा ऐप है। इसमें <b>Smart Energy Search</b> (सौर और पवन उत्पादों की तुलना करें), <b>EnergyScope AP</b> (राज्यभर में सौर और पवन क्षमता), <b>EnergyHub</b> (स्थानीय नवीकरणीय ऊर्जा दुकानें) और <b>सरकारी योजनाएं</b> शामिल हैं। मैं EMBER हूँ, इसमें आपका ऊर्जा सलाहकार।",
+      info_how: "<b>यह कैसे काम करता है</b><br>1. मुझे अपने उपकरण बताएं (जैसे \"2 बल्ब, 1 पंखा\")।<br>2. मैं आपकी दैनिक यूनिट, मासिक खर्च और ज़रूरी सोलर साइज़ दिखाता हूँ।<br>3. फिर एक्सप्लोर करें: उत्पादों की तुलना करें, अपने क्षेत्र की सौर-पवन क्षमता और तापमान देखें, पास की दुकानें खोजें, और सरकारी योजनाएं देखें।",
+      info_start: "<b>यह कैसे शुरू हुआ</b><br>GreenMap AI एक फाइनल-ईयर कॉलेज प्रोजेक्ट के रूप में शुरू हुआ — आंध्र प्रदेश के लोगों के लिए नवीकरणीय ऊर्जा खोजना आसान बनाने के सरल लक्ष्य के साथ — कहाँ धूप और हवा सबसे ज़्यादा है, कौन सी स्थानीय दुकानें उपकरण बेचती हैं, और खरीदने से पहले उत्पादों की तुलना कैसे करें।",
+      info_team: "<b>टीम 13</b><br>• <b>जाशु</b> — निर्माता और डेवलपर<br>• <b>स्टीफन</b> — टीम सदस्य<br>• <b>हेमंत</b> — टीम सदस्य<br><b>Dr. B वेंकटेश</b> सर के मार्गदर्शन में।",
+      habits_tips: "<b>करंट बचाने के आसान तरीके</b><br>• कमरे से बाहर जाते समय लाइट और पंखे बंद करें<br>• LED बल्ब और 5-स्टार रेटेड उपकरण इस्तेमाल करें<br>• एसी को 24–26°C पर सेट करें<br>• स्टैंडबाय पर चार्जर और टीवी अनप्लग करें<br>• वॉशिंग मशीन पूरे लोड के साथ चलाएं",
+      advice_reduce: "<b>{label}</b> सबसे ज़्यादा इस्तेमाल होता है (आपके {daily} यूनिट/दिन का {pct}%)। रोज़ 1 घंटा कम इस्तेमाल करने से लगभग <b>{save}/माह</b> की बचत होगी। एक बेहतर मॉडल में बदलने से और भी बचत हो सकती है।",
+      advice_overview: "आप लगभग <b>{amt}/माह</b> खर्च करते हैं। एक ~{kw} kW सोलर सिस्टम इसका ज़्यादातर हिस्सा कवर कर सकता है, और सरकारी सब्सिडी लागत और कम कर सकती है।",
+      here_you_go: "यह लीजिए:",
+      leaving_title: "ऐप से बाहर जा रहे हैं", leaving_body: "आप गूगल पर इसे खोजने के लिए इस ऐप से बाहर जा रहे हैं:",
+      leaving_confirm_q: "क्या आप आगे बढ़ना चाहते हैं?", cancel: "रद्द करें", confirm: "हाँ",
+      q_solar: "क्या आप सोलर पैनल देखना चाहते हैं?", q_wind: "क्या आप विंड टर्बाइन देखना चाहते हैं?",
+      q_compare: "AI उपयुक्तता स्कोर, कीमत और रेटिंग के आधार पर उत्पादों की तुलना करना चाहते हैं?",
+      q_temp: "क्या आप अपने क्षेत्र का तापमान देखना चाहते हैं?",
+      q_potent: "क्या आप अपने जिले में सौर और पवन क्षमता देखना चाहते हैं?",
+      q_shops: "क्या आप पास की दुकानें देखना चाहते हैं?", q_trend: "स्थानीय दुकानों में टॉप और ट्रेंडिंग उत्पाद देखना चाहते हैं?",
+      q_subsidy: "क्या आप सोलर के लिए सरकारी सब्सिडी देखना चाहते हैं?",
+      q_notify: "नई सरकारी योजनाएं आने पर सूचना चाहते हैं?",
+      q_farmer: "क्या आप किसान हैं? किसानों के लिए योजनाएं देखना चाहते हैं?",
+      q_usage: "क्या आप अपना खपत चार्ट देखना चाहते हैं?"
+    },
+    ta: {
+      greeting_morning: "காலை வணக்கம்", greeting_afternoon: "மதிய வணக்கம்", greeting_evening: "மாலை வணக்கம்",
+      greeting_night: "இனிய இரவு, சிறிது ஓய்வு எடுங்கள்",
+      greeting_sub: "இன்று உங்கள் வீடு எப்படி செயல்படுகிறது என்பதை இங்கே பாருங்கள்",
+      card_ses: "புதுப்பிக்கத்தக்க ஆற்றல் பொருட்களைத் தேடி, ஒப்பிட்டு, தேர்வு செய்யுங்கள்",
+      card_es: "ஆந்திரப் பிரதேசத்தில் சூரிய மற்றும் காற்று ஆற்றல் வாய்ப்புகளை அறியுங்கள்",
+      card_hub: "உங்கள் அருகிலுள்ள சூரிய மற்றும் காற்று ஆற்றல் கடைகளில் இருந்து வாங்குங்கள்",
+      card_govt: "அரசு ஆற்றல் திட்டங்களைக் கண்டறிந்து, விண்ணப்பித்து, சேமியுங்கள்",
+      settings: "அமைப்புகள்", app_info: "ஆப் தகவல்", language: "மொழி", notif_sound: "அறிவிப்பு ஒலி",
+      choose_language: "மொழியைத் தேர்வு செய்யவும்",
+      lang_note: "இந்தி, தமிழ், கன்னடம் மற்றும் தெலுங்கு இப்போது கிடைக்கின்றன.",
+      login: "கூகிளுடன் உள்நுழையவும்", signout: "வெளியேறு", guest: "விருந்தினர்", signed_in: "உள்நுழைந்துள்ளீர்கள்",
+      notifications: "அறிவிப்புகள்", clear_all: "அனைத்தையும் அழி", loading_notifs: "அறிவிப்புகள் ஏற்றப்படுகின்றன…",
+      no_notifs: "இன்னும் அறிவிப்புகள் இல்லை — அருகிலுள்ள கடைகள் மற்றும் நீங்கள் பின்தொடரும் கடைகளின் தகவல் இங்கே வரும்.",
+      ember_send: "அனுப்பு", ember_placeholder: "அல்லது தட்டச்சு செய்யவும்: 2 பல்புகள், 1 மின்விசிறி", ember_add_title: "உபகரணங்களைச் சேர்",
+      ember_intro: "வணக்கம், நான் <b>EMBER</b> ⚡ — உங்கள் ஆற்றல் ஆலோசகர். உங்கள் அறையில் என்ன இருக்கிறது என்று சொல்லுங்கள் — எ.கா. \"2 பல்புகள், 1 மின்விசிறி, ஒரு ஃபிரிட்ஜ்\" — அல்லது 🧮 ஐ தட்டி உபகரணங்களைத் தேர்ந்தெடுத்து, அனுப்பு அழுத்தவும்.",
+      ember_pick: "உங்கள் உபகரணங்களைத் தேர்ந்தெடுக்க 🧮 ஐ தட்டவும், அல்லது \"2 பல்புகள், 1 மின்விசிறி\" என தட்டச்சு செய்யவும்.",
+      ember_unrecognised: "எனக்கு இது புரியவில்லை: \"{list}\" — \"மின்விசிறி\", \"ஃபிரிட்ஜ்\", \"ஏசி\" போன்ற வார்த்தைகளை முயற்சிக்கவும்.",
+      ember_greeting: "வணக்கம்! 👋 உங்கள் அறையில் என்ன இருக்கிறது என்று சொல்லுங்கள் (எ.கா. \"2 பல்புகள், 1 மின்விசிறி\"), அல்லது 🧮 ஐ தட்டி உபகரணங்களைத் தேர்ந்தெடுக்கவும்.",
+      ember_bye: "கவனமாக இருங்கள்! உங்கள் ஆற்றல் பயன்பாட்டைச் சரிபார்க்க வேண்டும் என்றால் எப்போது வேண்டுமானாலும் வாருங்கள். 👋",
+      ember_thanks: "வரவேற்கிறேன்! உங்கள் ஆற்றல் பயன்பாட்டில் எப்போதும் உதவ மகிழ்ச்சி. 😊",
+      ember_howareyou: "நான் நன்றாக இருக்கிறேன், கேட்டதற்கு நன்றி! இன்று உங்கள் ஆற்றல் பயன்பாட்டில் நான் எப்படி உதவலாம்?",
+      ember_no: "பரவாயில்லை — நான் இங்கே இருப்பேன். தயாராக இருக்கும்போது உபகரணங்களைச் சேர்க்க 🧮 ஐ தட்டவும்.",
+      ember_yes: "அருமை! உங்கள் உபகரணங்களைச் சேர்க்க 🧮 ஐ தட்டவும், அல்லது இங்கே தட்டச்சு செய்யவும்.",
+      chart_note_24h: "இந்த அரட்டை 24 மணி நேரத்திற்குப் பிறகு தானாக அழிக்கப்படும்.",
+      chart_title: "உங்கள் தினசரி பயன்பாடு", chart_units_day: "யூனிட்/நாள்", chart_month: "/மாதம்", chart_kw_solar: "~{kw} kW சோலார்",
+      ans_add_first: "முதலில் உங்கள் உபகரணங்களைச் சேர்க்கவும் (🧮 ஐ தட்டவும்), பிறகு அவை பற்றி எதையும் கேளுங்கள்.",
+      ans_appliance: "{qty}× {label}: {kwh} யூனிட்/நாள், சுமார் {cost}/மாதம்.",
+      ans_most: "{label} அதிகமாகப் பயன்படுத்தப்படுகிறது — {kwh} யூனிட்/நாள் (உங்கள் மொத்தத்தில் {pct}%).",
+      ans_reduce: "{label} இலிருந்து தொடங்குங்கள் — நாளொன்றுக்கு 1 மணி நேரம் குறைவாகப் பயன்படுத்தினால் மாதத்திற்கு சுமார் {save} சேமிக்கலாம்.",
+      ans_scheme: "பார்க்கவும் <a class=\"agent-link\" href=\"Govt_Schemes.html\">🏛️ அரசு திட்டங்கள்</a>",
+      ans_panel: "~{kw} kW அமைப்புகளுக்கு <a class=\"agent-link\" href=\"Smart_Energy_Search.html\">🔎 Smart Energy Search</a> பார்க்கவும்.",
+      ans_save: "~{kw} kW சோலார் அமைப்பு மாதத்திற்கு சுமார் {amt} வரை சேமிக்கும்.",
+      ans_solar: "உங்கள் பயன்பாட்டிற்கு சுமார் {kw} kW சோலார் போதுமானதாக இருக்கும்.",
+      ans_month: "மாதத்திற்கு சுமார் {amt}.",
+      ans_day: "நாளொன்றுக்கு {units} யூனிட் ({amt}).",
+      ans_bill: "மாதத்திற்கு சுமார் {amt} (நாளொன்றுக்கு {day}).",
+      ans_default: "உங்கள் செலவு, சோலார் அளவு, அதிகம் பயன்படுத்தும் உபகரணம், அல்லது சேமிப்பு பற்றி சொல்ல முடியும் — நீங்கள் என்ன தெரிந்துகொள்ள விரும்புகிறீர்கள்?",
+      ember_hello: "ஹாய்! 👋 நான் உங்களுக்கு எப்படி உதவ முடியும்?",
+      ember_help_menu: "இந்த ஆப் உங்களுக்கு இவற்றில் உதவ முடியும்:",
+      opt_chart: "என் பயன்பாட்டு விளக்கப்படத்தைக் காட்டு", opt_save: "மின்சாரத்தை எப்படி சேமிப்பது?", opt_energy: "உங்களுக்கு ஆற்றல் சேமிப்பு வேண்டுமா?", opt_about: "இந்த ஆப் என்ன?",
+      opt_add: "🧮 என் உபகரணங்களைச் சேர்", explore_title: "ஆப்பை ஆராயுங்கள்",
+      link_ses_short: "🔍 Smart Energy Search", link_es_short: "🗺️ EnergyScope", link_hub_short: "🏪 EnergyHub", link_govt_short: "🏛️ அரசு திட்டங்கள்",
+      ember_sorry: "மன்னிக்கவும், எனக்கு அது புரியவில்லை. 😊 இந்த ஆப் உங்களுக்கு இவற்றில் உதவ முடியும்:",
+      ember_search_online: "அல்லது அதை ஆன்லைனில் தேடுங்கள்", ember_google_btn: "கூகிளில் தேடு",
+      ember_opening: "{page} திறக்கப்படுகிறது…",
+      yes_take_me: "ஆம், அழைத்துச் செல்", yes_show_it: "ஆம், காட்டு", no_thanks: "வேண்டாம்", no_problem: "பரவாயில்லை!",
+      next_title: "அடுத்து நீங்கள் என்ன செய்ய விரும்புகிறீர்கள்?",
+      opt_reduce: "என் பயன்பாட்டை எப்படி குறைப்பது?",
+      info_what: "<b>GreenMap AI</b> ஆந்திரப் பிரதேசத்திற்கான ஒரு ஸ்மார்ட் புதுப்பிக்கத்தக்க ஆற்றல் ஆப். இதில் <b>Smart Energy Search</b> (சூரிய மற்றும் காற்று பொருட்களை ஒப்பிடுங்கள்), <b>EnergyScope AP</b> (மாநிலம் முழுவதும் சூரிய, காற்று திறன்), <b>EnergyHub</b> (உள்ளூர் புதுப்பிக்கத்தக்க ஆற்றல் கடைகள்) மற்றும் <b>அரசு திட்டங்கள்</b> உள்ளன. நான் EMBER, இதில் உங்கள் ஆற்றல் ஆலோசகர்.",
+      info_how: "<b>இது எப்படி வேலை செய்கிறது</b><br>1. உங்கள் உபகரணங்களைச் சொல்லுங்கள் (எ.கா. \"2 பல்புகள், 1 மின்விசிறி\").<br>2. உங்கள் தினசரி யூனிட், மாத செலவு மற்றும் தேவையான சோலார் அளவை நான் காட்டுவேன்.<br>3. பிறகு ஆராயுங்கள்: பொருட்களை ஒப்பிடுங்கள், உங்கள் பகுதியின் சூரிய-காற்று திறன் மற்றும் வெப்பநிலையைப் பார்க்கவும், அருகிலுள்ள கடைகளைக் கண்டறியவும், அரசு திட்டங்களைப் பார்க்கவும்.",
+      info_start: "<b>இது எப்படி தொடங்கியது</b><br>GreenMap AI ஒரு இறுதி ஆண்டு கல்லூரி திட்டமாகத் தொடங்கியது — ஆந்திரப் பிரதேச மக்களுக்கு புதுப்பிக்கத்தக்க ஆற்றலை எளிதாகக் கண்டறிய வைக்கும் எளிய இலக்குடன் — சூரியனும் காற்றும் எங்கே அதிகமாக உள்ளன, எந்த உள்ளூர் கடைகள் உபகரணங்களை விற்கின்றன, வாங்குவதற்கு முன் பொருட்களை எப்படி ஒப்பிடுவது.",
+      info_team: "<b>குழு 13</b><br>• <b>ஜாஷு</b> — உருவாக்கியவர் &amp; டெவலப்பர்<br>• <b>ஸ்டீபன்</b> — குழு உறுப்பினர்<br>• <b>ஹேமந்த்</b> — குழு உறுப்பினர்<br><b>Dr. B வெங்கடேஷ்</b> அவர்களின் வழிகாட்டுதலுடன்.",
+      habits_tips: "<b>மின்சாரத்தை சேமிக்க எளிய வழிகள்</b><br>• அறையை விட்டு வெளியேறும்போது விளக்குகள் மற்றும் மின்விசிறிகளை அணைக்கவும்<br>• LED பல்புகள் மற்றும் 5-ஸ்டார் ரேட்டிங் உபகரணங்களைப் பயன்படுத்தவும்<br>• ஏசியை 24–26°C ஆக அமைக்கவும்<br>• ஸ்டாண்ட்பையில் உள்ள சார்ஜர்கள் மற்றும் டிவிகளைக் கழற்றவும்<br>• வாஷிங் மெஷினை முழு சுமையுடன் இயக்கவும்",
+      advice_reduce: "<b>{label}</b> அதிகமாகப் பயன்படுத்தப்படுகிறது (உங்கள் {daily} யூனிட்/நாளில் {pct}%). நாளொன்றுக்கு 1 மணி நேரம் குறைவாகப் பயன்படுத்தினால் மாதத்திற்கு சுமார் <b>{save}</b> சேமிக்கலாம். சிறந்த மாடலுக்கு மாறினால் இன்னும் அதிகம் சேமிக்கலாம்.",
+      advice_overview: "நீங்கள் மாதத்திற்கு சுமார் <b>{amt}</b> செலவிடுகிறீர்கள். ~{kw} kW சோலார் அமைப்பு இதில் பெரும்பகுதியை ஈடுசெய்யும், அரசு மானியங்கள் செலவை இன்னும் குறைக்கலாம்.",
+      here_you_go: "இதோ:",
+      leaving_title: "ஆப்பிலிருந்து வெளியேறுகிறீர்கள்", leaving_body: "கூகிளில் இதைத் தேட நீங்கள் இந்த ஆப்பிலிருந்து வெளியேறுகிறீர்கள்:",
+      leaving_confirm_q: "நீங்கள் தொடர விரும்புகிறீர்களா?", cancel: "ரத்து செய்", confirm: "சரி",
+      q_solar: "சோலார் பேனல்களைப் பார்க்க விரும்புகிறீர்களா?", q_wind: "விண்ட் டர்பைன்களைப் பார்க்க விரும்புகிறீர்களா?",
+      q_compare: "AI தகுதி மதிப்பெண், விலை மற்றும் மதிப்பீட்டின் அடிப்படையில் பொருட்களை ஒப்பிட விரும்புகிறீர்களா?",
+      q_temp: "உங்கள் பகுதியின் வெப்பநிலையைப் பார்க்க விரும்புகிறீர்களா?",
+      q_potent: "உங்கள் மாவட்டத்தில் சூரிய மற்றும் காற்று திறனைப் பார்க்க விரும்புகிறீர்களா?",
+      q_shops: "அருகிலுள்ள கடைகளைப் பார்க்க விரும்புகிறீர்களா?", q_trend: "உள்ளூர் கடைகளில் டாப் மற்றும் ட்ரெண்டிங் பொருட்களைப் பார்க்க விரும்புகிறீர்களா?",
+      q_subsidy: "சோலாருக்கான அரசு மானியங்களைப் பார்க்க விரும்புகிறீர்களா?",
+      q_notify: "புதிய அரசு திட்டங்கள் வந்தவுடன் அறிவிப்பு வேண்டுமா?",
+      q_farmer: "நீங்கள் விவசாயியா? விவசாயிகளுக்கான திட்டங்களைப் பார்க்க விரும்புகிறீர்களா?",
+      q_usage: "உங்கள் பயன்பாட்டு விளக்கப்படத்தைப் பார்க்க விரும்புகிறீர்களா?"
+    },
+    kn: {
+      greeting_morning: "ಶುಭೋದಯ", greeting_afternoon: "ಶುಭ ಮಧ್ಯಾಹ್ನ", greeting_evening: "ಶುಭ ಸಂಜೆ",
+      greeting_night: "ಶುಭ ರಾತ್ರಿ, ಸ್ವಲ್ಪ ವಿಶ್ರಾಂತಿ ಪಡೆಯಿರಿ",
+      greeting_sub: "ಇಂದು ನಿಮ್ಮ ಮನೆ ಹೇಗೆ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತಿದೆ ಎಂದು ಇಲ್ಲಿ ನೋಡಿ",
+      card_ses: "ನವೀಕರಿಸಬಹುದಾದ ಇಂಧನ ಉತ್ಪನ್ನಗಳನ್ನು ಹುಡುಕಿ, ಹೋಲಿಸಿ ಮತ್ತು ಆಯ್ಕೆಮಾಡಿ",
+      card_es: "ಆಂಧ್ರಪ್ರದೇಶದಾದ್ಯಂತ ಸೌರ ಮತ್ತು ಪವನ ಶಕ್ತಿಯ ಅವಕಾಶಗಳನ್ನು ಅನ್ವೇಷಿಸಿ",
+      card_hub: "ನಿಮ್ಮ ಹತ್ತಿರದ ಸೌರ ಮತ್ತು ಪವನ ಇಂಧನ ಅಂಗಡಿಗಳಿಂದ ಹುಡುಕಿ ಮತ್ತು ಖರೀದಿಸಿ",
+      card_govt: "ಸರ್ಕಾರಿ ಇಂಧನ ಯೋಜನೆಗಳನ್ನು ಕಂಡುಹಿಡಿಯಿರಿ, ಅರ್ಜಿ ಸಲ್ಲಿಸಿ ಮತ್ತು ಉಳಿಸಿ",
+      settings: "ಸೆಟ್ಟಿಂಗ್‌ಗಳು", app_info: "ಆ್ಯಪ್ ಮಾಹಿತಿ", language: "ಭಾಷೆ", notif_sound: "ಅಧಿಸೂಚನೆ ಧ್ವನಿ",
+      choose_language: "ಭಾಷೆಯನ್ನು ಆಯ್ಕೆಮಾಡಿ",
+      lang_note: "ಹಿಂದಿ, ತಮಿಳು, ಕನ್ನಡ ಮತ್ತು ತೆಲುಗು ಈಗ ಲಭ್ಯವಿದೆ.",
+      login: "ಗೂಗಲ್‌ನೊಂದಿಗೆ ಲಾಗಿನ್ ಆಗಿ", signout: "ಸೈನ್ ಔಟ್", guest: "ಅತಿಥಿ", signed_in: "ಸೈನ್ ಇನ್ ಆಗಿದ್ದೀರಿ",
+      notifications: "ಅಧಿಸೂಚನೆಗಳು", clear_all: "ಎಲ್ಲವನ್ನೂ ತೆರವುಗೊಳಿಸಿ", loading_notifs: "ಅಧಿಸೂಚನೆಗಳು ಲೋಡ್ ಆಗುತ್ತಿವೆ…",
+      no_notifs: "ಇನ್ನೂ ಅಧಿಸೂಚನೆಗಳಿಲ್ಲ — ಹತ್ತಿರದ ಅಂಗಡಿಗಳು ಮತ್ತು ನೀವು ಅನುಸರಿಸುವ ಅಂಗಡಿಗಳ ಮಾಹಿತಿ ಇಲ್ಲಿ ಕಾಣಿಸುತ್ತದೆ.",
+      ember_send: "ಕಳುಹಿಸಿ", ember_placeholder: "ಅಥವಾ ಹೀಗೆ ಟೈಪ್ ಮಾಡಿ: 2 ಬಲ್ಬ್‌ಗಳು, 1 ಫ್ಯಾನ್", ember_add_title: "ಉಪಕರಣಗಳನ್ನು ಸೇರಿಸಿ",
+      ember_intro: "ನಮಸ್ಕಾರ, ನಾನು <b>EMBER</b> ⚡ — ನಿಮ್ಮ ಇಂಧನ ಸಲಹೆಗಾರ. ನಿಮ್ಮ ಕೋಣೆಯಲ್ಲಿ ಏನಿದೆ ಎಂದು ಹೇಳಿ — ಉದಾ. \"2 ಬಲ್ಬ್‌ಗಳು, 1 ಫ್ಯಾನ್, ಒಂದು ಫ್ರಿಜ್\" — ಅಥವಾ 🧮 ಟ್ಯಾಪ್ ಮಾಡಿ ಉಪಕರಣಗಳನ್ನು ಆರಿಸಿ, ನಂತರ ಕಳುಹಿಸಿ ಒತ್ತಿ.",
+      ember_pick: "ನಿಮ್ಮ ಉಪಕರಣಗಳನ್ನು ಆಯ್ಕೆ ಮಾಡಲು 🧮 ಟ್ಯಾಪ್ ಮಾಡಿ, ಅಥವಾ \"2 ಬಲ್ಬ್‌ಗಳು, 1 ಫ್ಯಾನ್\" ಎಂದು ಟೈಪ್ ಮಾಡಿ.",
+      ember_unrecognised: "ನನಗೆ ಅದು ಅರ್ಥವಾಗಲಿಲ್ಲ: \"{list}\" — \"ಫ್ಯಾನ್\", \"ಫ್ರಿಜ್\", \"ಎಸಿ\" ನಂತಹ ಪದಗಳನ್ನು ಪ್ರಯತ್ನಿಸಿ.",
+      ember_greeting: "ನಮಸ್ಕಾರ! 👋 ನಿಮ್ಮ ಕೋಣೆಯಲ್ಲಿ ಏನಿದೆ ಎಂದು ಹೇಳಿ (ಉದಾ. \"2 ಬಲ್ಬ್‌ಗಳು, 1 ಫ್ಯಾನ್\"), ಅಥವಾ 🧮 ಟ್ಯಾಪ್ ಮಾಡಿ ಉಪಕರಣಗಳನ್ನು ಆಯ್ಕೆಮಾಡಿ.",
+      ember_bye: "ಜಾಗ್ರತೆ ಇರಲಿ! ನಿಮ್ಮ ಇಂಧನ ಬಳಕೆಯನ್ನು ಪರಿಶೀಲಿಸಲು ಬಯಸಿದಾಗ ಯಾವಾಗ ಬೇಕಾದರೂ ಹಿಂತಿರುಗಿ. 👋",
+      ember_thanks: "ಸ್ವಾಗತ! ನಿಮ್ಮ ಇಂಧನ ಬಳಕೆಯಲ್ಲಿ ಸಹಾಯ ಮಾಡಲು ಯಾವಾಗಲೂ ಸಂತೋಷ. 😊",
+      ember_howareyou: "ನಾನು ಚೆನ್ನಾಗಿದ್ದೇನೆ, ಕೇಳಿದ್ದಕ್ಕೆ ಧನ್ಯವಾದಗಳು! ಇಂದು ನಿಮ್ಮ ಇಂಧನ ಬಳಕೆಯಲ್ಲಿ ನಾನು ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
+      ember_no: "ಪರವಾಗಿಲ್ಲ — ನಾನು ಇಲ್ಲಿರುತ್ತೇನೆ. ಸಿದ್ಧವಾದಾಗ ಉಪಕರಣಗಳನ್ನು ಸೇರಿಸಲು 🧮 ಟ್ಯಾಪ್ ಮಾಡಿ.",
+      ember_yes: "ಅದ್ಭುತ! ನಿಮ್ಮ ಉಪಕರಣಗಳನ್ನು ಸೇರಿಸಲು 🧮 ಟ್ಯಾಪ್ ಮಾಡಿ, ಅಥವಾ ಇಲ್ಲಿ ಟೈಪ್ ಮಾಡಿ.",
+      chart_note_24h: "ಈ ಚಾಟ್ 24 ಗಂಟೆಗಳ ನಂತರ ತಾನಾಗಿಯೇ ಅಳಿಸಲ್ಪಡುತ್ತದೆ.",
+      chart_title: "ನಿಮ್ಮ ದೈನಂದಿನ ಬಳಕೆ", chart_units_day: "ಯೂನಿಟ್‌ಗಳು/ದಿನ", chart_month: "/ತಿಂಗಳು", chart_kw_solar: "~{kw} kW ಸೋಲಾರ್",
+      ans_add_first: "ಮೊದಲು ನಿಮ್ಮ ಉಪಕರಣಗಳನ್ನು ಸೇರಿಸಿ (🧮 ಟ್ಯಾಪ್ ಮಾಡಿ), ನಂತರ ಅವುಗಳ ಬಗ್ಗೆ ಏನು ಬೇಕಾದರೂ ಕೇಳಿ.",
+      ans_appliance: "{qty}× {label}: {kwh} ಯೂನಿಟ್/ದಿನ, ಸುಮಾರು {cost}/ತಿಂಗಳು.",
+      ans_most: "{label} ಅತ್ಯಧಿಕವಾಗಿ ಬಳಕೆಯಾಗುತ್ತಿದೆ — {kwh} ಯೂನಿಟ್/ದಿನ (ನಿಮ್ಮ ಒಟ್ಟು ಬಳಕೆಯ {pct}%).",
+      ans_reduce: "{label} ನಿಂದ ಪ್ರಾರಂಭಿಸಿ — ದಿನಕ್ಕೆ 1 ಗಂಟೆ ಕಡಿಮೆ ಬಳಸಿದರೆ ತಿಂಗಳಿಗೆ ಸುಮಾರು {save} ಉಳಿತಾಯವಾಗುತ್ತದೆ.",
+      ans_scheme: "ನೋಡಿ <a class=\"agent-link\" href=\"Govt_Schemes.html\">🏛️ ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು</a>",
+      ans_panel: "~{kw} kW ವ್ಯವಸ್ಥೆಗಳಿಗಾಗಿ <a class=\"agent-link\" href=\"Smart_Energy_Search.html\">🔎 Smart Energy Search</a> ನೋಡಿ.",
+      ans_save: "~{kw} kW ಸೋಲಾರ್ ವ್ಯವಸ್ಥೆ ತಿಂಗಳಿಗೆ ಸುಮಾರು {amt} ವರೆಗೆ ಉಳಿಸಬಹುದು.",
+      ans_solar: "ನಿಮ್ಮ ಬಳಕೆಗೆ ಸುಮಾರು {kw} kW ಸೋಲಾರ್ ಸಾಕಾಗುತ್ತದೆ.",
+      ans_month: "ತಿಂಗಳಿಗೆ ಸುಮಾರು {amt}.",
+      ans_day: "ದಿನಕ್ಕೆ {units} ಯೂನಿಟ್ ({amt}).",
+      ans_bill: "ತಿಂಗಳಿಗೆ ಸುಮಾರು {amt} (ದಿನಕ್ಕೆ {day}).",
+      ans_default: "ನಿಮ್ಮ ವೆಚ್ಚ, ಸೋಲಾರ್ ಗಾತ್ರ, ಅತ್ಯಧಿಕ ಬಳಕೆಯ ಉಪಕರಣ, ಅಥವಾ ಉಳಿತಾಯದ ಬಗ್ಗೆ ಹೇಳಬಲ್ಲೆ — ನಿಮಗೆ ಏನು ತಿಳಿದುಕೊಳ್ಳಬೇಕು?",
+      ember_hello: "ಹಾಯ್! 👋 ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
+      ember_help_menu: "ಈ ಆ್ಯಪ್ ನಿಮಗೆ ಈ ವಿಷಯಗಳಲ್ಲಿ ಸಹಾಯ ಮಾಡಬಲ್ಲದು:",
+      opt_chart: "ನನ್ನ ಬಳಕೆ ಚಾರ್ಟ್ ತೋರಿಸಿ", opt_save: "ಕರೆಂಟ್ ಹೇಗೆ ಉಳಿಸುವುದು?", opt_energy: "ನಿಮಗೆ ಇಂಧನ ಉಳಿತಾಯ ಬೇಕೇ?", opt_about: "ಈ ಆ್ಯಪ್ ಎಂದರೇನು?",
+      opt_add: "🧮 ನನ್ನ ಉಪಕರಣಗಳನ್ನು ಸೇರಿಸಿ", explore_title: "ಆ್ಯಪ್ ಅನ್ನು ಅನ್ವೇಷಿಸಿ",
+      link_ses_short: "🔍 Smart Energy Search", link_es_short: "🗺️ EnergyScope", link_hub_short: "🏪 EnergyHub", link_govt_short: "🏛️ ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು",
+      ember_sorry: "ಕ್ಷಮಿಸಿ, ನನಗೆ ಅದು ಅರ್ಥವಾಗಲಿಲ್ಲ. 😊 ಈ ಆ್ಯಪ್ ನಿಮಗೆ ಈ ವಿಷಯಗಳಲ್ಲಿ ಸಹಾಯ ಮಾಡಬಲ್ಲದು:",
+      ember_search_online: "ಅಥವಾ ಅದನ್ನು ಆನ್‌ಲೈನ್‌ನಲ್ಲಿ ಹುಡುಕಿ", ember_google_btn: "ಗೂಗಲ್‌ನಲ್ಲಿ ಹುಡುಕಿ",
+      ember_opening: "{page} ತೆರೆಯಲಾಗುತ್ತಿದೆ…",
+      yes_take_me: "ಹೌದು, ಕರೆದುಕೊಂಡು ಹೋಗು", yes_show_it: "ಹೌದು, ತೋರಿಸು", no_thanks: "ಬೇಡ, ಧನ್ಯವಾದಗಳು", no_problem: "ಪರವಾಗಿಲ್ಲ!",
+      next_title: "ಮುಂದೆ ನೀವು ಏನು ಮಾಡಲು ಬಯಸುತ್ತೀರಿ?",
+      opt_reduce: "ನನ್ನ ಬಳಕೆಯನ್ನು ಹೇಗೆ ಕಡಿಮೆ ಮಾಡುವುದು?",
+      info_what: "<b>GreenMap AI</b> ಆಂಧ್ರಪ್ರದೇಶಕ್ಕಾಗಿ ಒಂದು ಸ್ಮಾರ್ಟ್ ನವೀಕರಿಸಬಹುದಾದ ಇಂಧನ ಆ್ಯಪ್. ಇದರಲ್ಲಿ <b>Smart Energy Search</b> (ಸೌರ ಮತ್ತು ಪವನ ಉತ್ಪನ್ನಗಳನ್ನು ಹೋಲಿಸಿ), <b>EnergyScope AP</b> (ರಾಜ್ಯಾದ್ಯಂತ ಸೌರ, ಪವನ ಸಾಮರ್ಥ್ಯ), <b>EnergyHub</b> (ಸ್ಥಳೀಯ ನವೀಕರಿಸಬಹುದಾದ ಇಂಧನ ಅಂಗಡಿಗಳು) ಮತ್ತು <b>ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು</b> ಸೇರಿವೆ. ನಾನು EMBER, ಇದರಲ್ಲಿ ನಿಮ್ಮ ಇಂಧನ ಸಲಹೆಗಾರ.",
+      info_how: "<b>ಇದು ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ</b><br>1. ನಿಮ್ಮ ಉಪಕರಣಗಳನ್ನು ಹೇಳಿ (ಉದಾ. \"2 ಬಲ್ಬ್‌ಗಳು, 1 ಫ್ಯಾನ್\").<br>2. ನಾನು ನಿಮ್ಮ ದೈನಂದಿನ ಯೂನಿಟ್, ಮಾಸಿಕ ವೆಚ್ಚ ಮತ್ತು ಅಗತ್ಯವಿರುವ ಸೋಲಾರ್ ಗಾತ್ರವನ್ನು ತೋರಿಸುತ್ತೇನೆ.<br>3. ನಂತರ ಅನ್ವೇಷಿಸಿ: ಉತ್ಪನ್ನಗಳನ್ನು ಹೋಲಿಸಿ, ನಿಮ್ಮ ಪ್ರದೇಶದ ಸೌರ-ಪವನ ಸಾಮರ್ಥ್ಯ ಮತ್ತು ತಾಪಮಾನವನ್ನು ಪರಿಶೀಲಿಸಿ, ಹತ್ತಿರದ ಅಂಗಡಿಗಳನ್ನು ಹುಡುಕಿ, ಮತ್ತು ಸರ್ಕಾರಿ ಯೋಜನೆಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.",
+      info_start: "<b>ಇದು ಹೇಗೆ ಪ್ರಾರಂಭವಾಯಿತು</b><br>GreenMap AI ಒಂದು ಅಂತಿಮ ವರ್ಷದ ಕಾಲೇಜು ಯೋಜನೆಯಾಗಿ ಪ್ರಾರಂಭವಾಯಿತು — ಆಂಧ್ರಪ್ರದೇಶದ ಜನರಿಗೆ ನವೀಕರಿಸಬಹುದಾದ ಇಂಧನವನ್ನು ಕಂಡುಹಿಡಿಯುವುದನ್ನು ಸುಲಭಗೊಳಿಸುವ ಸರಳ ಗುರಿಯೊಂದಿಗೆ — ಸೂರ್ಯ ಮತ್ತು ಗಾಳಿ ಎಲ್ಲಿ ಪ್ರಬಲವಾಗಿವೆ, ಯಾವ ಸ್ಥಳೀಯ ಅಂಗಡಿಗಳು ಉಪಕರಣಗಳನ್ನು ಮಾರಾಟ ಮಾಡುತ್ತವೆ, ಮತ್ತು ಖರೀದಿಸುವ ಮೊದಲು ಉತ್ಪನ್ನಗಳನ್ನು ಹೇಗೆ ಹೋಲಿಸುವುದು.",
+      info_team: "<b>ತಂಡ 13</b><br>• <b>ಜಾಷು</b> — ಸೃಷ್ಟಿಕರ್ತ &amp; ಡೆವಲಪರ್<br>• <b>ಸ್ಟೀಫನ್</b> — ತಂಡದ ಸದಸ್ಯ<br>• <b>ಹೇಮಂತ್</b> — ತಂಡದ ಸದಸ್ಯ<br><b>Dr. B ವೆಂಕಟೇಶ್</b> ಸರ್ ಅವರ ಮಾರ್ಗದರ್ಶನದಲ್ಲಿ.",
+      habits_tips: "<b>ಕರೆಂಟ್ ಉಳಿಸುವ ಸುಲಭ ಮಾರ್ಗಗಳು</b><br>• ಕೋಣೆಯಿಂದ ಹೊರಡುವಾಗ ದೀಪಗಳು ಮತ್ತು ಫ್ಯಾನ್‌ಗಳನ್ನು ಆಫ್ ಮಾಡಿ<br>• LED ಬಲ್ಬ್‌ಗಳು ಮತ್ತು 5-ಸ್ಟಾರ್ ರೇಟೆಡ್ ಉಪಕರಣಗಳನ್ನು ಬಳಸಿ<br>• ಎಸಿಯನ್ನು 24–26°C ಗೆ ಸೆಟ್ ಮಾಡಿ<br>• ಸ್ಟ್ಯಾಂಡ್‌ಬೈನಲ್ಲಿರುವ ಚಾರ್ಜರ್‌ಗಳು ಮತ್ತು ಟಿವಿಗಳನ್ನು ಅನ್‌ಪ್ಲಗ್ ಮಾಡಿ<br>• ವಾಷಿಂಗ್ ಮೆಷಿನ್ ಅನ್ನು ಪೂರ್ಣ ಲೋಡ್‌ನೊಂದಿಗೆ ಓಡಿಸಿ",
+      advice_reduce: "<b>{label}</b> ಅತ್ಯಧಿಕವಾಗಿ ಬಳಕೆಯಾಗುತ್ತಿದೆ (ನಿಮ್ಮ {daily} ಯೂನಿಟ್/ದಿನದ {pct}%). ದಿನಕ್ಕೆ 1 ಗಂಟೆ ಕಡಿಮೆ ಬಳಸಿದರೆ ತಿಂಗಳಿಗೆ ಸುಮಾರು <b>{save}</b> ಉಳಿತಾಯವಾಗುತ್ತದೆ. ಹೆಚ್ಚು ದಕ್ಷ ಮಾದರಿಗೆ ಬದಲಾಯಿಸಿದರೆ ಇನ್ನೂ ಹೆಚ್ಚು ಉಳಿಸಬಹುದು.",
+      advice_overview: "ನೀವು ತಿಂಗಳಿಗೆ ಸುಮಾರು <b>{amt}</b> ಖರ್ಚು ಮಾಡುತ್ತೀರಿ. ~{kw} kW ಸೋಲಾರ್ ವ್ಯವಸ್ಥೆ ಇದರ ಹೆಚ್ಚಿನ ಭಾಗವನ್ನು ಸರಿದೂಗಿಸಬಹುದು, ಮತ್ತು ಸರ್ಕಾರಿ ಸಬ್ಸಿಡಿಗಳು ವೆಚ್ಚವನ್ನು ಇನ್ನಷ್ಟು ಕಡಿಮೆ ಮಾಡಬಹುದು.",
+      here_you_go: "ಇದೋ:",
+      leaving_title: "ಆ್ಯಪ್‌ನಿಂದ ಹೊರಡುತ್ತಿದ್ದೀರಿ", leaving_body: "ಗೂಗಲ್‌ನಲ್ಲಿ ಇದನ್ನು ಹುಡುಕಲು ನೀವು ಈ ಆ್ಯಪ್‌ನಿಂದ ಹೊರಡುತ್ತಿದ್ದೀರಿ:",
+      leaving_confirm_q: "ನೀವು ಮುಂದುವರಿಯಲು ಬಯಸುವಿರಾ?", cancel: "ರದ್ದುಮಾಡಿ", confirm: "ಸರಿ",
+      q_solar: "ಸೋಲಾರ್ ಪ್ಯಾನಲ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಲು ಬಯಸುವಿರಾ?", q_wind: "ವಿಂಡ್ ಟರ್ಬೈನ್‌ಗಳನ್ನು ಪರಿಶೀಲಿಸಲು ಬಯಸುವಿರಾ?",
+      q_compare: "AI ಸೂಕ್ತತೆ ಸ್ಕೋರ್, ಬೆಲೆ ಮತ್ತು ರೇಟಿಂಗ್ ಆಧಾರದ ಮೇಲೆ ಉತ್ಪನ್ನಗಳನ್ನು ಹೋಲಿಸಲು ಬಯಸುವಿರಾ?",
+      q_temp: "ನಿಮ್ಮ ಪ್ರದೇಶದ ತಾಪಮಾನವನ್ನು ಪರಿಶೀಲಿಸಲು ಬಯಸುವಿರಾ?",
+      q_potent: "ನಿಮ್ಮ ಜಿಲ್ಲೆಯಲ್ಲಿ ಸೌರ ಮತ್ತು ಪವನ ಸಾಮರ್ಥ್ಯವನ್ನು ನೋಡಲು ಬಯಸುವಿರಾ?",
+      q_shops: "ಹತ್ತಿರದ ಅಂಗಡಿಗಳನ್ನು ಪರಿಶೀಲಿಸಲು ಬಯಸುವಿರಾ?", q_trend: "ಸ್ಥಳೀಯ ಅಂಗಡಿಗಳಲ್ಲಿ ಟಾಪ್ ಮತ್ತು ಟ್ರೆಂಡಿಂಗ್ ಉತ್ಪನ್ನಗಳನ್ನು ನೋಡಲು ಬಯಸುವಿರಾ?",
+      q_subsidy: "ಸೋಲಾರ್‌ಗಾಗಿ ಸರ್ಕಾರಿ ಸಬ್ಸಿಡಿಗಳನ್ನು ಪರಿಶೀಲಿಸಲು ಬಯಸುವಿರಾ?",
+      q_notify: "ಹೊಸ ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು ಬಂದಾಗ ಅಧಿಸೂಚನೆ ಬೇಕೇ?",
+      q_farmer: "ನೀವು ರೈತರೇ? ರೈತರಿಗಾಗಿ ಯೋಜನೆಗಳನ್ನು ನೋಡಲು ಬಯಸುವಿರಾ?",
+      q_usage: "ನಿಮ್ಮ ಬಳಕೆ ಚಾರ್ಟ್ ಅನ್ನು ನೋಡಲು ಬಯಸುವಿರಾ?"
+    },
     te: {
       greeting_morning: "శుభోదయం", greeting_afternoon: "శుభ మధ్యాహ్నం", greeting_evening: "శుభ సాయంత్రం",
       greeting_night: "శుభ రాత్రి, కొంచెం విశ్రాంతి తీసుకోండి",
@@ -1104,7 +1311,7 @@
       card_govt: "ప్రభుత్వ ఇంధన పథకాలను తెలుసుకోండి, దరఖాస్తు చేయండి, ఆదా చేయండి",
       settings: "సెట్టింగ్‌లు", app_info: "యాప్ సమాచారం", language: "భాష", notif_sound: "నోటిఫికేషన్ శబ్దం",
       choose_language: "భాషను ఎంచుకోండి",
-      lang_note: "తెలుగు ఇప్పుడు అందుబాటులో ఉంది. హిందీ, తమిళం, కన్నడ త్వరలో వస్తాయి — అప్పటివరకు అవి ఇంగ్లీష్‌లో కనిపిస్తాయి.",
+      lang_note: "హిందీ, తమిళం, కన్నడ మరియు తెలుగు ఇప్పుడు అందుబాటులో ఉన్నాయి.",
       login: "గూగుల్‌తో లాగిన్ అవ్వండి", signout: "సైన్ అవుట్", guest: "అతిథి", signed_in: "సైన్ ఇన్ అయ్యారు",
       notifications: "నోటిఫికేషన్లు", clear_all: "అన్నీ తొలగించండి", loading_notifs: "నోటిఫికేషన్లు లోడ్ అవుతున్నాయి…",
       no_notifs: "ఇంకా నోటిఫికేషన్లు లేవు — సమీపంలోని దుకాణాలు, మీరు అనుసరించే దుకాణాల సమాచారం ఇక్కడ కనిపిస్తుంది.",
@@ -1136,7 +1343,7 @@
       ember_help_menu: "ఈ యాప్ మీకు ఇలా సహాయం చేయగలదు:",
       opt_chart: "నా వినియోగ చార్ట్ చూపించు", opt_save: "కరెంట్ ఎలా ఆదా చేయాలి?", opt_energy: "మీకు ఇంధన పొదుపు కావాలా?", opt_about: "ఈ యాప్ అంటే ఏమిటి?",
       opt_add: "🧮 నా ఉపకరణాలను జోడించు", explore_title: "యాప్‌ను అన్వేషించండి",
-      link_ses_short: "🔍 Smart Energy Search", link_es_short: "🗺️ EnergyScope", link_hub_short: "🏪 EnergyHub", link_govt_short: "🏛️ Govt Schemes",
+      link_ses_short: "🔍 Smart Energy Search", link_es_short: "🗺️ EnergyScope", link_hub_short: "🏪 EnergyHub", link_govt_short: "🏛️ ప్రభుత్వ పథకాలు",
       ember_sorry: "క్షమించండి, అది నాకు అర్థం కాలేదు. 😊 ఈ యాప్ మీకు ఇలా సహాయం చేయగలదు:",
       ember_search_online: "లేదా ఆన్‌లైన్‌లో వెతకండి", ember_google_btn: "గూగుల్‌లో వెతకండి",
       ember_opening: "{page} తెరుస్తోంది…",
@@ -1164,25 +1371,64 @@
       q_usage: "మీ వినియోగ చార్ట్ చూడాలనుకుంటున్నారా?"
     }
   };
-  var AGENT_LABELS_TE = {
-    bulb_small: "చిన్న LED బల్బు", bulb_big: "పెద్ద LED బల్బు", tube: "ట్యూబ్ లైట్", fan: "సీలింగ్ ఫ్యాన్",
-    table_fan: "టేబుల్ ఫ్యాన్", cooler: "ఎయిర్ కూలర్", ac1: "ఏసీ (1 టన్)", ac1_5: "ఏసీ (1.5 టన్)",
-    fridge: "ఫ్రిజ్", wash: "వాషింగ్ మెషిన్", tv: "టీవీ", geyser: "వాటర్ హీటర్/గీజర్",
-    pump: "వాటర్ పంప్/మోటార్", mixer: "మిక్సర్ గ్రైండర్", iron: "ఇస్త్రీ పెట్టె",
-    laptop: "ల్యాప్‌టాప్/కంప్యూటర్", induction: "ఇండక్షన్ స్టవ్"
+  var AGENT_LABELS = {
+    te: {
+      bulb_small: "చిన్న LED బల్బు", bulb_big: "పెద్ద LED బల్బు", tube: "ట్యూబ్ లైట్", fan: "సీలింగ్ ఫ్యాన్",
+      table_fan: "టేబుల్ ఫ్యాన్", cooler: "ఎయిర్ కూలర్", ac1: "ఏసీ (1 టన్)", ac1_5: "ఏసీ (1.5 టన్)",
+      fridge: "ఫ్రిజ్", wash: "వాషింగ్ మెషిన్", tv: "టీవీ", geyser: "వాటర్ హీటర్/గీజర్",
+      pump: "వాటర్ పంప్/మోటార్", mixer: "మిక్సర్ గ్రైండర్", iron: "ఇస్త్రీ పెట్టె",
+      laptop: "ల్యాప్‌టాప్/కంప్యూటర్", induction: "ఇండక్షన్ స్టవ్"
+    },
+    hi: {
+      bulb_small: "छोटा LED बल्ब", bulb_big: "बड़ा LED बल्ब", tube: "ट्यूब लाइट", fan: "सीलिंग पंखा",
+      table_fan: "टेबल पंखा", cooler: "एयर कूलर", ac1: "एसी (1 टन)", ac1_5: "एसी (1.5 टन)",
+      fridge: "फ्रिज", wash: "वॉशिंग मशीन", tv: "टीवी", geyser: "गीज़र/वॉटर हीटर",
+      pump: "वॉटर पंप/मोटर", mixer: "मिक्सर ग्राइंडर", iron: "इस्त्री",
+      laptop: "लैपटॉप/कंप्यूटर", induction: "इंडक्शन चूल्हा"
+    },
+    ta: {
+      bulb_small: "சிறிய LED பல்பு", bulb_big: "பெரிய LED பல்பு", tube: "டியூப் லைட்", fan: "சீலிங் மின்விசிறி",
+      table_fan: "மேசை மின்விசிறி", cooler: "ஏர் கூலர்", ac1: "ஏசி (1 டன்)", ac1_5: "ஏசி (1.5 டன்)",
+      fridge: "குளிர்சாதன பெட்டி", wash: "வாஷிங் மெஷின்", tv: "டிவி", geyser: "கீசர்/வாட்டர் ஹீட்டர்",
+      pump: "வாட்டர் பம்ப்/மோட்டார்", mixer: "மிக்சர் கிரைண்டர்", iron: "இஸ்திரி பெட்டி",
+      laptop: "லேப்டாப்/கணினி", induction: "இண்டக்ஷன் அடுப்பு"
+    },
+    kn: {
+      bulb_small: "ಚಿಕ್ಕ LED ಬಲ್ಬ್", bulb_big: "ದೊಡ್ಡ LED ಬಲ್ಬ್", tube: "ಟ್ಯೂಬ್ ಲೈಟ್", fan: "ಸೀಲಿಂಗ್ ಫ್ಯಾನ್",
+      table_fan: "ಟೇಬಲ್ ಫ್ಯಾನ್", cooler: "ಏರ್ ಕೂಲರ್", ac1: "ಎಸಿ (1 ಟನ್)", ac1_5: "ಎಸಿ (1.5 ಟನ್)",
+      fridge: "ಫ್ರಿಜ್", wash: "ವಾಷಿಂಗ್ ಮೆಷಿನ್", tv: "ಟಿವಿ", geyser: "ಗೀಸರ್/ವಾಟರ್ ಹೀಟರ್",
+      pump: "ವಾಟರ್ ಪಂಪ್/ಮೋಟಾರ್", mixer: "ಮಿಕ್ಸರ್ ಗ್ರೈಂಡರ್", iron: "ಇಸ್ತ್ರಿ ಪೆಟ್ಟಿಗೆ",
+      laptop: "ಲ್ಯಾಪ್‌ಟಾಪ್/ಕಂಪ್ಯೂಟರ್", induction: "ಇಂಡಕ್ಷನ್ ಸ್ಟೌ"
+    }
   };
   var AGENT_KEYWORDS_EXTRA = {
-    bulb_small: ["bulb","led bulb","బల్బు","చిన్న బల్బు"], bulb_big: ["పెద్ద బల్బు"],
-    tube: ["ట్యూబ్ లైట్","ట్యూబ్"], fan: ["ఫ్యాన్"], table_fan: ["టేబుల్ ఫ్యాన్"], cooler: ["కూలర్"],
-    ac1: ["ఏసీ"], ac1_5: ["1.5 టన్ ఏసీ"], fridge: ["ఫ్రిజ్"], wash: ["వాషింగ్ మెషిన్"], tv: ["టీవీ"],
-    geyser: ["గీజర్","వాటర్ హీటర్"], pump: ["మోటార్","పంప్"], mixer: ["మిక్సీ","మిక్సర్"],
-    iron: ["ఇస్త్రీ పెట్టె"], laptop: ["ల్యాప్‌టాప్","కంప్యూటర్"], induction: ["ఇండక్షన్"]
+    bulb_small: { te: ["bulb","led bulb","బల్బు","చిన్న బల్బు"], hi: ["बल्ब","छोटा बल्ब"], ta: ["பல்பு","சிறிய பல்பு"], kn: ["ಬಲ್ಬ್","ಚಿಕ್ಕ ಬಲ್ಬ್"] },
+    bulb_big: { te: ["పెద్ద బల్బు"], hi: ["बड़ा बल्ब"], ta: ["பெரிய பல்பு"], kn: ["ದೊಡ್ಡ ಬಲ್ಬ್"] },
+    tube: { te: ["ట్యూబ్ లైట్","ట్యూబ్"], hi: ["ट्यूब लाइट","ट्यूब"], ta: ["டியூப் லைட்","டியூப்"], kn: ["ಟ್ಯೂಬ್ ಲೈಟ್","ಟ್ಯೂಬ್"] },
+    fan: { te: ["ఫ్యాన్"], hi: ["पंखा"], ta: ["மின்விசிறி","ஃபேன்"], kn: ["ಫ್ಯಾನ್"] },
+    table_fan: { te: ["టేబుల్ ఫ్యాన్"], hi: ["टेबल पंखा"], ta: ["மேசை மின்விசிறி"], kn: ["ಟೇಬಲ್ ಫ್ಯಾನ್"] },
+    cooler: { te: ["కూలర్"], hi: ["कूलर"], ta: ["கூலர்"], kn: ["ಕೂಲರ್"] },
+    ac1: { te: ["ఏసీ"], hi: ["एसी"], ta: ["ஏசி"], kn: ["ಎಸಿ"] },
+    ac1_5: { te: ["1.5 టన్ ఏసీ"], hi: ["1.5 टन एसी"], ta: ["1.5 டன் ஏசி"], kn: ["1.5 ಟನ್ ಎಸಿ"] },
+    fridge: { te: ["ఫ్రిజ్"], hi: ["फ्रिज"], ta: ["குளிர்சாதன பெட்டி","ஃப்ரிட்ஜ்","ஃபிரிட்ஜ்","பிரிட்ஜ்"], kn: ["ಫ್ರಿಜ್"] },
+    wash: { te: ["వాషింగ్ మెషిన్"], hi: ["वॉशिंग मशीन"], ta: ["வாஷிங் மெஷின்"], kn: ["ವಾಷಿಂಗ್ ಮೆಷಿನ್"] },
+    tv: { te: ["టీవీ"], hi: ["टीवी"], ta: ["டிவி"], kn: ["ಟಿವಿ"] },
+    geyser: { te: ["గీజర్","వాటర్ హీటర్"], hi: ["गीज़र","वॉटर हीटर"], ta: ["கீசர்","வாட்டர் ஹீட்டர்"], kn: ["ಗೀಸರ್","ವಾಟರ್ ಹೀಟರ್"] },
+    pump: { te: ["మోటార్","పంప్"], hi: ["मोटर","पंप"], ta: ["மோட்டார்","பம்ப்"], kn: ["ಮೋಟಾರ್","ಪಂಪ್"] },
+    mixer: { te: ["మిక్సీ","మిక్సర్"], hi: ["मिक्सी","मिक्सर"], ta: ["மிக்சி","மிக்சர்"], kn: ["ಮಿಕ್ಸಿ","ಮಿಕ್ಸರ್"] },
+    iron: { te: ["ఇస్త్రీ పెట్టె"], hi: ["इस्त्री"], ta: ["இஸ்திரி"], kn: ["ಇಸ್ತ್ರಿ"] },
+    laptop: { te: ["ల్యాప్‌టాప్","కంప్యూటర్"], hi: ["लैपटॉप","कंप्यूटर"], ta: ["லேப்டாப்","கணினி"], kn: ["ಲ್ಯಾಪ್‌ಟಾಪ್","ಕಂಪ್ಯೂಟರ್"] },
+    induction: { te: ["ఇండక్షన్"], hi: ["इंडक्शन"], ta: ["இண்டக்ஷன்"], kn: ["ಇಂಡಕ್ಷನ್"] }
   };
   AGENT_APPLIANCES.forEach(function(a){
-    (AGENT_KEYWORDS_EXTRA[a.key] || []).forEach(function(k){ a.keywords.push(k); });
+    var byLang = AGENT_KEYWORDS_EXTRA[a.key] || {};
+    ["te","hi","ta","kn"].forEach(function(lang){
+      (byLang[lang] || []).forEach(function(k){ a.keywords.push(k); });
+    });
   });
 
-  // Only Telugu has real translations so far; anything else shows English.
+  // All four saved languages (te/hi/ta/kn) have real translations; an
+  // unrecognised saved code (or none) falls back to English.
   function gmLang(){
     var saved = localStorage.getItem('gm_language') || 'en';
     return I18N[saved] ? saved : 'en';
@@ -1194,9 +1440,48 @@
     return str;
   }
   function agentLabel(a){
-    return (gmLang() === 'te' && AGENT_LABELS_TE[a.key]) ? AGENT_LABELS_TE[a.key] : a.label;
+    var dict = AGENT_LABELS[gmLang()];
+    return (dict && dict[a.key]) ? dict[a.key] : a.label;
   }
   // true if the text contains any of the given (Telugu) words
+  var INTENT_WORDS = {
+    most:          { te: ["ఎక్కువ","అత్యధిక"], hi: ["सबसे ज़्यादा","अधिकतम"], ta: ["அதிகம்","அதிகமாக"], kn: ["ಹೆಚ್ಚು","ಅತ್ಯಧಿಕ"] },
+    reduce:        { te: ["తగ్గించ","తగ్గ","చిట్కా"], hi: ["कम करें","घटाएं","टिप"], ta: ["குறை","குறைக்க","டிப்"], kn: ["ಕಡಿಮೆ","ಕಡಿಮೆ ಮಾಡಿ","ಟಿಪ್"] },
+    subsidy_scheme:{ te: ["సబ్సిడీ","పథక","ప్రభుత్వ"], hi: ["सब्सिडी","योजना","सरकार"], ta: ["மானியம்","திட்டம்","அரசு"], kn: ["ಸಬ್ಸಿಡಿ","ಯೋಜನೆ","ಸರ್ಕಾರ"] },
+    panel_shop:    { te: ["ప్యానెల్","కొన","దుకాణ","ఉత్పత్తి"], hi: ["पैनल","खरीद","दुकान","उत्पाद"], ta: ["பேனல்","வாங்க","கடை","தயாரிப்பு"], kn: ["ಪ್ಯಾನಲ್","ಖರೀದಿ","ಅಂಗಡಿ","ಉತ್ಪನ್ನ"] },
+    saving:        { te: ["ఆదా","పొదుపు"], hi: ["बचत","सेव"], ta: ["சேமிப்பு"], kn: ["ಉಳಿತಾಯ"] },
+    solar_kw:      { te: ["సోలార్","సౌర","సైజు","సామర్థ్య"], hi: ["सोलर","साइज़","क्षमता"], ta: ["சோலார்","சூரிய","அளவு","திறன்"], kn: ["ಸೋಲಾರ್","ಗಾತ್ರ","ಸಾಮರ್ಥ್ಯ"] },
+    month:         { te: ["నెల"], hi: ["महीना","माह"], ta: ["மாதம்"], kn: ["ತಿಂಗಳು"] },
+    day_usage:     { te: ["రోజు","యూనిట్","వినియోగ"], hi: ["दिन","यूनिट","खपत"], ta: ["நாள்","யூனிட்","பயன்பாடு"], kn: ["ದಿನ","ಯೂನಿಟ್","ಬಳಕೆ"] },
+    bill_cost:     { te: ["బిల్లు","ఖర్చు","ధర","ఎంత"], hi: ["बिल","खर्च","कीमत","कितना"], ta: ["பில்","செலவு","விலை","எவ்வளவு"], kn: ["ಬಿಲ್","ಖರ್ಚು","ಬೆಲೆ","ಎಷ್ಟು"] },
+    bye:           { te: ["బై","వీడ్కోలు","బాయ్"], hi: ["बाय","अलविदा"], ta: ["பை","போய் வரேன்"], kn: ["ಬೈ","ವಿದಾಯ"] },
+    thanks:        { te: ["ధన్యవాదాలు","థాంక్స్"], hi: ["धन्यवाद","शुक्रिया","थैंक्स"], ta: ["நன்றி"], kn: ["ಧನ್ಯವಾದಗಳು","ಥ್ಯಾಂಕ್ಸ್"] },
+    howareyou:     { te: ["ఎలా ఉన్నారు"], hi: ["कैसे हो","कैसे हैं"], ta: ["எப்படி இருக்க"], kn: ["ಹೇಗಿದ್ದೀರಿ"] },
+    smalltalk_no:  { te: ["వద్దు","లేదు"], hi: ["नहीं"], ta: ["வேண்டாம்","இல்லை"], kn: ["ಬೇಡ","ಇಲ್ಲ"] },
+    smalltalk_yes: { te: ["అవును","సరే"], hi: ["हाँ","हां","ठीक है"], ta: ["ஆம்","சரி"], kn: ["ಹೌದು","ಸರಿ"] },
+    pending_yes:   { te: ["అవును","సరే","ఓకే","తీసుకెళ్లు","చూపించు"], hi: ["हाँ","हां","ठीक है","ले चलो","दिखाओ"], ta: ["ஆம்","சரி","அழைத்துச் செல்","காட்டு"], kn: ["ಹೌದು","ಸರಿ","ಕರೆದುಕೊಂಡು ಹೋಗು","ತೋರಿಸು"] },
+    pending_no:    { te: ["వద్దు","కాదు","ఇప్పుడు వద్దు"], hi: ["नहीं","अभी नहीं"], ta: ["வேண்டாம்","இல்லை","இப்போது வேண்டாம்"], kn: ["ಬೇಡ","ಇಲ್ಲ","ಈಗ ಬೇಡ"] },
+    info_team:     { te: ["సృష్టికర్త","డెవలపర్","టీమ్","ఎవరు తయారు","ఎవరు చేశారు"], hi: ["निर्माता","डेवलपर","टीम","किसने बनाया"], ta: ["உருவாக்கியவர்","டெவலப்பர்","குழு","யார் உருவாக்கினார்"], kn: ["ಸೃಷ್ಟಿಕರ್ತ","ಡೆವಲಪರ್","ತಂಡ","ಯಾರು ಮಾಡಿದರು"] },
+    info_start:    { te: ["ఎలా మొదలైంది","ఎప్పుడు మొదలైంది","చరిత్ర"], hi: ["कैसे शुरू हुआ","इतिहास"], ta: ["எப்படி தொடங்கியது","வரலாறு"], kn: ["ಹೇಗೆ ಪ್ರಾರಂಭವಾಯಿತು","ಇತಿಹಾಸ"] },
+    info_how:      { te: ["ఎలా పనిచేస్తుంది","ఎలా ఉపయోగించాలి","ఏమి చేయగలవు"], hi: ["कैसे काम करता है","कैसे इस्तेमाल करें"], ta: ["எப்படி வேலை செய்கிறது","எப்படி பயன்படுத்துவது"], kn: ["ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ","ಹೇಗೆ ಬಳಸುವುದು"] },
+    info_what:     { te: ["యాప్ అంటే ఏమిటి","యాప్ గురించి","నువ్వు ఎవరు","మీరు ఎవరు"], hi: ["यह ऐप क्या है","ऐप के बारे में","तुम कौन हो","आप कौन हैं"], ta: ["இந்த ஆப் என்ன","ஆப் பற்றி","நீ யார்"], kn: ["ಈ ಆ್ಯಪ್ ಎಂದರೇನು","ಆ್ಯಪ್ ಬಗ್ಗೆ","ನೀನು ಯಾರು"] },
+    info_help:     { te: ["సహాయం","మెనూ"], hi: ["मदद","मेनू"], ta: ["உதவி","மெனு"], kn: ["ಸಹಾಯ","ಮೆನು"] },
+    route_habits:  { te: ["ఎలా ఆదా","ఎలా పొదుపు"], hi: ["कैसे बचाएं","कैसे बचत"], ta: ["எப்படி சேமிப்பது"], kn: ["ಹೇಗೆ ಉಳಿಸುವುದು"] },
+    link_ses:      { te: ["పోల్చ","వెతక"], hi: ["तुलना","खोजें"], ta: ["ஒப்பிடு","தேடு"], kn: ["ಹೋಲಿಸಿ","ಹುಡುಕಿ"] },
+    link_es:       { te: ["గాలి","అవకాశ"], hi: ["हवा","संभावना"], ta: ["காற்று","வாய்ப்பு"], kn: ["ಗಾಳಿ","ಅವಕಾಶ"] },
+    link_hub:      { te: ["దుకాణ"], hi: ["दुकान"], ta: ["கடை"], kn: ["ಅಂಗಡಿ"] },
+    greeting:      { te: ["నమస్తే","నమస్కారం","హాయ్"], hi: ["नमस्ते","नमस्कार","हाय"], ta: ["வணக்கம்","ஹாய்"], kn: ["ನಮಸ್ತೆ","ಹಾಯ್"] },
+    question_markers: {
+      te: ["ఎంత","ఏమిటి","ఎలా","ఎందుకు","ఏది","బిల్లు","ఖర్చు","ఆదా","పొదుపు","తగ్గించ","సోలార్","సబ్సిడీ","పథక","ఎక్కువ"],
+      hi: ["कितना","क्या","कैसे","क्यों","कौन सा","बिल","खर्च","बचत","सेव","कम करें","सोलर","सब्सिडी","योजना","सबसे ज़्यादा"],
+      ta: ["எவ்வளவு","என்ன","எப்படி","ஏன்","எது","பில்","செலவு","சேமிப்பு","குறை","சோலார்","மானியம்","திட்டம்","அதிகம்"],
+      kn: ["ಎಷ್ಟು","ಏನು","ಹೇಗೆ","ಏಕೆ","ಯಾವುದು","ಬಿಲ್","ಖರ್ಚು","ಉಳಿತಾಯ","ಕಡಿಮೆ","ಸೋಲಾರ್","ಸಬ್ಸಿಡಿ","ಯೋಜನೆ","ಹೆಚ್ಚು"]
+    }
+  };
+  function W(key){
+    var entry = INTENT_WORDS[key];
+    return (entry && entry[gmLang()]) || [];
+  }
   function gmHasAny(text, words){
     for (var i = 0; i < words.length; i++){ if (text.indexOf(words[i]) !== -1) return true; }
     return false;
