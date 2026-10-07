@@ -83,7 +83,7 @@
 
   :root{
     --primary:#134627; --primary2:#5fa30e; --primaryDeep:#337e09; --mint:#95D5B2;
-    --accent:#faa707; --accentDeep:#94c519; --sky:#2d96bd; --skyDeep:#0b4e76;
+    --accent:#fcca16; --accentDeep:#faa707; --sky:#2d96bd; --skyDeep:#0b4e76;
     --bg:#F7FAF7; --card:#E9F4EC; --textDark:#1B2B22; --textMuted:#5C6F63; --line:#DCEAE1;
   }
   #homeScreen{display:none;background:var(--bg);color:var(--textDark);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
@@ -367,7 +367,7 @@
     <div class="about-text">How are you finding GreenMap AI? Rate us from 1 to 10 and tell us what to improve.</div>
     <div id="fbRatingRow" style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;"></div>
     <textarea id="fbMessage" rows="5" maxlength="450" placeholder="Write your feedback..." style="width:100%;padding:10px;border:1px solid #DCEAE1;border-radius:10px;font-family:inherit;font-size:14px;"></textarea>
-    <button type="button" id="fbSubmitBtn" onclick="submitFeedback()" style="margin-top:12px;width:100%;padding:12px;border:none;border-radius:10px;background:#1B4332;color:#fff;font-weight:700;font-size:14px;">Send Feedback</button>
+    <button type="button" id="fbSubmitBtn" onclick="submitFeedback()" style="margin-top:12px;width:100%;padding:12px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-weight:700;font-size:14px;">Send Feedback</button>
     <div id="fbStatus" style="margin-top:10px;font-size:13px;"></div>
   </div>
 </div>
@@ -379,7 +379,7 @@
     <div class="about-text">Sends a notification to every user. List the new features and their details.</div>
     <input id="auTitle" type="text" placeholder="Title (e.g. Version 2.1 is live)" style="width:100%;margin-top:10px;padding:10px;border:1px solid #DCEAE1;border-radius:10px;font-size:14px;">
     <textarea id="auDetails" rows="6" placeholder="New features and details..." style="width:100%;margin-top:10px;padding:10px;border:1px solid #DCEAE1;border-radius:10px;font-family:inherit;font-size:14px;"></textarea>
-    <button type="button" onclick="publishAppUpdate()" style="margin-top:12px;width:100%;padding:12px;border:none;border-radius:10px;background:#1B4332;color:#fff;font-weight:700;font-size:14px;">Publish to all users</button>
+    <button type="button" onclick="publishAppUpdate()" style="margin-top:12px;width:100%;padding:12px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-weight:700;font-size:14px;">Publish to all users</button>
     <div id="auStatus" style="margin-top:10px;font-size:13px;"></div>
   </div>
 </div>
@@ -692,9 +692,9 @@
       return gmT("ans_reduce", { label: top.label, save: rs(saveMonth) });
     }
     if (/subsid|scheme|govt|government/.test(q) || gmHasAny(q, W("subsidy_scheme")))
-      return gmT("ans_scheme");
+      return gmT("ans_scheme") + emberRealSchemeLine();
     if (/panel|buy|shop|product/.test(q) || gmHasAny(q, W("panel_shop")))
-      return gmT("ans_panel", { kw: d.solarKw });
+      return gmT("ans_panel", { kw: d.solarKw }) + emberRealProductLine();
     if (/sav/.test(q) || gmHasAny(q, W("saving")))
       return gmT("ans_save", { kw: d.solarKw, amt: rs(d.monthlyCost) });
     if (/solar|kw|size|capacity/.test(q) || gmHasAny(q, W("solar_kw")))
@@ -850,6 +850,30 @@
     agentAddMsg(html, "bot");
     emberAskRandom("chart");
   }
+  // Short, real-data lines EMBER can tack onto an answer once Firestore has
+  // loaded (window.GM_realSchemes / window.GM_realProducts from the module
+  // script above). Return "" if nothing relevant has loaded yet — callers
+  // just skip adding anything in that case, so there's no broken-looking
+  // placeholder while data is still in flight.
+  function emberRealSchemeLine(){
+    var schemes = (window.GM_realSchemes || []).filter(function(s){
+      return s.cat && (s.cat.indexOf("solar") !== -1 || s.cat.indexOf("central") !== -1);
+    });
+    if (!schemes.length) return "";
+    var names = schemes.slice(0, 2).map(function(s){ return s.title; });
+    return "<br><br>" + gmT("real_schemes_line", { list: names.join(", ") });
+  }
+  function emberRealProductLine(){
+    var products = (window.GM_realProducts || []).filter(function(p){
+      if (p.outOfStock) return false;
+      var hay = ((p.name || "") + " " + (p.category || "")).toLowerCase();
+      return /solar|wind|panel|turbine|hybrid/.test(hay) && typeof p.price === "number";
+    }).sort(function(a, b){ return a.price - b.price; });
+    if (!products.length) return "";
+    var p = products[0];
+    return "<br><br>" + gmT("real_product_line", { name: p.name, price: Math.round(p.price) });
+  }
+
   function emberAdvice(kind){
     var d = computeApplianceUsage();
     var rs = function(n){ return "\u20B9" + Math.round(n); };
@@ -863,7 +887,7 @@
       var save = top.watts * top.qty / 1000 * AGENT_DEFAULT_RATE * 30;
       agentAddMsg(gmT("advice_reduce", { label: agentLabel(agentAppliance(top.key)), pct: Math.round(top.kwh / d.daily * 100), daily: d.daily.toFixed(2), save: rs(save) }) + emberLinkRow(["Smart Energy Search", "EnergyHub"]), "bot");
     } else {
-      agentAddMsg(gmT("advice_overview", { amt: rs(d.monthlyCost), kw: d.solarKw }) + emberLinkRow(["Govt Schemes", "EnergyScope", "Smart Energy Search"]), "bot");
+      agentAddMsg(gmT("advice_overview", { amt: rs(d.monthlyCost), kw: d.solarKw }) + emberRealSchemeLine() + emberRealProductLine() + emberLinkRow(["Govt Schemes", "EnergyScope", "Smart Energy Search"]), "bot");
     }
     emberAskRandom(kind);
   }
@@ -1062,6 +1086,7 @@
       ans_day: "{units} units/day ({amt}).",
       ans_bill: "About {amt}/month ({day}/day).",
       ans_default: "I can tell you your cost, solar size, biggest consumer, or savings — what would you like to know?",
+      real_schemes_line: "Real schemes available right now: {list}.", real_product_line: "Cheapest matching product in EnergyHub right now: {name} — ₹{price}.",
       // --- EMBER rule-based bot (menu / app info / advice / follow-ups) ---
       ember_hello: "Hai! 👋 How can I help you?",
       ember_help_menu: "This app can help you with these things:",
@@ -1075,7 +1100,7 @@
       next_title: "What would you like to do next?",
       opt_reduce: "How can I reduce my usage?",
       info_what: "<b>GreenMap AI</b> is a smart renewable energy app for Andhra Pradesh. It brings together <b>Smart Energy Search</b> (compare solar and wind products), <b>EnergyScope AP</b> (solar and wind potential across the state), <b>EnergyHub</b> (local renewable energy shops) and <b>Govt Schemes</b>. I am EMBER, your energy advisor inside it.",
-      info_how: "<b>How it works</b><br>1. Tell me your appliances (for example \"2 bulbs, 1 fan\").<br>2. I show your daily units, monthly cost and the solar size you need.<br>3. Then explore: compare products, check your area's solar and wind potential and temperature, find nearby shops, and check government schemes.",
+      info_how: "<b>How it works</b><br>1. Tell me your appliances (for example \"2 bulbs, 1 fan\").<br>2. I show your daily units, monthly cost and the solar size you need.<br>3. Then explore: compare products, check your area's solar and wind potential and temperature, find nearby shops,  and check government schemes.<br>4. Where real data is available, I'll quote actual shop prices and current scheme names — not just generic links.",
       info_start: "<b>How it began</b><br>GreenMap AI started as a final-year college project with a simple goal: make it easier for people in Andhra Pradesh to discover renewable energy — where sun and wind are strongest, which local shops sell the equipment, and how to compare products before buying.",
       info_team: "<b>Team 13</b><br>• <b>Jashu</b> — Creator &amp; Developer<br>• <b>Stephen</b> — Team Member<br>• <b>Hemanth</b> — Team Member<br>With guidance from <b>Dr. B Venkatesh</b> sir.",
       habits_tips: "<b>Easy ways to save current</b><br>• Switch off lights and fans when you leave the room<br>• Use LED bulbs and 5-star rated appliances<br>• Set AC to 24–26°C<br>• Unplug chargers and TVs on standby<br>• Run washing machines with full loads",
@@ -1132,6 +1157,7 @@
       ans_day: "{units} यूनिट/दिन ({amt})।",
       ans_bill: "लगभग {amt}/माह ({day}/दिन)।",
       ans_default: "मैं आपकी लागत, सोलर साइज़, सबसे ज़्यादा खपत करने वाला उपकरण, या बचत बता सकता हूँ — आप क्या जानना चाहेंगे?",
+      real_schemes_line: "अभी उपलब्ध वास्तविक योजनाएं: {list}।", real_product_line: "EnergyHub में अभी सबसे सस्ता मिलता-जुलता उत्पाद: {name} — ₹{price}।",
       ember_hello: "हाय! 👋 मैं आपकी कैसे मदद कर सकता हूँ?",
       ember_help_menu: "यह ऐप आपकी इन चीज़ों में मदद कर सकता है:",
       opt_chart: "मेरा खपत चार्ट दिखाएं", opt_save: "करंट कैसे बचाएं?", opt_energy: "क्या आपको ऊर्जा बचत चाहिए?", opt_about: "यह ऐप क्या है?",
@@ -1144,7 +1170,7 @@
       next_title: "आगे आप क्या करना चाहेंगे?",
       opt_reduce: "मैं अपनी खपत कैसे कम करूं?",
       info_what: "<b>GreenMap AI</b> आंध्र प्रदेश के लिए एक स्मार्ट नवीकरणीय ऊर्जा ऐप है। इसमें <b>Smart Energy Search</b> (सौर और पवन उत्पादों की तुलना करें), <b>EnergyScope AP</b> (राज्यभर में सौर और पवन क्षमता), <b>EnergyHub</b> (स्थानीय नवीकरणीय ऊर्जा दुकानें) और <b>सरकारी योजनाएं</b> शामिल हैं। मैं EMBER हूँ, इसमें आपका ऊर्जा सलाहकार।",
-      info_how: "<b>यह कैसे काम करता है</b><br>1. मुझे अपने उपकरण बताएं (जैसे \"2 बल्ब, 1 पंखा\")।<br>2. मैं आपकी दैनिक यूनिट, मासिक खर्च और ज़रूरी सोलर साइज़ दिखाता हूँ।<br>3. फिर एक्सप्लोर करें: उत्पादों की तुलना करें, अपने क्षेत्र की सौर-पवन क्षमता और तापमान देखें, पास की दुकानें खोजें, और सरकारी योजनाएं देखें।",
+      info_how: "<b>यह कैसे काम करता है</b><br>1. मुझे अपने उपकरण बताएं (जैसे \"2 बल्ब, 1 पंखा\")।<br>2. मैं आपकी दैनिक यूनिट, मासिक खर्च और ज़रूरी सोलर साइज़ दिखाता हूँ।<br>3. फिर एक्सप्लोर करें: उत्पादों की तुलना करें, अपने क्षेत्र की सौर-पवन क्षमता और तापमान देखें, पास की दुकानें खोजें, और सरकारी योजनाएं देखें।<br>4. जहाँ असली डेटा उपलब्ध है, मैं असली दुकान की कीमतें और मौजूदा योजनाओं के नाम बताऊंगा — सिर्फ सामान्य लिंक नहीं।",
       info_start: "<b>यह कैसे शुरू हुआ</b><br>GreenMap AI एक फाइनल-ईयर कॉलेज प्रोजेक्ट के रूप में शुरू हुआ — आंध्र प्रदेश के लोगों के लिए नवीकरणीय ऊर्जा खोजना आसान बनाने के सरल लक्ष्य के साथ — कहाँ धूप और हवा सबसे ज़्यादा है, कौन सी स्थानीय दुकानें उपकरण बेचती हैं, और खरीदने से पहले उत्पादों की तुलना कैसे करें।",
       info_team: "<b>टीम 13</b><br>• <b>जाशु</b> — निर्माता और डेवलपर<br>• <b>स्टीफन</b> — टीम सदस्य<br>• <b>हेमंत</b> — टीम सदस्य<br><b>Dr. B वेंकटेश</b> सर के मार्गदर्शन में।",
       habits_tips: "<b>करंट बचाने के आसान तरीके</b><br>• कमरे से बाहर जाते समय लाइट और पंखे बंद करें<br>• LED बल्ब और 5-स्टार रेटेड उपकरण इस्तेमाल करें<br>• एसी को 24–26°C पर सेट करें<br>• स्टैंडबाय पर चार्जर और टीवी अनप्लग करें<br>• वॉशिंग मशीन पूरे लोड के साथ चलाएं",
@@ -1201,6 +1227,7 @@
       ans_day: "நாளொன்றுக்கு {units} யூனிட் ({amt}).",
       ans_bill: "மாதத்திற்கு சுமார் {amt} (நாளொன்றுக்கு {day}).",
       ans_default: "உங்கள் செலவு, சோலார் அளவு, அதிகம் பயன்படுத்தும் உபகரணம், அல்லது சேமிப்பு பற்றி சொல்ல முடியும் — நீங்கள் என்ன தெரிந்துகொள்ள விரும்புகிறீர்கள்?",
+      real_schemes_line: "இப்போது கிடைக்கும் உண்மையான திட்டங்கள்: {list}.", real_product_line: "EnergyHub இல் இப்போது மலிவான பொருத்தமான பொருள்: {name} — ₹{price}.",
       ember_hello: "ஹாய்! 👋 நான் உங்களுக்கு எப்படி உதவ முடியும்?",
       ember_help_menu: "இந்த ஆப் உங்களுக்கு இவற்றில் உதவ முடியும்:",
       opt_chart: "என் பயன்பாட்டு விளக்கப்படத்தைக் காட்டு", opt_save: "மின்சாரத்தை எப்படி சேமிப்பது?", opt_energy: "உங்களுக்கு ஆற்றல் சேமிப்பு வேண்டுமா?", opt_about: "இந்த ஆப் என்ன?",
@@ -1213,7 +1240,7 @@
       next_title: "அடுத்து நீங்கள் என்ன செய்ய விரும்புகிறீர்கள்?",
       opt_reduce: "என் பயன்பாட்டை எப்படி குறைப்பது?",
       info_what: "<b>GreenMap AI</b> ஆந்திரப் பிரதேசத்திற்கான ஒரு ஸ்மார்ட் புதுப்பிக்கத்தக்க ஆற்றல் ஆப். இதில் <b>Smart Energy Search</b> (சூரிய மற்றும் காற்று பொருட்களை ஒப்பிடுங்கள்), <b>EnergyScope AP</b> (மாநிலம் முழுவதும் சூரிய, காற்று திறன்), <b>EnergyHub</b> (உள்ளூர் புதுப்பிக்கத்தக்க ஆற்றல் கடைகள்) மற்றும் <b>அரசு திட்டங்கள்</b> உள்ளன. நான் EMBER, இதில் உங்கள் ஆற்றல் ஆலோசகர்.",
-      info_how: "<b>இது எப்படி வேலை செய்கிறது</b><br>1. உங்கள் உபகரணங்களைச் சொல்லுங்கள் (எ.கா. \"2 பல்புகள், 1 மின்விசிறி\").<br>2. உங்கள் தினசரி யூனிட், மாத செலவு மற்றும் தேவையான சோலார் அளவை நான் காட்டுவேன்.<br>3. பிறகு ஆராயுங்கள்: பொருட்களை ஒப்பிடுங்கள், உங்கள் பகுதியின் சூரிய-காற்று திறன் மற்றும் வெப்பநிலையைப் பார்க்கவும், அருகிலுள்ள கடைகளைக் கண்டறியவும், அரசு திட்டங்களைப் பார்க்கவும்.",
+      info_how: "<b>இது எப்படி வேலை செய்கிறது</b><br>1. உங்கள் உபகரணங்களைச் சொல்லுங்கள் (எ.கா. \"2 பல்புகள், 1 மின்விசிறி\").<br>2. உங்கள் தினசரி யூனிட், மாத செலவு மற்றும் தேவையான சோலார் அளவை நான் காட்டுவேன்.<br>3. பிறகு ஆராயுங்கள்: பொருட்களை ஒப்பிடுங்கள், உங்கள் பகுதியின் சூரிய-காற்று திறன் மற்றும் வெப்பநிலையைப் பார்க்கவும், அருகிலுள்ள கடைகளைக் கண்டறியவும், அரசு திட்டங்களைப் பார்க்கவும்.<br>4. உண்மையான தரவு கிடைக்கும் இடங்களில், நான் உண்மையான கடை விலைகள் மற்றும் தற்போதைய திட்டப் பெயர்களைக் கூறுவேன் — வெறும் இணைப்புகள் மட்டுமல்ல.",
       info_start: "<b>இது எப்படி தொடங்கியது</b><br>GreenMap AI ஒரு இறுதி ஆண்டு கல்லூரி திட்டமாகத் தொடங்கியது — ஆந்திரப் பிரதேச மக்களுக்கு புதுப்பிக்கத்தக்க ஆற்றலை எளிதாகக் கண்டறிய வைக்கும் எளிய இலக்குடன் — சூரியனும் காற்றும் எங்கே அதிகமாக உள்ளன, எந்த உள்ளூர் கடைகள் உபகரணங்களை விற்கின்றன, வாங்குவதற்கு முன் பொருட்களை எப்படி ஒப்பிடுவது.",
       info_team: "<b>குழு 13</b><br>• <b>ஜாஷு</b> — உருவாக்கியவர் &amp; டெவலப்பர்<br>• <b>ஸ்டீபன்</b> — குழு உறுப்பினர்<br>• <b>ஹேமந்த்</b> — குழு உறுப்பினர்<br><b>Dr. B வெங்கடேஷ்</b> அவர்களின் வழிகாட்டுதலுடன்.",
       habits_tips: "<b>மின்சாரத்தை சேமிக்க எளிய வழிகள்</b><br>• அறையை விட்டு வெளியேறும்போது விளக்குகள் மற்றும் மின்விசிறிகளை அணைக்கவும்<br>• LED பல்புகள் மற்றும் 5-ஸ்டார் ரேட்டிங் உபகரணங்களைப் பயன்படுத்தவும்<br>• ஏசியை 24–26°C ஆக அமைக்கவும்<br>• ஸ்டாண்ட்பையில் உள்ள சார்ஜர்கள் மற்றும் டிவிகளைக் கழற்றவும்<br>• வாஷிங் மெஷினை முழு சுமையுடன் இயக்கவும்",
@@ -1270,6 +1297,7 @@
       ans_day: "ದಿನಕ್ಕೆ {units} ಯೂನಿಟ್ ({amt}).",
       ans_bill: "ತಿಂಗಳಿಗೆ ಸುಮಾರು {amt} (ದಿನಕ್ಕೆ {day}).",
       ans_default: "ನಿಮ್ಮ ವೆಚ್ಚ, ಸೋಲಾರ್ ಗಾತ್ರ, ಅತ್ಯಧಿಕ ಬಳಕೆಯ ಉಪಕರಣ, ಅಥವಾ ಉಳಿತಾಯದ ಬಗ್ಗೆ ಹೇಳಬಲ್ಲೆ — ನಿಮಗೆ ಏನು ತಿಳಿದುಕೊಳ್ಳಬೇಕು?",
+      real_schemes_line: "ಈಗ ಲಭ್ಯವಿರುವ ನೈಜ ಯೋಜನೆಗಳು: {list}.", real_product_line: "EnergyHub ನಲ್ಲಿ ಈಗ ಅಗ್ಗದ ಹೊಂದಾಣಿಕೆಯ ಉತ್ಪನ್ನ: {name} — ₹{price}.",
       ember_hello: "ಹಾಯ್! 👋 ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
       ember_help_menu: "ಈ ಆ್ಯಪ್ ನಿಮಗೆ ಈ ವಿಷಯಗಳಲ್ಲಿ ಸಹಾಯ ಮಾಡಬಲ್ಲದು:",
       opt_chart: "ನನ್ನ ಬಳಕೆ ಚಾರ್ಟ್ ತೋರಿಸಿ", opt_save: "ಕರೆಂಟ್ ಹೇಗೆ ಉಳಿಸುವುದು?", opt_energy: "ನಿಮಗೆ ಇಂಧನ ಉಳಿತಾಯ ಬೇಕೇ?", opt_about: "ಈ ಆ್ಯಪ್ ಎಂದರೇನು?",
@@ -1282,7 +1310,7 @@
       next_title: "ಮುಂದೆ ನೀವು ಏನು ಮಾಡಲು ಬಯಸುತ್ತೀರಿ?",
       opt_reduce: "ನನ್ನ ಬಳಕೆಯನ್ನು ಹೇಗೆ ಕಡಿಮೆ ಮಾಡುವುದು?",
       info_what: "<b>GreenMap AI</b> ಆಂಧ್ರಪ್ರದೇಶಕ್ಕಾಗಿ ಒಂದು ಸ್ಮಾರ್ಟ್ ನವೀಕರಿಸಬಹುದಾದ ಇಂಧನ ಆ್ಯಪ್. ಇದರಲ್ಲಿ <b>Smart Energy Search</b> (ಸೌರ ಮತ್ತು ಪವನ ಉತ್ಪನ್ನಗಳನ್ನು ಹೋಲಿಸಿ), <b>EnergyScope AP</b> (ರಾಜ್ಯಾದ್ಯಂತ ಸೌರ, ಪವನ ಸಾಮರ್ಥ್ಯ), <b>EnergyHub</b> (ಸ್ಥಳೀಯ ನವೀಕರಿಸಬಹುದಾದ ಇಂಧನ ಅಂಗಡಿಗಳು) ಮತ್ತು <b>ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು</b> ಸೇರಿವೆ. ನಾನು EMBER, ಇದರಲ್ಲಿ ನಿಮ್ಮ ಇಂಧನ ಸಲಹೆಗಾರ.",
-      info_how: "<b>ಇದು ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ</b><br>1. ನಿಮ್ಮ ಉಪಕರಣಗಳನ್ನು ಹೇಳಿ (ಉದಾ. \"2 ಬಲ್ಬ್‌ಗಳು, 1 ಫ್ಯಾನ್\").<br>2. ನಾನು ನಿಮ್ಮ ದೈನಂದಿನ ಯೂನಿಟ್, ಮಾಸಿಕ ವೆಚ್ಚ ಮತ್ತು ಅಗತ್ಯವಿರುವ ಸೋಲಾರ್ ಗಾತ್ರವನ್ನು ತೋರಿಸುತ್ತೇನೆ.<br>3. ನಂತರ ಅನ್ವೇಷಿಸಿ: ಉತ್ಪನ್ನಗಳನ್ನು ಹೋಲಿಸಿ, ನಿಮ್ಮ ಪ್ರದೇಶದ ಸೌರ-ಪವನ ಸಾಮರ್ಥ್ಯ ಮತ್ತು ತಾಪಮಾನವನ್ನು ಪರಿಶೀಲಿಸಿ, ಹತ್ತಿರದ ಅಂಗಡಿಗಳನ್ನು ಹುಡುಕಿ, ಮತ್ತು ಸರ್ಕಾರಿ ಯೋಜನೆಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.",
+      info_how: "<b>ಇದು ಹೇಗೆ ಕೆಲಸ ಮಾಡುತ್ತದೆ</b><br>1. ನಿಮ್ಮ ಉಪಕರಣಗಳನ್ನು ಹೇಳಿ (ಉದಾ. \"2 ಬಲ್ಬ್‌ಗಳು, 1 ಫ್ಯಾನ್\").<br>2. ನಾನು ನಿಮ್ಮ ದೈನಂದಿನ ಯೂನಿಟ್, ಮಾಸಿಕ ವೆಚ್ಚ ಮತ್ತು ಅಗತ್ಯವಿರುವ ಸೋಲಾರ್ ಗಾತ್ರವನ್ನು ತೋರಿಸುತ್ತೇನೆ.<br>3. ನಂತರ ಅನ್ವೇಷಿಸಿ: ಉತ್ಪನ್ನಗಳನ್ನು ಹೋಲಿಸಿ, ನಿಮ್ಮ ಪ್ರದೇಶದ ಸೌರ-ಪವನ ಸಾಮರ್ಥ್ಯ ಮತ್ತು ತಾಪಮಾನವನ್ನು ಪರಿಶೀಲಿಸಿ, ಹತ್ತಿರದ ಅಂಗಡಿಗಳನ್ನು ಹುಡುಕಿ, ಮತ್ತು ಸರ್ಕಾರಿ ಯೋಜನೆಗಳನ್ನು ಪರಿಶೀಲಿಸಿ.<br>4. ನೈಜ ಡೇಟಾ ಲಭ್ಯವಿರುವಲ್ಲಿ, ನಾನು ನಿಜವಾದ ಅಂಗಡಿ ಬೆಲೆಗಳು ಮತ್ತು ಪ್ರಸ್ತುತ ಯೋಜನೆಗಳ ಹೆಸರುಗಳನ್ನು ಹೇಳುತ್ತೇನೆ — ಕೇವಲ ಲಿಂಕ್‌ಗಳಲ್ಲ.",
       info_start: "<b>ಇದು ಹೇಗೆ ಪ್ರಾರಂಭವಾಯಿತು</b><br>GreenMap AI ಒಂದು ಅಂತಿಮ ವರ್ಷದ ಕಾಲೇಜು ಯೋಜನೆಯಾಗಿ ಪ್ರಾರಂಭವಾಯಿತು — ಆಂಧ್ರಪ್ರದೇಶದ ಜನರಿಗೆ ನವೀಕರಿಸಬಹುದಾದ ಇಂಧನವನ್ನು ಕಂಡುಹಿಡಿಯುವುದನ್ನು ಸುಲಭಗೊಳಿಸುವ ಸರಳ ಗುರಿಯೊಂದಿಗೆ — ಸೂರ್ಯ ಮತ್ತು ಗಾಳಿ ಎಲ್ಲಿ ಪ್ರಬಲವಾಗಿವೆ, ಯಾವ ಸ್ಥಳೀಯ ಅಂಗಡಿಗಳು ಉಪಕರಣಗಳನ್ನು ಮಾರಾಟ ಮಾಡುತ್ತವೆ, ಮತ್ತು ಖರೀದಿಸುವ ಮೊದಲು ಉತ್ಪನ್ನಗಳನ್ನು ಹೇಗೆ ಹೋಲಿಸುವುದು.",
       info_team: "<b>ತಂಡ 13</b><br>• <b>ಜಾಷು</b> — ಸೃಷ್ಟಿಕರ್ತ &amp; ಡೆವಲಪರ್<br>• <b>ಸ್ಟೀಫನ್</b> — ತಂಡದ ಸದಸ್ಯ<br>• <b>ಹೇಮಂತ್</b> — ತಂಡದ ಸದಸ್ಯ<br><b>Dr. B ವೆಂಕಟೇಶ್</b> ಸರ್ ಅವರ ಮಾರ್ಗದರ್ಶನದಲ್ಲಿ.",
       habits_tips: "<b>ಕರೆಂಟ್ ಉಳಿಸುವ ಸುಲಭ ಮಾರ್ಗಗಳು</b><br>• ಕೋಣೆಯಿಂದ ಹೊರಡುವಾಗ ದೀಪಗಳು ಮತ್ತು ಫ್ಯಾನ್‌ಗಳನ್ನು ಆಫ್ ಮಾಡಿ<br>• LED ಬಲ್ಬ್‌ಗಳು ಮತ್ತು 5-ಸ್ಟಾರ್ ರೇಟೆಡ್ ಉಪಕರಣಗಳನ್ನು ಬಳಸಿ<br>• ಎಸಿಯನ್ನು 24–26°C ಗೆ ಸೆಟ್ ಮಾಡಿ<br>• ಸ್ಟ್ಯಾಂಡ್‌ಬೈನಲ್ಲಿರುವ ಚಾರ್ಜರ್‌ಗಳು ಮತ್ತು ಟಿವಿಗಳನ್ನು ಅನ್‌ಪ್ಲಗ್ ಮಾಡಿ<br>• ವಾಷಿಂಗ್ ಮೆಷಿನ್ ಅನ್ನು ಪೂರ್ಣ ಲೋಡ್‌ನೊಂದಿಗೆ ಓಡಿಸಿ",
@@ -1339,6 +1367,7 @@
       ans_day: "రోజుకు {units} యూనిట్లు ({amt}).",
       ans_bill: "నెలకు సుమారు {amt} (రోజుకు {day}).",
       ans_default: "మీ ఖర్చు, సోలార్ సైజు, ఎక్కువ వాడే ఉపకరణం లేదా పొదుపు గురించి చెప్పగలను — మీకు ఏం తెలుసుకోవాలి?",
+      real_schemes_line: "ఇప్పుడు అందుబాటులో ఉన్న నిజమైన పథకాలు: {list}.", real_product_line: "EnergyHubలో ఇప్పుడు చౌకైన సరిపోలే ఉత్పత్తి: {name} — ₹{price}.",
       ember_hello: "హాయ్! 👋 నేను మీకు ఎలా సహాయం చేయగలను?",
       ember_help_menu: "ఈ యాప్ మీకు ఇలా సహాయం చేయగలదు:",
       opt_chart: "నా వినియోగ చార్ట్ చూపించు", opt_save: "కరెంట్ ఎలా ఆదా చేయాలి?", opt_energy: "మీకు ఇంధన పొదుపు కావాలా?", opt_about: "ఈ యాప్ అంటే ఏమిటి?",
@@ -1351,7 +1380,7 @@
       next_title: "తర్వాత మీరు ఏమి చేయాలనుకుంటున్నారు?",
       opt_reduce: "నా వినియోగాన్ని ఎలా తగ్గించుకోవాలి?",
       info_what: "<b>GreenMap AI</b> ఆంధ్రప్రదేశ్ కోసం ఒక స్మార్ట్ పునరుత్పాదక ఇంధన యాప్. ఇందులో <b>Smart Energy Search</b> (సౌర, పవన ఉత్పత్తులను పోల్చండి), <b>EnergyScope AP</b> (రాష్ట్రవ్యాప్తంగా సౌర, పవన అవకాశాలు), <b>EnergyHub</b> (స్థానిక పునరుత్పాదక ఇంధన దుకాణాలు) మరియు <b>Govt Schemes</b> ఉన్నాయి. నేను EMBER, ఇందులో మీ ఇంధన సలహాదారుని.",
-      info_how: "<b>ఇది ఎలా పనిచేస్తుంది</b><br>1. మీ ఉపకరణాలను చెప్పండి (ఉదా. \"2 బల్బులు, 1 ఫ్యాన్\").<br>2. నేను మీ రోజువారీ యూనిట్లు, నెలవారీ ఖర్చు మరియు మీకు కావాల్సిన సోలార్ సైజు చూపిస్తాను.<br>3. తర్వాత అన్వేషించండి: ఉత్పత్తులను పోల్చండి, మీ ప్రాంతంలో సౌర, పవన అవకాశాలు మరియు ఉష్ణోగ్రత చూడండి, సమీప దుకాణాలు కనుగొనండి, ప్రభుత్వ పథకాలు చూడండి.",
+      info_how: "<b>ఇది ఎలా పనిచేస్తుంది</b><br>1. మీ ఉపకరణాలను చెప్పండి (ఉదా. \"2 బల్బులు, 1 ఫ్యాన్\").<br>2. నేను మీ రోజువారీ యూనిట్లు, నెలవారీ ఖర్చు మరియు మీకు కావాల్సిన సోలార్ సైజు చూపిస్తాను.<br>3. తర్వాత అన్వేషించండి: ఉత్పత్తులను పోల్చండి, మీ ప్రాంతంలో సౌర, పవన అవకాశాలు మరియు ఉష్ణోగ్రత చూడండి, సమీప దుకాణాలు కనుగొనండి, ప్రభుత్వ పథకాలు చూడండి.<br>4. నిజమైన డేటా అందుబాటులో ఉన్నచోట, నేను నిజమైన దుకాణ ధరలు మరియు ప్రస్తుత పథకాల పేర్లు చెబుతాను — కేవలం లింకులు మాత్రమే కాదు.",
       info_start: "<b>ఇది ఎలా మొదలైంది</b><br>GreenMap AI ఒక ఫైనల్ ఇయర్ కాలేజీ ప్రాజెక్టుగా మొదలైంది — ఆంధ్రప్రదేశ్‌లోని ప్రజలకు పునరుత్పాదక ఇంధనాన్ని సులభంగా కనుగొనేలా చేయాలనే లక్ష్యంతో — సూర్యుడు, గాలి ఎక్కడ ఎక్కువగా ఉన్నాయో, స్థానిక దుకాణాలు ఏవి పరికరాలు అమ్ముతున్నాయో, కొనే ముందు ఉత్పత్తులను ఎలా పోల్చాలో తెలుసుకోవడానికి.",
       info_team: "<b>టీమ్ 13</b><br>• <b>జాషు</b> — సృష్టికర్త &amp; డెవలపర్<br>• <b>స్టీఫెన్</b> — టీమ్ సభ్యుడు<br>• <b>హేమంత్</b> — టీమ్ సభ్యుడు<br><b>Dr. B వెంకటేష్</b> గారి మార్గదర్శకత్వంలో.",
       habits_tips: "<b>కరెంట్ ఆదా చేసే సులభమైన మార్గాలు</b><br>• గది నుండి బయటకు వెళ్లేటప్పుడు లైట్లు, ఫ్యాన్లు ఆపండి<br>• LED బల్బులు, 5-స్టార్ రేటెడ్ ఉపకరణాలు వాడండి<br>• ఏసీని 24–26°C కు సెట్ చేయండి<br>• చార్జర్లు, టీవీలను స్టాండ్‌బై నుండి తీసేయండి<br>• వాషింగ్ మెషీన్‌ను పూర్తి లోడ్‌తో నడపండి",
@@ -1622,7 +1651,7 @@ window.addEventListener('load', function(){
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, limit, getDocs, addDoc, serverTimestamp, where, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, collectionGroup, query, orderBy, limit, getDocs, addDoc, serverTimestamp, where, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAWp6wb0nSg2xOMNDCDzpwBV6k27AxIBn4",
@@ -1697,7 +1726,36 @@ onAuthStateChanged(auth, function(user){
   var adminItem = document.getElementById("adminUpdateMenuItem");
   if (adminItem) adminItem.style.display = (user && user.email === ADMIN_EMAIL) ? "flex" : "none";
   registerUserAndNotify(user);
+  notifyAdminOfNewBuild(user);
 });
+
+// ---------------------------------------------------------------------------
+// Admin-only "this build is live" ping. Bump APP_BUILD_VERSION and the
+// message each time a change is deployed; the admin's own device compares
+// it against the last version it saw (stored locally) and, the first time
+// it differs, writes a private notification (visible only to ADMIN_EMAIL)
+// confirming the update reached the live site — a quick way to check a
+// deploy actually worked, separate from the public "Post App Update"
+// broadcast which goes to every user.
+var APP_BUILD_VERSION = "2026-10-04-1";
+var APP_BUILD_NOTES = "Bolder color palette · EMBER now quotes real scheme names and real shop prices (Govt Schemes is live in Firestore now) · app-info text updated";
+async function notifyAdminOfNewBuild(user){
+  if (!user || user.email !== ADMIN_EMAIL) return;
+  var seenKey = "gm_admin_seen_build";
+  if (localStorage.getItem(seenKey) === APP_BUILD_VERSION) return;
+  try {
+    await addDoc(collection(db, "notifications"), {
+      type: "update",
+      title: "Build " + APP_BUILD_VERSION + " is live",
+      message: APP_BUILD_NOTES,
+      targetEmails: [ADMIN_EMAIL],
+      createdAt: serverTimestamp()
+    });
+    localStorage.setItem(seenKey, APP_BUILD_VERSION);
+  } catch (err){
+    console.warn("Could not send admin build notification:", err);
+  }
+}
 
 // Resolves the first time Firebase Auth finishes restoring (or confirming
 // there is no) an existing sign-in session. Notifications wait on this so
@@ -1710,6 +1768,29 @@ var GM_authReadyDone = false;
 onAuthStateChanged(auth, function(){
   if (!GM_authReadyDone){ GM_authReadyDone = true; GM_authReadyResolve(); }
 });
+
+// ---------------------------------------------------------------------------
+// Real data for EMBER — schemes from govtSchemes and products from every
+// shop's products subcollection (via collectionGroup, so one query reaches
+// across all shops). Both are genuinely shared Firestore data, unlike Smart
+// Energy Search's catalog which still lives only inside that page's own JS.
+// Fetched once, cached on window so EMBER's (classic-script) answer logic
+// can read them synchronously once loaded; empty arrays until then, so
+// nothing breaks if the fetch is slow or the collections are still empty.
+// ---------------------------------------------------------------------------
+window.GM_realSchemes = [];
+window.GM_realProducts = [];
+async function loadEmberRealData(){
+  try {
+    var schemeSnap = await getDocs(collection(db, "govtSchemes"));
+    window.GM_realSchemes = schemeSnap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
+  } catch (err){ console.warn("EMBER: could not load real schemes:", err); }
+  try {
+    var productSnap = await getDocs(collectionGroup(db, "products"));
+    window.GM_realProducts = productSnap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
+  } catch (err){ console.warn("EMBER: could not load real products:", err); }
+}
+loadEmberRealData();
 
 // ---------------------------------------------------------------------------
 // Location + live weather for the top pill (GPS + Open-Meteo, both free,

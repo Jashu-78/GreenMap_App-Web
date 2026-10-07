@@ -7,7 +7,7 @@
 <style>
   :root{
     --primary:#134627; --primary2:#5fa30e; --primaryDeep:#337e09; --mint:#95D5B2;
-    --accent:#faa707; --accentDeep:#94c519; --sky:#2d96bd; --skyDeep:#0b4e76;
+    --accent:#fcca16; --accentDeep:#faa707; --sky:#2d96bd; --skyDeep:#0b4e76;
     --bg:#F7FAF7; --card:#E9F4EC; --textDark:#1B2B22; --textMuted:#5C6F63; --line:#DCEAE1;
   }
   *{box-sizing:border-box;margin:0;padding:0;}
@@ -321,6 +321,10 @@
       <span class="my-notify-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
     </div>
     <div class="my-notify-list" id="myNotifyList"></div>
+    <div class="menu-item" id="adminSeedSchemesItem" style="display:none;" onclick="seedSchemesToFirestore()">
+      <span class="menu-item-icon">☁️</span>
+      <span>Seed schemes to Firestore</span>
+    </div>
   </div>
 </div>
 
@@ -1790,7 +1794,7 @@ renderList();
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAWp6wb0nSg2xOMNDCDzpwBV6k27AxIBn4",
@@ -1845,11 +1849,61 @@ async function gsFetchFirebaseNotifs(){
   }
 }
 
+var ADMIN_EMAIL = "k.smjashu78@gmail.com";
+
+// Loads schemes from Firestore (if any have been seeded there yet) and
+// swaps them in for the hardcoded SCHEMES fallback, then redraws the list.
+// Safe to call even if the collection is empty or unreachable — the page
+// just keeps showing the hardcoded 12 schemes in that case.
+async function loadLiveSchemes(){
+  try{
+    var snap = await getDocs(collection(gsDb, "govtSchemes"));
+    if (snap.empty) return;
+    var live = [];
+    snap.forEach(function(docSnap){
+      live.push(Object.assign({ id: docSnap.id }, docSnap.data()));
+    });
+    if (live.length){
+      SCHEMES = live;
+      if (typeof renderList === "function") renderList();
+    }
+  } catch (err){
+    console.warn("Could not load live schemes, keeping the built-in list:", err);
+  }
+}
+
+// Admin-only, one-time (safe to re-run) — writes the current SCHEMES array
+// into Firestore so loadLiveSchemes() above has real data to read, and so
+// the future scheme-discovery backend has somewhere to add new ones.
+async function seedSchemesToFirestore(){
+  var user = gsAuth.currentUser;
+  if (!user || user.email !== ADMIN_EMAIL){ alert("Admin only."); return; }
+  if (!confirm("Write all " + SCHEMES.length + " schemes to Firestore now?")) return;
+  var ok = 0, failed = 0;
+  for (var i = 0; i < SCHEMES.length; i++){
+    var scheme = SCHEMES[i];
+    try{
+      var data = Object.assign({}, scheme);
+      delete data.id;
+      await setDoc(doc(gsDb, "govtSchemes", scheme.id), data);
+      ok++;
+    } catch (err){
+      failed++;
+      console.error("Failed to seed scheme", scheme.id, err);
+    }
+  }
+  alert("Seeded " + ok + " scheme(s)" + (failed ? ", " + failed + " failed (see console)." : "."));
+  loadLiveSchemes();
+}
+
 onAuthStateChanged(gsAuth, function(){
   if (!gsAuthReadyDone){ gsAuthReadyDone = true; gsAuthReadyResolve(); }
   gsFetchFirebaseNotifs();
+  var seedItem = document.getElementById("adminSeedSchemesItem");
+  if (seedItem) seedItem.style.display = (gsAuth.currentUser && gsAuth.currentUser.email === ADMIN_EMAIL) ? "flex" : "none";
 });
 gsFetchFirebaseNotifs();
+loadLiveSchemes();
 </script>
 </body>
 </html>
