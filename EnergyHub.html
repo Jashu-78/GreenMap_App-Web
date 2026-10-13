@@ -1245,7 +1245,14 @@ document.getElementById("notifClearBtn").addEventListener("click", function(){
   renderNotificationList();
 });
 
+// The bell's inline onclick="toggleNotifications(...)" runs in the page scope, but this
+// code lives inside a module, so these must be exported to window or the bell does nothing.
+window.toggleNotifications = toggleNotifications;
+window.renderNotificationList = renderNotificationList;
+window.updateBellBadge = updateBellBadge;
+
 updateBellBadge();
+setInterval(updateBellBadge, 30000);
 </script>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
