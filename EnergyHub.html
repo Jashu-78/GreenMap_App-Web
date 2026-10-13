@@ -353,6 +353,18 @@
   .notif-sub{font-size:12px;color:var(--textMuted);margin-top:2px;}
   .notif-time{font-size:11px;color:var(--textMuted);margin-top:2px;}
 </style>
+
+<style id="gmVoiceCss">
+.gm-mic-btn{background:none;border:none;padding:0;width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:inherit;flex-shrink:0;-webkit-tap-highlight-color:transparent;z-index:2;}
+.gm-mic-btn svg{width:18px;height:18px;position:static !important;left:auto !important;top:auto !important;transform:none !important;pointer-events:none;}
+.gm-mic-btn.gm-mic-abs{position:absolute;top:50%;transform:translateY(-50%);}
+.gm-mic-btn.listening{background:#e5484d;color:#fff !important;animation:gmMicPulse 1.1s ease-out infinite;}
+@keyframes gmMicPulse{0%{box-shadow:0 0 0 0 rgba(229,72,77,.55);}100%{box-shadow:0 0 0 12px rgba(229,72,77,0);}}
+#homeScreen .agent-input-row button.gm-mic-btn{background:none;color:var(--primary);padding:0;width:34px;height:34px;border-radius:50%;}
+#homeScreen .agent-input-row button.gm-mic-btn.listening{background:#e5484d;color:#fff;}
+.gm-voice-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:rgba(20,30,25,.94);color:#fff;font-size:13px;line-height:1.35;padding:10px 16px;border-radius:10px;z-index:99999;max-width:86vw;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .2s ease;pointer-events:none;}
+.gm-voice-toast.show{opacity:1;}
+</style>
 </head>
 <body>
 
@@ -1785,86 +1797,83 @@ function formatStampFull(date){
 // a simple "delivered" ping for the buyer, and a fuller one (who + what)
 // for the shop owner. Guarded by localStorage so re-rendering/refreshing
 // the order list doesn't send it again.
+// Orders created before this fix keep the notifications they already have.
+var NOTIF_FIX_EPOCH = 1791624003733;
+// Same rule set as GreenMap_App.html: fixed ids + real stage time, so whichever page
+// notices first writes it, and the other one can never add a copy.
 function maybeNotifyDelivered(orderId, order, itemsForThisView, showBuyerInfo){
-  var guardKey = "eh_delivered_notified_" + (showBuyerInfo ? "seller_" : "buyer_") + orderId + (showBuyerInfo && itemsForThisView[0] ? "_" + itemsForThisView[0].shopId : "");
-  if (localStorage.getItem(guardKey)) return;
-  localStorage.setItem(guardKey, "1");
+  var createdAtDate = order.createdAt && order.createdAt.toDate ? order.createdAt.toDate() : null;
+  if (!createdAtDate || createdAtDate.getTime() < NOTIF_FIX_EPOCH) return;
+  var windowMs = order.deliveryWindowMs || (TRACKER_STAGES.length * 30000);
+  var deliveredAt = new Date(createdAtDate.getTime() + windowMs);
+  var short = orderId.slice(-6).toUpperCase();
 
   if (showBuyerInfo){
-    // Seller view: full detail — who it was delivered to and what.
-    // Only the shop owner ever renders this view, so currentUser IS the
-    // recipient (avoids misfiring to other owners in a multi-shop order).
+    // Seller view: who it was delivered to and what.
+    if (!currentUser) return;
     var shopId = itemsForThisView[0] ? itemsForThisView[0].shopId : null;
     var itemNames = itemsForThisView.map(function(it){ return it.name + " (x" + it.qty + ")"; }).join(", ");
     addNotification({
+      id: "order_" + orderId + "_seller_" + currentUser.uid + "_delivered",
       type: "order",
-      title: "Order delivered to " + (order.buyerName || "Guest"),
+      title: "Order delivered to " + (order.buyerName || "Buyer"),
       message: itemNames,
-      targetUids: currentUser ? [currentUser.uid] : [],
-      link: "EnergyHub.html?openSellerOrders=1&shop=" + encodeURIComponent(shopId || "")
+      targetUids: [currentUser.uid],
+      link: "EnergyHub.html?openSellerOrders=1&shop=" + encodeURIComponent(shopId || ""),
+      createdAt: deliveredAt
     });
   } else {
-    // Buyer view: short and simple, like a Swiggy/Zomato delivery ping.
     addNotification({
+      id: "order_" + orderId + "_delivered",
       type: "order",
       title: "Order delivered ✅",
-      message: "Your order #" + orderId.slice(-6).toUpperCase() + " has arrived.",
+      message: "Your order #" + short + " has arrived.",
       targetUids: [order.buyerUid],
-      link: "EnergyHub.html?openOrders=1"
+      link: "EnergyHub.html?openOrders=1",
+      createdAt: deliveredAt
     });
     addNotification({
+      id: "order_" + orderId + "_rate",
       type: "order",
       title: "How was your order? ⭐",
-      message: "Rate your order #" + orderId.slice(-6).toUpperCase() + " from 1 to 10. Your rating goes straight to the shop owner.",
+      message: "Rate your order #" + short + " from 1 to 10. Your rating goes straight to the shop owner.",
       targetUids: [order.buyerUid],
-      link: "EnergyHub.html?openOrders=1"
+      link: "EnergyHub.html?openOrders=1",
+      createdAt: new Date(deliveredAt.getTime() + 1)
     });
   }
 }
 
-// Fires one notification per newly-crossed tracker stage (handles the case
-// where multiple stages advance between polls, e.g. fast green orders), and
-// records lastNotifiedStageIndex on the order so we never re-notify the
-// same stage twice. Only called from the buyer's own order view to avoid
-// duplicate writes from the seller's view of the same order.
+// One notification per tracker stage actually reached, stamped with the moment
+// that stage was reached. Stage 0 ("Order Placed") is skipped: checkout already
+// sent "Payment successful" / "Order placed successfully".
 var STAGE_NOTIFY_MESSAGES = {
-  0: { title: "Order placed 📦", body: "Your order has been placed and is being prepared." },
   1: { title: "Reached your local hub 🏬", body: "Your order has reached the local hub near you." },
   2: { title: "Shipped 🚚", body: "Your order has been shipped." },
   3: { title: "Reached nearest hub 📍", body: "Your order has reached the hub nearest to your delivery address." },
   4: { title: "Out for delivery 🛵", body: "Your order is out for delivery." },
-  5: { title: "Handed to delivery partner 🤝", body: "Your order has been handed to the delivery partner." }
+  5: { title: "Handed over 🤝", body: "Your order is being handed over to you." }
 };
 
 function notifyStageAdvance(orderId, order, stageIdx){
-  var lastNotified = typeof order.lastNotifiedStageIndex === "number" ? order.lastNotifiedStageIndex : -1;
-  if (stageIdx <= lastNotified) return;
-
-  // Each stage's notification is backdated to the moment that stage was
-  // actually crossed in the simulated timeline (not "now") — otherwise
-  // catching up on several stages at once (e.g. after being away) would
-  // stamp them all with the same current time and list them out of order.
   var createdAtDate = order.createdAt && order.createdAt.toDate ? order.createdAt.toDate() : null;
+  // No confirmed server time yet (or an older order) -> never guess with "now".
+  if (!createdAtDate || createdAtDate.getTime() < NOTIF_FIX_EPOCH) return;
   var totalWindowMs = order.deliveryWindowMs || (TRACKER_STAGES.length * 30000);
   var stageDurationMs = totalWindowMs / TRACKER_STAGES.length;
-
-  for (var i = lastNotified + 1; i <= stageIdx; i++){
+  for (var i = 1; i <= stageIdx; i++){
     var msg = STAGE_NOTIFY_MESSAGES[i];
-    if (msg){
-      var stageTime = createdAtDate ? new Date(createdAtDate.getTime() + i * stageDurationMs) : null;
-      addNotification({
-        type: "order",
-        title: msg.title,
-        message: msg.body + " (Order #" + orderId.slice(-6).toUpperCase() + ")",
-        targetUids: [order.buyerUid],
-        link: "EnergyHub.html?openOrders=1",
-        createdAt: stageTime
-      });
-    }
+    if (!msg) continue;
+    addNotification({
+      id: "order_" + orderId + "_stage_" + i,
+      type: "order",
+      title: msg.title,
+      message: msg.body + " (Order #" + orderId.slice(-6).toUpperCase() + ")",
+      targetUids: [order.buyerUid],
+      link: "EnergyHub.html?openOrders=1",
+      createdAt: new Date(createdAtDate.getTime() + i * stageDurationMs)
+    });
   }
-
-  window.EHUB.updateDoc(window.EHUB.doc(window.EHUB.db, "orders", orderId), { lastNotifiedStageIndex: stageIdx })
-    .catch(function(err){ console.error("Failed to record lastNotifiedStageIndex:", err); });
 }
 
 function buildOrderCard(orderId, order, itemsToShow, showBuyerInfo){
@@ -3057,15 +3066,31 @@ function resetShopPhotoPicker(){
 // - no targetUids  -> shown to everyone (e.g. new shop nearby)
 // - targetUids: [] -> shown only to those uids (e.g. discount for followers)
 // ---------------------------------------------------------------------------
+var notifInFlight = {};
 async function addNotification(data){
   try {
-    // data.createdAt lets a caller backdate a notification (e.g. an order
-    // stage that was actually crossed earlier but is only being recorded
-    // now); otherwise it's stamped with the current server time as usual.
+    // data.createdAt lets a caller backdate a notification to the real moment of the event.
     var createdAt = data.createdAt instanceof Date ? window.EHUB.Timestamp.fromDate(data.createdAt) : window.EHUB.serverTimestamp();
-    await window.EHUB.addDoc(window.EHUB.collection(window.EHUB.db, "notifications"), Object.assign({}, data, {
-      createdAt: createdAt
-    }));
+    var payload = Object.assign({}, data, { createdAt: createdAt });
+    // data.id => FIXED document id, so the same event can never be stored twice
+    // (second tab, second device, overlapping refreshes, or the home page's tracker).
+    if (data.id){
+      var id = data.id;
+      delete payload.id;
+      var doneKey = "gm_notif_done_" + id;
+      if (notifInFlight[id] || localStorage.getItem(doneKey)) return;
+      notifInFlight[id] = true;
+      try {
+        await window.EHUB.setDoc(window.EHUB.doc(window.EHUB.db, "notifications", id), payload);
+        localStorage.setItem(doneKey, "1");
+      } catch (err){
+        // permission-denied = this exact notification already exists (duplicate guard working)
+        if (err && err.code === "permission-denied") localStorage.setItem(doneKey, "1");
+        else console.warn("Could not write notification:", err);
+      } finally { delete notifInFlight[id]; }
+      return;
+    }
+    await window.EHUB.addDoc(window.EHUB.collection(window.EHUB.db, "notifications"), payload);
   } catch (err){
     console.warn("Could not write notification:", err);
   }
@@ -4759,5 +4784,98 @@ document.getElementById("productForm").addEventListener("submit", async function
 });
 </script>
 
+
+<script id="gmVoiceJs">
+// Voice (mic) search — shared by every GreenMap page. Uses the browser's built-in
+// speech recognition (no backend, no cost). If the browser doesn't support it
+// (e.g. Firefox, some in-app browsers) the mic button is simply not shown.
+(function(){
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  var LANG_MAP = { en: "en-IN", te: "te-IN", hi: "hi-IN", ta: "ta-IN", kn: "kn-IN" };
+  var MIC_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path fill="currentColor" stroke="none" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>';
+  var active = null;
+  var toastEl = null, toastTimer = null;
+
+  function toast(msg){
+    if (!toastEl){ toastEl = document.createElement("div"); toastEl.className = "gm-voice-toast"; document.body.appendChild(toastEl); }
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, 3200);
+  }
+  function fire(input, type, init){
+    input.dispatchEvent(type === "input" ? new Event("input", { bubbles: true }) : new KeyboardEvent(type, init));
+  }
+  function stopActive(){ if (active){ try { active.rec.stop(); } catch (e){} } }
+
+  function start(btn, input){
+    var rec = new SR();
+    var saved = localStorage.getItem("gm_language") || "en";
+    rec.lang = LANG_MAP[saved] || "en-IN";
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.maxAlternatives = 1;
+
+    var oldPlaceholder = input.placeholder, finalText = "", gotResult = false, state = { rec: rec, btn: btn, err: "" };
+    active = state;
+    btn.classList.add("listening");
+    input.placeholder = "Listening…";
+
+    rec.onresult = function(ev){
+      var interim = "", fin = "";
+      for (var i = ev.resultIndex; i < ev.results.length; i++){
+        var t = ev.results[i][0].transcript;
+        if (ev.results[i].isFinal) fin += t; else interim += t;
+      }
+      if (fin) finalText += fin;
+      var shown = (finalText + interim).trim();
+      if (shown){ gotResult = true; input.value = shown; fire(input, "input"); }
+    };
+    rec.onerror = function(ev){ state.err = ev.error || "error"; };
+    rec.onend = function(){
+      btn.classList.remove("listening");
+      input.placeholder = oldPlaceholder;
+      if (active === state) active = null;
+      if (state.err === "aborted") return;
+      if (state.err === "not-allowed" || state.err === "service-not-allowed"){
+        toast("Microphone is blocked. Allow mic access for this site in your browser settings, then try again."); return;
+      }
+      if (state.err === "network"){ toast("Voice search needs an internet connection."); return; }
+      if (state.err === "audio-capture"){ toast("No microphone found on this device."); return; }
+      if (state.err === "language-not-supported"){ toast("This language isn't supported for voice search on your device."); return; }
+      if (!gotResult || !input.value.trim()){ toast("Didn't catch that — tap the mic and try again."); return; }
+      // Same as typing the text and pressing Enter: runs each page's own search.
+      fire(input, "keydown", { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true });
+    };
+    try { rec.start(); }
+    catch (e){ btn.classList.remove("listening"); input.placeholder = oldPlaceholder; active = null; toast("Couldn't start voice search. Please try again."); }
+  }
+
+  function attach(inputId, o){
+    var input = document.getElementById(inputId);
+    if (!input || input.getAttribute("data-gm-mic")) return;
+    input.setAttribute("data-gm-mic", "1");
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "gm-mic-btn" + (o.variant === "abs" ? " gm-mic-abs" : "");
+    btn.setAttribute("aria-label", "Voice search");
+    btn.title = "Voice search";
+    btn.innerHTML = MIC_SVG;
+    if (o.color) btn.style.color = o.color;
+    if (o.variant === "abs"){ btn.style.right = o.right; input.style.paddingRight = o.pad; }
+    input.insertAdjacentElement("afterend", btn);
+    btn.addEventListener("click", function(e){
+      e.preventDefault(); e.stopPropagation();
+      if (active && active.btn === btn){ stopActive(); return; }
+      stopActive();
+      start(btn, input);
+    });
+  }
+  document.addEventListener("visibilitychange", function(){ if (document.hidden) stopActive(); });
+
+  attach("mainSearchInput", { variant: "flex", color: "var(--textMuted)" });
+})();
+</script>
 </body>
 </html>

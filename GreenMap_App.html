@@ -257,6 +257,18 @@
 #homeScreen .agent-chart-summary{margin-top:4px;padding-top:9px;border-top:1px dashed var(--line);font-size:12.5px;line-height:1.5;}
 #homeScreen .agent-chart-note{margin-top:6px;font-size:10.5px;color:var(--textMuted);font-style:italic;}
 </style>
+
+<style id="gmVoiceCss">
+.gm-mic-btn{background:none;border:none;padding:0;width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:inherit;flex-shrink:0;-webkit-tap-highlight-color:transparent;z-index:2;}
+.gm-mic-btn svg{width:18px;height:18px;position:static !important;left:auto !important;top:auto !important;transform:none !important;pointer-events:none;}
+.gm-mic-btn.gm-mic-abs{position:absolute;top:50%;transform:translateY(-50%);}
+.gm-mic-btn.listening{background:#e5484d;color:#fff !important;animation:gmMicPulse 1.1s ease-out infinite;}
+@keyframes gmMicPulse{0%{box-shadow:0 0 0 0 rgba(229,72,77,.55);}100%{box-shadow:0 0 0 12px rgba(229,72,77,0);}}
+#homeScreen .agent-input-row button.gm-mic-btn{background:none;color:var(--primary);padding:0;width:34px;height:34px;border-radius:50%;}
+#homeScreen .agent-input-row button.gm-mic-btn.listening{background:#e5484d;color:#fff;}
+.gm-voice-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:rgba(20,30,25,.94);color:#fff;font-size:13px;line-height:1.35;padding:10px 16px;border-radius:10px;z-index:99999;max-width:86vw;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .2s ease;pointer-events:none;}
+.gm-voice-toast.show{opacity:1;}
+</style>
 </head>
 <body>
 
@@ -1651,7 +1663,7 @@ window.addEventListener('load', function(){
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithRedirect, signInWithPopup, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, collectionGroup, query, orderBy, limit, getDocs, addDoc, serverTimestamp, where, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, collectionGroup, query, orderBy, limit, getDocs, addDoc, serverTimestamp, Timestamp, where, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAWp6wb0nSg2xOMNDCDzpwBV6k27AxIBn4",
@@ -1737,8 +1749,8 @@ onAuthStateChanged(auth, function(user){
 // confirming the update reached the live site — a quick way to check a
 // deploy actually worked, separate from the public "Post App Update"
 // broadcast which goes to every user.
-var APP_BUILD_VERSION = "2026-10-04-1";
-var APP_BUILD_NOTES = "Bolder color palette · EMBER now quotes real scheme names and real shop prices (Govt Schemes is live in Firestore now) · app-info text updated";
+var APP_BUILD_VERSION = "2026-10-10-2";
+var APP_BUILD_NOTES = "Order notifications fixed (accurate stage times, no duplicates) · Voice (mic) search added to every search bar and EMBER · first-run permission sheet (mic, location, notifications) in the installed app";
 async function notifyAdminOfNewBuild(user){
   if (!user || user.email !== ADMIN_EMAIL) return;
   var seenKey = "gm_admin_seen_build";
@@ -1834,7 +1846,9 @@ async function loadLocationAndWeather(){
   }, { enableHighAccuracy: true, timeout: 10000 });
 }
 
-loadLocationAndWeather();
+// In the installed app, the first-run permission sheet asks for location first; it then starts this itself.
+window.GM_startLocation = loadLocationAndWeather;
+if (!(typeof window.GM_permsPending === "function" && window.GM_permsPending())) { window.GM_startLocation = null; loadLocationAndWeather(); }
 // Keep the greeting's time-of-day fresh if the app stays open a while
 setInterval(function(){ updateGreeting(auth.currentUser); }, 5 * 60 * 1000);
 
@@ -2153,119 +2167,104 @@ window.GM_onBellOpen = function(){
 };
 
 // ---------------------------------------------------------------------------
-// Order stage notifications — the delivery tracker in EnergyHub is purely
-// time-computed (6 stages × 30s), not driven by real backend state changes.
-// This periodically checks the current person's orders and notifies them
-// the moment a stage is newly reached, using the stage's actual computed
-// time. Buyers get a simplified subset; shop owners get every stage with
-// a precise timestamp, and only they see those.
+// Order stage notifications — SINGLE shared rule set (identical in EnergyHub.html).
+// The tracker is time-computed from each order's own deliveryWindowMs. Every
+// notification has a FIXED document id (order_<id>_stage_<n> etc.), so the same
+// event can never be stored twice — not from a second tab, device, page or timer.
+// Each one is stamped with the real moment its stage was reached, not "now".
 // ---------------------------------------------------------------------------
-var TRACKER_STAGES = ["Product Ready", "Packed", "Shipped", "Reached Nearest Hub", "Out for Delivery", "Handed Over"];
-var STAGE_SECONDS = 30;
-var BUYER_STAGE_INDEXES = [0, 1, 2, 5]; // Product Ready, Packed, Shipped, Handed Over
+var TRACKER_STAGES = ["Order Placed", "Reached Local Hub", "Shipped", "Reached Nearest Hub", "Out for Delivery", "Handed Over"];
+var DEFAULT_WINDOW_MS = TRACKER_STAGES.length * 30000;
+// Orders created before this fix keep the notifications they already have.
+var NOTIF_FIX_EPOCH = 1791624003733;
+// Stage 0 ("Order Placed") is covered by the checkout notifications, so it is not repeated here.
+var STAGE_NOTIFY_MESSAGES = {
+  1: { title: "Reached your local hub 🏬", body: "Your order has reached the local hub near you." },
+  2: { title: "Shipped 🚚", body: "Your order has been shipped." },
+  3: { title: "Reached nearest hub 📍", body: "Your order has reached the hub nearest to your delivery address." },
+  4: { title: "Out for delivery 🛵", body: "Your order is out for delivery." },
+  5: { title: "Handed over 🤝", body: "Your order is being handed over to you." }
+};
 
-function computeStageIndex(createdAtMs){
-  var elapsedSec = (Date.now() - createdAtMs) / 1000;
-  var idx = Math.floor(elapsedSec / STAGE_SECONDS);
+function orderWindowMs(order){ return order.deliveryWindowMs || DEFAULT_WINDOW_MS; }
+function computeStageIndex(createdMs, windowMs){
+  var per = windowMs / TRACKER_STAGES.length;
+  var idx = Math.floor((Date.now() - createdMs) / per);
   return Math.min(Math.max(idx, 0), TRACKER_STAGES.length - 1);
 }
-function stageSeenKey(orderId, role){ return "gm_stage_seen_" + role + "_" + orderId; }
-function getSeenStage(orderId, role){
-  var v = localStorage.getItem(stageSeenKey(orderId, role));
-  return v ? parseInt(v, 10) : -1;
-}
-function setSeenStage(orderId, role, idx){ localStorage.setItem(stageSeenKey(orderId, role), String(idx)); }
-function formatStageTime(ms){
-  return new Date(ms).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+function shortOrderId(id){ return id.slice(-6).toUpperCase(); }
+
+var notifInFlight = {};
+async function writeNotificationOnce(id, data, whenMs){
+  var doneKey = "gm_notif_done_" + id;
+  if (notifInFlight[id] || localStorage.getItem(doneKey)) return;
+  notifInFlight[id] = true;
+  try {
+    await setDoc(doc(db, "notifications", id), Object.assign({}, data, { type: "order", createdAt: Timestamp.fromMillis(whenMs) }));
+    localStorage.setItem(doneKey, "1");
+  } catch (err){
+    // permission-denied here means this exact notification already exists — that is the duplicate guard working.
+    if (err && err.code === "permission-denied") localStorage.setItem(doneKey, "1");
+    else console.warn("Could not write order notification:", err);
+  } finally { delete notifInFlight[id]; }
 }
 
 async function checkOrderStageNotifications(){
   var user = auth.currentUser;
   if (!user) return;
-  var writes = [];
-
   try {
-    // --- As buyer: simplified stage subset ---
+    // --- As buyer ---
     var buyerSnap = await getDocs(query(collection(db, "orders"), where("buyerUid", "==", user.uid)));
     buyerSnap.forEach(function(docSnap){
       var order = docSnap.data();
       if (!order.createdAt || !order.createdAt.toMillis) return;
       var createdMs = order.createdAt.toMillis();
-      var curStage = computeStageIndex(createdMs);
-      var seen = getSeenStage(docSnap.id, "buyer");
-      var isFreshOrder = (Date.now() - createdMs) < 60000;
-
-      if (seen === -1 && !isFreshOrder){
-        // Pre-existing older order we've never tracked — don't backfill a
-        // wall of past-stage notifications, just start tracking from now.
-        setSeenStage(docSnap.id, "buyer", curStage);
-        return;
+      if (createdMs < NOTIF_FIX_EPOCH) return;
+      var windowMs = orderWindowMs(order);
+      var per = windowMs / TRACKER_STAGES.length;
+      var curStage = computeStageIndex(createdMs, windowMs);
+      var tag = "(Order #" + shortOrderId(docSnap.id) + ")";
+      for (var i = 1; i <= curStage; i++){
+        var msg = STAGE_NOTIFY_MESSAGES[i];
+        writeNotificationOnce("order_" + docSnap.id + "_stage_" + i, {
+          title: msg.title, message: msg.body + " " + tag, targetUids: [user.uid], link: "EnergyHub.html?openOrders=1"
+        }, createdMs + i * per);
       }
-
-      var itemNames = (order.items || []).map(function(it){ return it.name; }).join(", ");
-      for (var i = seen + 1; i <= curStage; i++){
-        if (BUYER_STAGE_INDEXES.indexOf(i) === -1) continue;
-        var label = TRACKER_STAGES[i] + (i === TRACKER_STAGES.length - 1 ? " — Delivered!" : "");
-        writes.push(addDoc(collection(db, "notifications"), {
-          type: "order",
-          title: label,
-          message: itemNames + " • " + formatStageTime(createdMs + i * STAGE_SECONDS * 1000),
-          targetUids: [user.uid],
-          link: "EnergyHub.html?openOrders=1",
-          createdAt: serverTimestamp()
-        }));
-      }
-      setSeenStage(docSnap.id, "buyer", curStage);
-
-      // One-time "please review" nudge once delivery completes.
-      if (curStage === TRACKER_STAGES.length - 1){
-        var reviewKey = "gm_review_nudge_" + docSnap.id;
-        if (!localStorage.getItem(reviewKey)){
-          localStorage.setItem(reviewKey, "1");
-          writes.push(addDoc(collection(db, "notifications"), {
-            type: "update",
-            title: "How was your order?",
-            message: "Leave a review for " + ((order.items && order.items[0] && order.items[0].name) || "your order"),
-            targetUids: [user.uid],
-            link: (order.items && order.items[0] && order.items[0].shopId) ? "EnergyHub.html?shop=" + encodeURIComponent(order.items[0].shopId) : "EnergyHub.html?openOrders=1",
-            createdAt: serverTimestamp()
-          }));
-        }
+      if (Date.now() - createdMs >= windowMs){
+        var doneAt = createdMs + windowMs;
+        writeNotificationOnce("order_" + docSnap.id + "_delivered", {
+          title: "Order delivered ✅", message: "Your order #" + shortOrderId(docSnap.id) + " has arrived.", targetUids: [user.uid], link: "EnergyHub.html?openOrders=1"
+        }, doneAt);
+        writeNotificationOnce("order_" + docSnap.id + "_rate", {
+          title: "How was your order? ⭐", message: "Rate your order #" + shortOrderId(docSnap.id) + " from 1 to 10. Your rating goes straight to the shop owner.", targetUids: [user.uid], link: "EnergyHub.html?openOrders=1"
+        }, doneAt + 1);
       }
     });
 
-    // --- As shop owner: every stage, precise timestamp, owner-only ---
+    // --- As shop owner ---
     var sellerSnap = await getDocs(query(collection(db, "orders"), where("shopOwnerUids", "array-contains", user.uid)));
     sellerSnap.forEach(function(docSnap){
       var order = docSnap.data();
       if (!order.createdAt || !order.createdAt.toMillis) return;
       var createdMs = order.createdAt.toMillis();
-      var curStage = computeStageIndex(createdMs);
-      var seen = getSeenStage(docSnap.id, "seller");
-      var isFreshOrder = (Date.now() - createdMs) < 60000;
-
-      if (seen === -1 && !isFreshOrder){
-        setSeenStage(docSnap.id, "seller", curStage);
-        return;
+      if (createdMs < NOTIF_FIX_EPOCH) return;
+      var windowMs = orderWindowMs(order);
+      var per = windowMs / TRACKER_STAGES.length;
+      var curStage = computeStageIndex(createdMs, windowMs);
+      var link = "EnergyHub.html?openSellerOrders=1&shop=" + encodeURIComponent((order.shopIds && order.shopIds[0]) || "");
+      var itemNames = (order.items || []).map(function(it){ return it.name + " (x" + it.qty + ")"; }).join(", ");
+      var buyer = order.buyerName || "Buyer";
+      for (var j = 1; j <= curStage; j++){
+        writeNotificationOnce("order_" + docSnap.id + "_seller_" + user.uid + "_stage_" + j, {
+          title: TRACKER_STAGES[j] + " — " + buyer + "'s order", message: itemNames, targetUids: [user.uid], link: link
+        }, createdMs + j * per);
       }
-
-      var myItemNames = (order.items || [])
-        .filter(function(it){ return order.shopOwnerUids && order.shopOwnerUids.indexOf(user.uid) !== -1; })
-        .map(function(it){ return it.name; }).join(", ");
-      for (var j = seen + 1; j <= curStage; j++){
-        writes.push(addDoc(collection(db, "notifications"), {
-          type: "order",
-          title: TRACKER_STAGES[j] + " — " + (order.buyerName || "Buyer") + "'s order",
-          message: (myItemNames || "Order") + " at " + formatStageTime(createdMs + j * STAGE_SECONDS * 1000),
-          targetUids: [user.uid],
-          link: "EnergyHub.html?openSellerOrders=1&shop=" + encodeURIComponent((order.shopIds && order.shopIds[0]) || ""),
-          createdAt: serverTimestamp()
-        }));
+      if (Date.now() - createdMs >= windowMs){
+        writeNotificationOnce("order_" + docSnap.id + "_seller_" + user.uid + "_delivered", {
+          title: "Order delivered to " + buyer, message: itemNames, targetUids: [user.uid], link: link
+        }, createdMs + windowMs);
       }
-      setSeenStage(docSnap.id, "seller", curStage);
     });
-
-    await Promise.all(writes);
   } catch (err){
     console.warn("Could not check order stage notifications:", err);
   }
@@ -2383,6 +2382,275 @@ document.addEventListener('click', function(e){
   };
 });
 emberMarkActive();
+</script>
+
+<script id="gmPermsJs">
+// First-run permission sheet — shown ONCE when GreenMap runs as an installed app
+// (PWA / TWA / WebView wrapper). One "Allow all" tap asks for microphone, location
+// and notifications one after another. Open any page with ?perms=1 to preview it
+// in a normal browser. Permissions are per-site, so this covers all 5 pages.
+(function(){
+  var DONE_KEY = "gm_perms_done";
+  var I18N = {
+    en: { title: "Allow app permissions", sub: "Allow these once so everything works smoothly.",
+      mic: "Microphone", mic_d: "For voice search", loc: "Location", loc_d: "Nearby shops, weather and solar potential",
+      notif: "Notifications", notif_d: "Order updates and new offers",
+      allow: "Allow all", later: "Not now", cont: "Continue",
+      denied: "Some permissions were not allowed. You can turn them on later in Android Settings → Apps → GreenMap → Permissions." },
+    te: { title: "యాప్ అనుమతులను ఇవ్వండి", sub: "అన్నీ సజావుగా పనిచేయడానికి ఇవి ఒక్కసారి అనుమతించండి.",
+      mic: "మైక్రోఫోన్", mic_d: "వాయిస్ సెర్చ్ కోసం", loc: "లొకేషన్", loc_d: "సమీప దుకాణాలు, వాతావరణం, సోలార్ సామర్థ్యం కోసం",
+      notif: "నోటిఫికేషన్లు", notif_d: "ఆర్డర్ అప్‌డేట్లు, కొత్త ఆఫర్ల కోసం",
+      allow: "అన్నింటినీ అనుమతించు", later: "ఇప్పుడు కాదు", cont: "కొనసాగించు",
+      denied: "కొన్ని అనుమతులు ఇవ్వలేదు. తర్వాత Android సెట్టింగ్స్ → యాప్స్ → GreenMap → అనుమతులలో ఆన్ చేయవచ్చు." },
+    hi: { title: "ऐप अनुमतियाँ दें", sub: "सब कुछ ठीक से चलने के लिए इन्हें एक बार अनुमति दें।",
+      mic: "माइक्रोफ़ोन", mic_d: "वॉइस सर्च के लिए", loc: "लोकेशन", loc_d: "आस-पास की दुकानों, मौसम और सोलर क्षमता के लिए",
+      notif: "सूचनाएं", notif_d: "ऑर्डर अपडेट और नए ऑफ़र के लिए",
+      allow: "सभी की अनुमति दें", later: "अभी नहीं", cont: "जारी रखें",
+      denied: "कुछ अनुमतियाँ नहीं दी गईं। आप बाद में Android सेटिंग्स → ऐप्स → GreenMap → अनुमतियाँ में इन्हें चालू कर सकते हैं।" },
+    ta: { title: "ஆப் அனுமதிகளை வழங்கவும்", sub: "எல்லாம் சீராக வேலை செய்ய இவற்றை ஒருமுறை அனுமதிக்கவும்.",
+      mic: "மைக்ரோஃபோன்", mic_d: "குரல் தேடலுக்கு", loc: "இருப்பிடம்", loc_d: "அருகிலுள்ள கடைகள், வானிலை, சூரிய சக்தி திறனுக்கு",
+      notif: "அறிவிப்புகள்", notif_d: "ஆர்டர் புதுப்பிப்புகள், புதிய சலுகைகளுக்கு",
+      allow: "அனைத்தையும் அனுமதி", later: "இப்போது வேண்டாம்", cont: "தொடரவும்",
+      denied: "சில அனுமதிகள் வழங்கப்படவில்லை. பின்னர் Android அமைப்புகள் → ஆப்ஸ் → GreenMap → அனுமதிகளில் இயக்கலாம்." },
+    kn: { title: "ಆ್ಯಪ್ ಅನುಮತಿಗಳನ್ನು ನೀಡಿ", sub: "ಎಲ್ಲವೂ ಸುಗಮವಾಗಿ ಕೆಲಸ ಮಾಡಲು ಇವುಗಳನ್ನು ಒಮ್ಮೆ ಅನುಮತಿಸಿ.",
+      mic: "ಮೈಕ್ರೊಫೋನ್", mic_d: "ಧ್ವನಿ ಹುಡುಕಾಟಕ್ಕಾಗಿ", loc: "ಸ್ಥಳ", loc_d: "ಹತ್ತಿರದ ಅಂಗಡಿಗಳು, ಹವಾಮಾನ, ಸೌರ ಸಾಮರ್ಥ್ಯಕ್ಕಾಗಿ",
+      notif: "ಅಧಿಸೂಚನೆಗಳು", notif_d: "ಆರ್ಡರ್ ಅಪ್‌ಡೇಟ್‌ಗಳು, ಹೊಸ ಆಫರ್‌ಗಳಿಗಾಗಿ",
+      allow: "ಎಲ್ಲವನ್ನೂ ಅನುಮತಿಸಿ", later: "ಈಗ ಬೇಡ", cont: "ಮುಂದುವರಿಸಿ",
+      denied: "ಕೆಲವು ಅನುಮತಿಗಳನ್ನು ನೀಡಿಲ್ಲ. ನಂತರ Android ಸೆಟ್ಟಿಂಗ್ಸ್ → ಆ್ಯಪ್ಸ್ → GreenMap → ಅನುಮತಿಗಳಲ್ಲಿ ಆನ್ ಮಾಡಬಹುದು." }
+  };
+  function T(k){ var l = localStorage.getItem("gm_language") || "en"; return (I18N[l] || I18N.en)[k] || I18N.en[k]; }
+
+  function forced(){ return /[?&]perms=1/.test(location.search); }
+  function isAppMode(){
+    if (forced()) return true;
+    try {
+      if (window.matchMedia && (matchMedia("(display-mode: standalone)").matches || matchMedia("(display-mode: fullscreen)").matches || matchMedia("(display-mode: minimal-ui)").matches)) return true;
+    } catch (e){}
+    if (navigator.standalone) return true;
+    if (document.referrer && document.referrer.indexOf("android-app://") === 0) return true;
+    if (/\bwv\b/.test(navigator.userAgent) || window.Capacitor || window.cordova) return true;
+    return false;
+  }
+  // Read synchronously by the home page before it starts the GPS pill.
+  window.GM_permsPending = function(){ return isAppMode() && (forced() || !localStorage.getItem(DONE_KEY)); };
+
+  // ---- the three requests (UI-free, resolves "granted" | "denied" | "na") ----
+  var REQUESTS = {
+    mic: function(){
+      return new Promise(function(res){
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){ res("na"); return; }
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream){
+          try { stream.getTracks().forEach(function(t){ t.stop(); }); } catch (e){}
+          res("granted");
+        }, function(){ res("denied"); });
+      });
+    },
+    loc: function(){
+      return new Promise(function(res){
+        if (!navigator.geolocation){ res("na"); return; }
+        navigator.geolocation.getCurrentPosition(function(){ res("granted"); },
+          function(err){ res(err && err.code === 1 ? "denied" : "granted"); }, // timeout/unavailable still means permission was given
+          { timeout: 15000, maximumAge: 600000 });
+      });
+    },
+    notif: function(){
+      return new Promise(function(res){
+        if (typeof Notification === "undefined" || !Notification.requestPermission){ res("na"); return; }
+        if (Notification.permission === "granted"){ res("granted"); return; }
+        if (Notification.permission === "denied"){ res("denied"); return; }
+        try {
+          var p = Notification.requestPermission(function(r){ res(r === "granted" ? "granted" : "denied"); });
+          if (p && p.then) p.then(function(r){ res(r === "granted" ? "granted" : "denied"); }, function(){ res("denied"); });
+        } catch (e){ res("denied"); }
+      });
+    }
+  };
+  window.GM_requestAllPermissions = async function(onStatus){
+    var out = {};
+    var order = ["mic", "loc", "notif"];
+    for (var i = 0; i < order.length; i++){
+      var k = order[i];
+      if (onStatus) onStatus(k, "asking");
+      out[k] = await REQUESTS[k]();
+      if (onStatus) onStatus(k, out[k]);
+    }
+    return out;
+  };
+
+  // ---- already-granted check (skips rows that are done) ----
+  async function currentState(name, key){
+    try { if (navigator.permissions && navigator.permissions.query){ var r = await navigator.permissions.query({ name: name }); return r.state; } } catch (e){}
+    return "prompt";
+  }
+
+  var started = false;
+  function finish(){
+    localStorage.setItem(DONE_KEY, "1");
+    var el = document.getElementById("gmPermsSheet");
+    if (el) el.remove();
+    // The home page held back its GPS/weather request until now so the permission
+    // prompt order stays clean.
+    if (typeof window.GM_startLocation === "function"){ var f = window.GM_startLocation; window.GM_startLocation = null; try { f(); } catch (e){} }
+  }
+
+  async function show(){
+    if (started || document.getElementById("gmPermsSheet")) return;
+    started = true;
+    var states = { mic: await currentState("microphone"), loc: await currentState("geolocation"), notif: await currentState("notifications") };
+    if (!forced() && states.mic === "granted" && states.loc === "granted" && states.notif === "granted"){ finish(); return; }
+
+    var css = document.createElement("style");
+    css.textContent =
+      "#gmPermsSheet{position:fixed;inset:0;z-index:100000;background:rgba(9,26,17,.55);display:flex;align-items:flex-end;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}" +
+      "#gmPermsSheet .gp-card{background:#fff;width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(0,0,0,.25);}" +
+      "#gmPermsSheet h2{margin:0 0 4px;font-size:19px;color:#134627;}" +
+      "#gmPermsSheet .gp-sub{margin:0 0 14px;font-size:13.5px;color:#5C6F63;}" +
+      "#gmPermsSheet .gp-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid #e3ece6;}" +
+      "#gmPermsSheet .gp-ic{font-size:22px;width:34px;text-align:center;flex-shrink:0;}" +
+      "#gmPermsSheet .gp-tx{flex:1;min-width:0;}" +
+      "#gmPermsSheet .gp-t{font-size:14.5px;font-weight:700;color:#134627;}" +
+      "#gmPermsSheet .gp-d{font-size:12.5px;color:#5C6F63;margin-top:1px;}" +
+      "#gmPermsSheet .gp-st{font-size:18px;width:26px;text-align:center;flex-shrink:0;}" +
+      "#gmPermsSheet .gp-note{font-size:12.5px;color:#8a5a00;background:#fff4d6;border-radius:10px;padding:9px 11px;margin-top:10px;display:none;}" +
+      "#gmPermsSheet .gp-btns{display:flex;gap:10px;margin-top:16px;}" +
+      "#gmPermsSheet button{flex:1;border:none;border-radius:12px;padding:13px 10px;font-size:15px;font-weight:700;cursor:pointer;}" +
+      "#gmPermsSheet .gp-allow{background:#134627;color:#fff;}" +
+      "#gmPermsSheet .gp-later{background:#eef3ef;color:#134627;}" +
+      "#gmPermsSheet button:disabled{opacity:.6;}";
+    var wrap = document.createElement("div");
+    wrap.id = "gmPermsSheet";
+    wrap.appendChild(css);
+    var rows = [["mic", "🎤"], ["loc", "📍"], ["notif", "🔔"]].map(function(r){
+      return '<div class="gp-row"><div class="gp-ic">' + r[1] + '</div><div class="gp-tx"><div class="gp-t">' + T(r[0]) + '</div><div class="gp-d">' + T(r[0] + "_d") + '</div></div><div class="gp-st" id="gpSt_' + r[0] + '">' + (states[r[0]] === "granted" ? "✅" : "") + '</div></div>';
+    }).join("");
+    var card = document.createElement("div");
+    card.className = "gp-card";
+    card.innerHTML = "<h2>" + T("title") + "</h2><p class=\"gp-sub\">" + T("sub") + "</p>" + rows +
+      '<div class="gp-note" id="gpNote">' + T("denied") + '</div>' +
+      '<div class="gp-btns"><button type="button" class="gp-later" id="gpLater">' + T("later") + '</button><button type="button" class="gp-allow" id="gpAllow">' + T("allow") + '</button></div>';
+    wrap.appendChild(card);
+    document.body.appendChild(wrap);
+
+    var allowBtn = document.getElementById("gpAllow"), laterBtn = document.getElementById("gpLater");
+    laterBtn.addEventListener("click", finish);
+    allowBtn.addEventListener("click", async function(){
+      if (allowBtn.getAttribute("data-done")){ finish(); return; }
+      // Remember the moment Allow is tapped, so the sheet never comes back even if
+      // the app is closed mid-way or a permission was refused.
+      localStorage.setItem(DONE_KEY, "1");
+      allowBtn.disabled = true; laterBtn.disabled = true;
+      var icons = { asking: "⏳", granted: "✅", denied: "⚠️", na: "–" };
+      var res = await window.GM_requestAllPermissions(function(k, st){ var el = document.getElementById("gpSt_" + k); if (el) el.textContent = icons[st] || ""; });
+      var anyDenied = Object.keys(res).some(function(k){ return res[k] === "denied"; });
+      if (!anyDenied){ finish(); return; }
+      document.getElementById("gpNote").style.display = "block";
+      allowBtn.textContent = T("cont"); allowBtn.setAttribute("data-done", "1"); allowBtn.disabled = false;
+      laterBtn.style.display = "none";
+    });
+  }
+
+  // Show once the splash is gone and the home screen is visible.
+  if (window.GM_permsPending()){
+    var tries = 0;
+    var timer = setInterval(function(){
+      var home = document.getElementById("homeScreen");
+      if ((home && home.classList.contains("active")) || ++tries > 60){ clearInterval(timer); show(); }
+    }, 300);
+  }
+})();
+</script>
+
+<script id="gmVoiceJs">
+// Voice (mic) search — shared by every GreenMap page. Uses the browser's built-in
+// speech recognition (no backend, no cost). If the browser doesn't support it
+// (e.g. Firefox, some in-app browsers) the mic button is simply not shown.
+(function(){
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+  var LANG_MAP = { en: "en-IN", te: "te-IN", hi: "hi-IN", ta: "ta-IN", kn: "kn-IN" };
+  var MIC_SVG = '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><path fill="currentColor" stroke="none" d="M12 14a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v5a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>';
+  var active = null;
+  var toastEl = null, toastTimer = null;
+
+  function toast(msg){
+    if (!toastEl){ toastEl = document.createElement("div"); toastEl.className = "gm-voice-toast"; document.body.appendChild(toastEl); }
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.classList.remove("show"); }, 3200);
+  }
+  function fire(input, type, init){
+    input.dispatchEvent(type === "input" ? new Event("input", { bubbles: true }) : new KeyboardEvent(type, init));
+  }
+  function stopActive(){ if (active){ try { active.rec.stop(); } catch (e){} } }
+
+  function start(btn, input){
+    var rec = new SR();
+    var saved = localStorage.getItem("gm_language") || "en";
+    rec.lang = LANG_MAP[saved] || "en-IN";
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.maxAlternatives = 1;
+
+    var oldPlaceholder = input.placeholder, finalText = "", gotResult = false, state = { rec: rec, btn: btn, err: "" };
+    active = state;
+    btn.classList.add("listening");
+    input.placeholder = "Listening…";
+
+    rec.onresult = function(ev){
+      var interim = "", fin = "";
+      for (var i = ev.resultIndex; i < ev.results.length; i++){
+        var t = ev.results[i][0].transcript;
+        if (ev.results[i].isFinal) fin += t; else interim += t;
+      }
+      if (fin) finalText += fin;
+      var shown = (finalText + interim).trim();
+      if (shown){ gotResult = true; input.value = shown; fire(input, "input"); }
+    };
+    rec.onerror = function(ev){ state.err = ev.error || "error"; };
+    rec.onend = function(){
+      btn.classList.remove("listening");
+      input.placeholder = oldPlaceholder;
+      if (active === state) active = null;
+      if (state.err === "aborted") return;
+      if (state.err === "not-allowed" || state.err === "service-not-allowed"){
+        toast("Microphone is blocked. Allow mic access for this site in your browser settings, then try again."); return;
+      }
+      if (state.err === "network"){ toast("Voice search needs an internet connection."); return; }
+      if (state.err === "audio-capture"){ toast("No microphone found on this device."); return; }
+      if (state.err === "language-not-supported"){ toast("This language isn't supported for voice search on your device."); return; }
+      if (!gotResult || !input.value.trim()){ toast("Didn't catch that — tap the mic and try again."); return; }
+      // Same as typing the text and pressing Enter: runs each page's own search.
+      fire(input, "keydown", { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true });
+    };
+    try { rec.start(); }
+    catch (e){ btn.classList.remove("listening"); input.placeholder = oldPlaceholder; active = null; toast("Couldn't start voice search. Please try again."); }
+  }
+
+  function attach(inputId, o){
+    var input = document.getElementById(inputId);
+    if (!input || input.getAttribute("data-gm-mic")) return;
+    input.setAttribute("data-gm-mic", "1");
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "gm-mic-btn" + (o.variant === "abs" ? " gm-mic-abs" : "");
+    btn.setAttribute("aria-label", "Voice search");
+    btn.title = "Voice search";
+    btn.innerHTML = MIC_SVG;
+    if (o.color) btn.style.color = o.color;
+    if (o.variant === "abs"){ btn.style.right = o.right; input.style.paddingRight = o.pad; }
+    input.insertAdjacentElement("afterend", btn);
+    btn.addEventListener("click", function(e){
+      e.preventDefault(); e.stopPropagation();
+      if (active && active.btn === btn){ stopActive(); return; }
+      stopActive();
+      start(btn, input);
+    });
+  }
+  document.addEventListener("visibilitychange", function(){ if (document.hidden) stopActive(); });
+
+  attach("agentTextInput", { variant: "ember" });
+})();
 </script>
 </body>
 </html>
