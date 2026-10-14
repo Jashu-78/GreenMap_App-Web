@@ -82,10 +82,13 @@
 
 
   :root{
-    --primary:#134627; --primary2:#5fa30e; --primaryDeep:#337e09; --mint:#95D5B2;
-    --accent:#fcca16; --accentDeep:#faa707; --sky:#2d96bd; --skyDeep:#0b4e76;
-    --bg:#F7FAF7; --card:#E9F4EC; --textDark:#1B2B22; --textMuted:#5C6F63; --line:#DCEAE1;
+    --primary:#06431f; --primary2:#49900e; --primaryDeep:#227110; --mint:#a8de8a;
+    --accent:#f2da44; --accentDeep:#e0a800; --sky:#2d96bd; --skyDeep:#0b4e76;
+    --bg:#f4faf0; --card:#e6f3dd; --textDark:#12261a; --textMuted:#4f6554; --line:#d6e8cb; --bell:#032a12; --bellRing:rgba(242,218,68,.55);
   }
+  /* EMBER keeps its original colors: pinned here so changing the page palette never touches it. */
+  #energyAgentFab,#agentPanel,#agentOverlay,.ember-scene,.ember-modal-bg,.ember-modal{--primary:#134627;--primary2:#5fa30e;--primaryDeep:#337e09;--mint:#95D5B2;--accent:#fcca16;--accentDeep:#faa707;--bg:#F7FAF7;--card:#E9F4EC;--textDark:#1B2B22;--textMuted:#5C6F63;--line:#DCEAE1;--sky:#2d96bd;--skyDeep:#0b4e76;}
+
   #homeScreen{display:none;background:var(--bg);color:var(--textDark);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}
   #homeScreen.active{display:block;}
   #homeScreen .serif{font-family:Georgia,'Cambria',serif;}
@@ -104,14 +107,14 @@
   #homeScreen .topbar-right{display:flex;align-items:center;flex-shrink:0;}
   #homeScreen .loc-temp-pill{display:flex;align-items:center;gap:5px;background:var(--card);color:var(--primary);border:1px solid var(--line);border-radius:999px;padding:6px 11px;font-size:11.5px;font-weight:600;white-space:nowrap;flex-shrink:0;}
   #homeScreen .loc-temp-pill .sep{opacity:.5;}
-  #homeScreen .bell-btn{width:40px;height:40px;border-radius:9px;background:var(--primaryDeep);display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;font-size:18px;}
-  #homeScreen .bell-dot{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:#E8433B;color:#fff;font-size:9.5px;font-weight:800;line-height:16px;text-align:center;display:none;box-shadow:0 0 0 2px var(--primaryDeep);}
+  #homeScreen .bell-btn{width:40px;height:40px;border-radius:9px;background:var(--bell);box-shadow:inset 0 0 0 1.5px var(--bellRing);display:flex;align-items:center;justify-content:center;position:relative;flex-shrink:0;font-size:18px;}
+  #homeScreen .bell-dot{position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:#E8433B;color:#fff;font-size:9.5px;font-weight:800;line-height:16px;text-align:center;display:none;box-shadow:0 0 0 2px var(--bell);}
   #homeScreen .bell-dot.show{display:block;}
   #homeScreen .notif-empty{padding:32px 20px;text-align:center;color:var(--textMuted);font-size:13px;}
   #homeScreen .notif-clear-row{border-top:1px solid var(--line);padding:10px 16px;text-align:center;}
   #homeScreen .notif-clear-row button{background:none;border:none;color:var(--textMuted);font-size:12.5px;font-weight:700;cursor:pointer;padding:6px;}
 
-  #homeScreen .white-section{background:#fff;padding:22px 20px 24px;}
+  #homeScreen .white-section{background:url("data:image/svg+xml,%3Csvg%20xmlns=%27http://www.w3.org/2000/svg%27%20viewBox=%270%200%20390%20240%27%20preserveAspectRatio=%27none%27%3E%3Cpath%20d=%27M0%2090C70%2040%20150%20140%20250%2080S350%2040%20390%2070V240H0Z%27%20fill=%27%234f9a10%27%20fill-opacity=%27.16%27/%3E%3Cpath%20d=%27M0%20130C90%2090%20170%20180%20260%20130S350%20100%20390%20125V240H0Z%27%20fill=%27%23227110%27%20fill-opacity=%27.16%27/%3E%3Cpath%20d=%27M0%20175C80%20150%20170%20215%20270%20175S350%20160%20390%20180V240H0Z%27%20fill=%27%2306431f%27%20fill-opacity=%27.18%27/%3E%3C/svg%3E") bottom/100% 260px no-repeat,linear-gradient(180deg,#fff6cf 0%,#eef6d8 38%,#e1f1e0 100%);background-color:#eef6d8;padding:22px 20px 24px;min-height:calc(100vh - 70px);}
   #homeScreen .white-inner{max-width:1240px;margin:0 auto;}
   #homeScreen .greeting-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;}
   #homeScreen .greeting{font-size:22px;font-weight:700;color:var(--textDark);}
@@ -119,7 +122,7 @@
 
   #homeScreen .options-placeholder{margin-top:18px;border:2px dashed var(--line);border-radius:16px;min-height:110px;display:flex;align-items:center;justify-content:center;color:var(--textMuted);font-size:13px;background:var(--card);}
   #homeScreen .options-grid{margin-top:18px;display:grid;grid-template-columns:1fr;gap:12px;}
-  #homeScreen .option-card{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;text-decoration:none;color:inherit;box-shadow:0 1px 3px rgba(0,0,0,.04);transition:transform .12s ease, box-shadow .12s ease;}
+  #homeScreen .option-card{display:flex;align-items:center;gap:14px;background:#fff;border:1px solid #d6e8cb;border-left:6px solid var(--primary2);border-radius:18px;padding:14px 16px;text-decoration:none;color:inherit;box-shadow:0 0 0 4px rgba(73,144,14,.07),0 12px 28px rgba(73,144,14,.20);transition:transform .12s ease, box-shadow .12s ease;}
   #homeScreen .option-card:active{transform:scale(0.98);}
   #homeScreen .option-card-icon{width:130px;height:130px;flex-shrink:0;object-fit:contain;}
   #homeScreen .option-icon-slot{width:130px;flex-shrink:0;display:flex;align-items:center;justify-content:center;}
@@ -378,7 +381,7 @@
   <div class="about-body">
     <div class="about-text">How are you finding GreenMap AI? Rate us from 1 to 10 and tell us what to improve.</div>
     <div id="fbRatingRow" style="display:flex;flex-wrap:wrap;gap:6px;margin:12px 0;"></div>
-    <textarea id="fbMessage" rows="5" maxlength="450" placeholder="Write your feedback..." style="width:100%;padding:10px;border:1px solid #DCEAE1;border-radius:10px;font-family:inherit;font-size:14px;"></textarea>
+    <textarea id="fbMessage" rows="5" maxlength="450" placeholder="Write your feedback..." style="width:100%;padding:10px;border:1px solid #d6e8cb;border-radius:10px;font-family:inherit;font-size:14px;"></textarea>
     <button type="button" id="fbSubmitBtn" onclick="submitFeedback()" style="margin-top:12px;width:100%;padding:12px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-weight:700;font-size:14px;">Send Feedback</button>
     <div id="fbStatus" style="margin-top:10px;font-size:13px;"></div>
   </div>
@@ -389,8 +392,8 @@
   <div class="notif-header"><span>Post App Update</span><button class="notif-close" onclick="toggleAdminUpdate(false)">✕</button></div>
   <div class="about-body">
     <div class="about-text">Sends a notification to every user. List the new features and their details.</div>
-    <input id="auTitle" type="text" placeholder="Title (e.g. Version 2.1 is live)" style="width:100%;margin-top:10px;padding:10px;border:1px solid #DCEAE1;border-radius:10px;font-size:14px;">
-    <textarea id="auDetails" rows="6" placeholder="New features and details..." style="width:100%;margin-top:10px;padding:10px;border:1px solid #DCEAE1;border-radius:10px;font-family:inherit;font-size:14px;"></textarea>
+    <input id="auTitle" type="text" placeholder="Title (e.g. Version 2.1 is live)" style="width:100%;margin-top:10px;padding:10px;border:1px solid #d6e8cb;border-radius:10px;font-size:14px;">
+    <textarea id="auDetails" rows="6" placeholder="New features and details..." style="width:100%;margin-top:10px;padding:10px;border:1px solid #d6e8cb;border-radius:10px;font-family:inherit;font-size:14px;"></textarea>
     <button type="button" onclick="publishAppUpdate()" style="margin-top:12px;width:100%;padding:12px;border:none;border-radius:10px;background:var(--primary);color:#fff;font-weight:700;font-size:14px;">Publish to all users</button>
     <div id="auStatus" style="margin-top:10px;font-size:13px;"></div>
   </div>
@@ -2503,19 +2506,19 @@ emberMarkActive();
     css.textContent =
       "#gmPermsSheet{position:fixed;inset:0;z-index:100000;background:rgba(9,26,17,.55);display:flex;align-items:flex-end;justify-content:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;}" +
       "#gmPermsSheet .gp-card{background:#fff;width:100%;max-width:480px;border-radius:20px 20px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom,0px));box-shadow:0 -8px 30px rgba(0,0,0,.25);}" +
-      "#gmPermsSheet h2{margin:0 0 4px;font-size:19px;color:#134627;}" +
-      "#gmPermsSheet .gp-sub{margin:0 0 14px;font-size:13.5px;color:#5C6F63;}" +
+      "#gmPermsSheet h2{margin:0 0 4px;font-size:19px;color:#06431f;}" +
+      "#gmPermsSheet .gp-sub{margin:0 0 14px;font-size:13.5px;color:#4f6554;}" +
       "#gmPermsSheet .gp-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid #e3ece6;}" +
       "#gmPermsSheet .gp-ic{font-size:22px;width:34px;text-align:center;flex-shrink:0;}" +
       "#gmPermsSheet .gp-tx{flex:1;min-width:0;}" +
-      "#gmPermsSheet .gp-t{font-size:14.5px;font-weight:700;color:#134627;}" +
-      "#gmPermsSheet .gp-d{font-size:12.5px;color:#5C6F63;margin-top:1px;}" +
+      "#gmPermsSheet .gp-t{font-size:14.5px;font-weight:700;color:#06431f;}" +
+      "#gmPermsSheet .gp-d{font-size:12.5px;color:#4f6554;margin-top:1px;}" +
       "#gmPermsSheet .gp-st{font-size:18px;width:26px;text-align:center;flex-shrink:0;}" +
       "#gmPermsSheet .gp-note{font-size:12.5px;color:#8a5a00;background:#fff4d6;border-radius:10px;padding:9px 11px;margin-top:10px;display:none;}" +
       "#gmPermsSheet .gp-btns{display:flex;gap:10px;margin-top:16px;}" +
       "#gmPermsSheet button{flex:1;border:none;border-radius:12px;padding:13px 10px;font-size:15px;font-weight:700;cursor:pointer;}" +
-      "#gmPermsSheet .gp-allow{background:#134627;color:#fff;}" +
-      "#gmPermsSheet .gp-later{background:#eef3ef;color:#134627;}" +
+      "#gmPermsSheet .gp-allow{background:#06431f;color:#fff;}" +
+      "#gmPermsSheet .gp-later{background:#eef3ef;color:#06431f;}" +
       "#gmPermsSheet button:disabled{opacity:.6;}";
     var wrap = document.createElement("div");
     wrap.id = "gmPermsSheet";

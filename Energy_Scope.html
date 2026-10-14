@@ -6,9 +6,9 @@
 <title>EnergyScope AP</title>
 <style>
   :root{
-    --primary:#134627; --primary2:#5fa30e; --primaryDeep:#337e09; --mint:#95D5B2;
-    --accent:#fcca16; --accentDeep:#faa707; --sky:#2d96bd; --skyDeep:#0b4e76;
-    --bg:#F7FAF7; --card:#E9F4EC; --textDark:#1B2B22; --textMuted:#5C6F63; --line:#DCEAE1;
+    --primary:#0a3314; --primary2:#5f8f12; --primaryDeep:#2e6516; --mint:#bfdc72;
+    --accent:#d9c71c; --accentDeep:#b09f00; --sky:#2d96bd; --skyDeep:#0b4e76;
+    --bg:#f3f7ea; --card:#e5eed0; --textDark:#14210a; --textMuted:#4f6529; --line:#d5e2b6; --bell:#051b0a; --bellRing:rgba(217,199,28,.55);
   }
   *{box-sizing:border-box;margin:0;padding:0;}
   html,body{background:var(--bg);}
@@ -23,7 +23,7 @@
   .top-row{display:flex;align-items:center;gap:8px;width:100%;position:relative;}
   .logo-center-group{position:absolute;left:50%;top:50%;transform:translate(-50%,calc(-50% - 10px));display:flex;align-items:center;gap:8px;}
   .top-row-spacer{flex:1;}
-  .bell-dot{display:none;position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:#E8433B;color:#fff;font-size:9.5px;font-weight:800;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px var(--primaryDeep);}
+  .bell-dot{display:none;position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:#E8433B;color:#fff;font-size:9.5px;font-weight:800;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px var(--bell);}
   .bell-dot.show{display:block;}
   .notif-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:70;}
   .notif-overlay.open{display:block;}
@@ -43,7 +43,7 @@
   .back-btn:active{background:rgba(255,255,255,.28);}
   .menu-btn{background:rgba(255,255,255,.15);border:none;border-radius:10px;width:33px;height:33px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;}
   .menu-btn:active{background:rgba(255,255,255,.28);}
-  .bell-btn{background:rgba(255,255,255,.15);border-radius:10px;width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;top:-10px;}
+  .bell-btn{background:var(--bell);box-shadow:inset 0 0 0 1.5px var(--bellRing);border-radius:10px;width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;top:-10px;}
   .menu-overlay{position:fixed;inset:0;background:rgba(9,26,17,.45);z-index:90;opacity:0;pointer-events:none;transition:opacity .18s ease;}
   .menu-overlay.open{opacity:1;pointer-events:auto;}
   .menu-panel{position:fixed;top:0;left:0;bottom:0;width:min(78vw,300px);background:#fff;z-index:95;transform:translateX(-105%);transition:transform .22s ease;box-shadow:6px 0 24px rgba(0,0,0,.18);display:flex;flex-direction:column;}
@@ -68,7 +68,7 @@
   .search-wrap{flex:1;min-width:0;display:flex;align-items:center;background:#e2e9c1;border-radius:10px;padding:8px 12px;gap:8px;}
   .search-wrap svg{stroke:var(--textDark);}
   .search-wrap input{flex:1;min-width:0;background:transparent;border:none;outline:none;color:var(--textDark);font-size:14px;}
-  .search-wrap input::placeholder{color:#5C6F63;}
+  .search-wrap input::placeholder{color:#4f6529;}
   .icon-btn{flex-shrink:0;height:38px;padding:0 14px;border-radius:10px;border:none;background:#e2e9c1;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--textDark);font-size:12.5px;font-weight:700;white-space:nowrap;}
   .icon-btn span{display:flex;align-items:center;gap:6px;}
   .icon-btn svg{stroke:var(--textDark);}
@@ -1191,8 +1191,117 @@ onAuthStateChanged(esAuth, function(){
   esFetchFirebaseNotifs();
 });
 esFetchFirebaseNotifs();
+window.addEventListener("gm-notifs-updated", esFetchFirebaseNotifs);
+setInterval(esFetchFirebaseNotifs, 60000);
 </script>
 
+
+<script type="module" id="gmOrderTrackerJs">
+// Background order-notification tracker — identical on every GreenMap page, so the bell
+// stays accurate on whichever page is open (no need to open "Your Orders").
+// Same fixed ids + real stage times as the home page / EnergyHub, so it can never create
+// a duplicate no matter how many pages or devices run it.
+import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, collection, query, where, getDocs, doc, setDoc, Timestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+(function(){
+  var app;
+  try { app = getApp(); } catch (e){ return; } // the page's own Firebase didn't start; nothing to track
+  var auth = getAuth(app), db = getFirestore(app);
+
+  var STAGES = ["Order Placed", "Reached Local Hub", "Shipped", "Reached Nearest Hub", "Out for Delivery", "Handed Over"];
+  var DEFAULT_WINDOW_MS = STAGES.length * 30000;
+  var NOTIF_FIX_EPOCH = 1791624003733; // orders older than the notification fix keep what they already have
+  var MSGS = {
+    1: { title: "Reached your local hub 🏬", body: "Your order has reached the local hub near you." },
+    2: { title: "Shipped 🚚", body: "Your order has been shipped." },
+    3: { title: "Reached nearest hub 📍", body: "Your order has reached the hub nearest to your delivery address." },
+    4: { title: "Out for delivery 🛵", body: "Your order is out for delivery." },
+    5: { title: "Handed over 🤝", body: "Your order is being handed over to you." }
+  };
+  var user = null, timer = null, running = false, inFlight = {};
+
+  function winMs(o){ return o.deliveryWindowMs || DEFAULT_WINDOW_MS; }
+  function stageNow(createdMs, w){
+    var i = Math.floor((Date.now() - createdMs) / (w / STAGES.length));
+    return Math.min(Math.max(i, 0), STAGES.length - 1);
+  }
+  function shortId(id){ return id.slice(-6).toUpperCase(); }
+
+  // Resolves true only when a NEW notification was actually stored.
+  async function writeOnce(id, data, whenMs){
+    var doneKey = "gm_notif_done_" + id;
+    if (inFlight[id] || localStorage.getItem(doneKey)) return false;
+    inFlight[id] = true;
+    try {
+      await setDoc(doc(db, "notifications", id), Object.assign({}, data, { type: "order", createdAt: Timestamp.fromMillis(whenMs) }));
+      localStorage.setItem(doneKey, "1");
+      return true;
+    } catch (err){
+      // permission-denied = this exact notification already exists (duplicate guard working)
+      if (err && err.code === "permission-denied") localStorage.setItem(doneKey, "1");
+      else console.warn("Order notification not saved:", err);
+      return false;
+    } finally { delete inFlight[id]; }
+  }
+
+  async function tick(){
+    if (running || !user) return;
+    if (document.hidden){ schedule(20000); return; }
+    running = true;
+    var active = false, jobs = [];
+    try {
+      var uid = user.uid;
+      var buyerSnap = await getDocs(query(collection(db, "orders"), where("buyerUid", "==", uid)));
+      buyerSnap.forEach(function(d){
+        var o = d.data();
+        if (!o.createdAt || !o.createdAt.toMillis) return;
+        var created = o.createdAt.toMillis();
+        if (created < NOTIF_FIX_EPOCH) return;
+        var w = winMs(o), per = w / STAGES.length, cur = stageNow(created, w), tag = "(Order #" + shortId(d.id) + ")";
+        if (Date.now() < created + w) active = true;
+        for (var i = 1; i <= cur; i++){
+          jobs.push(writeOnce("order_" + d.id + "_stage_" + i, { title: MSGS[i].title, message: MSGS[i].body + " " + tag, targetUids: [uid], link: "EnergyHub.html?openOrders=1" }, created + i * per));
+        }
+        if (Date.now() - created >= w){
+          jobs.push(writeOnce("order_" + d.id + "_delivered", { title: "Order delivered ✅", message: "Your order #" + shortId(d.id) + " has arrived.", targetUids: [uid], link: "EnergyHub.html?openOrders=1" }, created + w));
+          jobs.push(writeOnce("order_" + d.id + "_rate", { title: "How was your order? ⭐", message: "Rate your order #" + shortId(d.id) + " from 1 to 10. Your rating goes straight to the shop owner.", targetUids: [uid], link: "EnergyHub.html?openOrders=1" }, created + w + 1));
+        }
+      });
+      var sellerSnap = await getDocs(query(collection(db, "orders"), where("shopOwnerUids", "array-contains", uid)));
+      sellerSnap.forEach(function(d){
+        var o = d.data();
+        if (!o.createdAt || !o.createdAt.toMillis) return;
+        var created = o.createdAt.toMillis();
+        if (created < NOTIF_FIX_EPOCH) return;
+        var w = winMs(o), per = w / STAGES.length, cur = stageNow(created, w);
+        if (Date.now() < created + w) active = true;
+        var link = "EnergyHub.html?openSellerOrders=1&shop=" + encodeURIComponent((o.shopIds && o.shopIds[0]) || "");
+        var items = (o.items || []).map(function(it){ return it.name + " (x" + it.qty + ")"; }).join(", ");
+        var buyer = o.buyerName || "Buyer";
+        for (var j = 1; j <= cur; j++){
+          jobs.push(writeOnce("order_" + d.id + "_seller_" + uid + "_stage_" + j, { title: STAGES[j] + " — " + buyer + "'s order", message: items, targetUids: [uid], link: link }, created + j * per));
+        }
+        if (Date.now() - created >= w){
+          jobs.push(writeOnce("order_" + d.id + "_seller_" + uid + "_delivered", { title: "Order delivered to " + buyer, message: items, targetUids: [uid], link: link }, created + w));
+        }
+      });
+      var results = await Promise.all(jobs);
+      // Tell the page's bell to reload — only when something new really was stored.
+      if (results.indexOf(true) !== -1) window.dispatchEvent(new CustomEvent("gm-notifs-updated"));
+    } catch (err){
+      console.warn("Order tracker check failed:", err);
+    } finally { running = false; }
+    // Check often while an order is on its way; rarely once everything is delivered.
+    schedule(active ? 20000 : 300000);
+  }
+  function schedule(ms){ clearTimeout(timer); timer = setTimeout(tick, ms); }
+
+  onAuthStateChanged(auth, function(u){ user = u; clearTimeout(timer); if (u) tick(); });
+  document.addEventListener("visibilitychange", function(){ if (!document.hidden && user) tick(); });
+})();
+</script>
 
 <script id="gmVoiceJs">
 // Voice (mic) search — shared by every GreenMap page. Uses the browser's built-in
