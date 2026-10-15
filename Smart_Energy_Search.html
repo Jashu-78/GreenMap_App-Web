@@ -258,6 +258,79 @@
 .gm-voice-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:rgba(20,30,25,.94);color:#fff;font-size:13px;line-height:1.35;padding:10px 16px;border-radius:10px;z-index:99999;max-width:86vw;text-align:center;box-shadow:0 4px 16px rgba(0,0,0,.3);opacity:0;transition:opacity .2s ease;pointer-events:none;}
 .gm-voice-toast.show{opacity:1;}
 </style>
+
+<style id="gmMotionCss">
+/* ===== GreenMap motion — shared by every page; all of it switches off for people who prefer reduced motion. EMBER is not targeted. ===== */
+@media (prefers-reduced-motion: no-preference){
+  /* smooth cross-fade when moving between pages (Chrome 126+; ignored elsewhere) */
+  @view-transition{navigation:auto;}
+  ::view-transition-old(root){animation:gmVtOut .2s ease both;}
+  ::view-transition-new(root){animation:gmVtIn .32s cubic-bezier(.2,.8,.2,1) both;}
+  @keyframes gmVtOut{to{opacity:0;transform:scale(.985);}}
+  @keyframes gmVtIn{from{opacity:0;transform:translateY(10px);}}
+
+  @keyframes gmRise{from{opacity:0;transform:translateY(18px) scale(.985);}}
+  @keyframes gmFadeIn{from{opacity:0;}}
+  @keyframes gmLogoIn{from{opacity:0;transform:translateY(-8px) scale(.88);}}
+  @keyframes gmSlideIn{from{opacity:0;transform:translateX(26px);}}
+  @keyframes gmPop{0%{transform:scale(0);}70%{transform:scale(1.25);}100%{transform:scale(1);}}
+  @keyframes gmBadgePulse{0%{box-shadow:0 0 0 0 rgba(232,67,59,.55);}100%{box-shadow:0 0 0 9px rgba(232,67,59,0);}}
+  @keyframes gmRing{0%,62%,100%{transform:rotate(0);}6%{transform:rotate(-16deg);}12%{transform:rotate(14deg);}18%{transform:rotate(-10deg);}24%{transform:rotate(7deg);}30%{transform:rotate(-3deg);}36%{transform:rotate(0);}}
+  @keyframes gmFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+  @keyframes gmShine{0%,62%{left:-70%;}100%{left:135%;}}
+  @keyframes gmDotPulse{0%{box-shadow:0 0 0 0 rgba(31,95,191,.55);}100%{box-shadow:0 0 0 11px rgba(31,95,191,0);}}
+  @keyframes gmPinIn{from{opacity:0;}}
+
+  /* scroll-reveal (the page script adds .gm-rv / .gm-in) */
+  .gm-rv{opacity:0;}
+  .gm-rv.gm-in{opacity:1;animation:gmRise .6s cubic-bezier(.2,.8,.2,1) var(--gmd,0ms) backwards;}
+
+  /* page + header entrance */
+  #homeScreen.active{animation:gmFadeIn .55s ease;}
+  .logo-row,.logo-center-group,#homeScreen .logo{animation:gmLogoIn .8s cubic-bezier(.2,.8,.2,1) backwards;}
+  .greeting-row{animation:gmRise .7s .1s cubic-bezier(.2,.8,.2,1) backwards;}
+
+  /* home option cards: glass glint + floating icons */
+  #homeScreen .option-card{position:relative;overflow:hidden;}
+  #homeScreen .option-card::after{content:"";position:absolute;top:0;left:-70%;width:38%;height:100%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.55),transparent);transform:skewX(-18deg);animation:gmShine 7s ease-in-out infinite;}
+  #homeScreen .option-card:nth-child(2)::after{animation-delay:1.2s;}
+  #homeScreen .option-card:nth-child(3)::after{animation-delay:2.4s;}
+  #homeScreen .option-card:nth-child(4)::after{animation-delay:3.6s;}
+  #homeScreen .option-card-icon{animation:gmFloat 5s ease-in-out infinite;}
+  #homeScreen .option-card:nth-child(2) .option-card-icon{animation-delay:-1.2s;}
+  #homeScreen .option-card:nth-child(3) .option-card-icon{animation-delay:-2.4s;}
+  #homeScreen .option-card:nth-child(4) .option-card-icon{animation-delay:-3.6s;}
+
+  /* bell: rings every few seconds while there is something unread; count badge pops + pulses */
+  .bell-btn:has(.bell-dot.show){animation:gmRing 6s ease-in-out infinite;transform-origin:50% 12%;}
+  .bell-dot.show{animation:gmPop .45s ease both,gmBadgePulse 2.2s .5s ease-out infinite;}
+
+  /* notification panel: dimmed page softly blurs, items slide in one by one */
+  .notif-overlay{transition:opacity .22s ease,backdrop-filter .22s ease;}
+  .notif-overlay.open{-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);}
+  .notif-panel.open .notif-items > *{animation:gmSlideIn .42s cubic-bezier(.2,.8,.2,1) backwards;}
+  .notif-panel.open .notif-items > *:nth-child(1){animation-delay:.12s;}
+  .notif-panel.open .notif-items > *:nth-child(2){animation-delay:.18s;}
+  .notif-panel.open .notif-items > *:nth-child(3){animation-delay:.24s;}
+  .notif-panel.open .notif-items > *:nth-child(4){animation-delay:.30s;}
+  .notif-panel.open .notif-items > *:nth-child(5){animation-delay:.36s;}
+  .notif-panel.open .notif-items > *:nth-child(6){animation-delay:.42s;}
+  .notif-panel.open .notif-items > *:nth-child(n+7){animation-delay:.48s;}
+  .notif-panel.open .notif-clear-row{animation:gmFadeIn .5s .3s ease backwards;}
+
+  /* press feedback on tappable cards, chips and menu rows (never on EMBER) */
+  .menu-item,.cat-pill,.district-chip,.recent-chip,.history-chip,.history-chip-ses,.scheme-card,.card,.live-card,.order-card,.rank-row,.stat-card{transition:transform .14s ease,box-shadow .2s ease;}
+  .menu-item:active,.cat-pill:active,.district-chip:active,.recent-chip:active,.history-chip:active,.history-chip-ses:active,.scheme-card:active,.card:active,.live-card:active,.order-card:active,.rank-row:active{transform:scale(.975);}
+  @media (hover:hover){.scheme-card:hover,.card:hover,.live-card:hover,.order-card:hover{transform:translateY(-3px);}}
+
+  /* product / scheme badges pop in */
+  .score-badge,.shop-badge,.countdown-badge,.scheme-badge,.new-badge{animation:gmPop .5s .25s ease backwards;}
+
+  /* order tracker: current stage pulses; map pins fade in */
+  .tracker-v-step.current .tv-dot{animation:gmDotPulse 1.8s ease-out infinite;}
+  .leaflet-marker-icon{animation:gmPinIn .6s ease backwards;}
+}
+</style>
 </head>
 <body>
 <div class="cart-toast" id="cartToast">
@@ -1702,6 +1775,42 @@ import { getFirestore, collection, query, where, getDocs, doc, setDoc, Timestamp
 
   onAuthStateChanged(auth, function(u){ user = u; clearTimeout(timer); if (u) tick(); });
   document.addEventListener("visibilitychange", function(){ if (!document.hidden && user) tick(); });
+})();
+</script>
+
+
+<script id="gmMotionJs">
+// Scroll-reveal: list items / cards fade-rise in one after another as they scroll into view,
+// including items the page draws later (search results, orders, notifications...).
+(function(){
+  if (!("IntersectionObserver" in window) || !("MutationObserver" in window)) return;
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  var SEL = ".card,.live-card,.rating-item,.history-chip-ses";
+  var io = new IntersectionObserver(function(entries){
+    var i = 0;
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      var el = e.target; io.unobserve(el);
+      el.style.setProperty("--gmd", Math.min(i, 6) * 55 + "ms"); i++;
+      el.classList.add("gm-in");
+    });
+  }, { threshold: 0.06, rootMargin: "0px 0px -4% 0px" });
+  function prep(el){
+    if (el.getAttribute("data-gmm")) return;
+    el.setAttribute("data-gmm", "1");
+    el.classList.add("gm-rv");
+    io.observe(el);
+  }
+  function scan(root){
+    try {
+      if (root.matches && root.matches(SEL)) prep(root);
+      if (root.querySelectorAll) root.querySelectorAll(SEL).forEach(prep);
+    } catch (e){}
+  }
+  scan(document.body);
+  new MutationObserver(function(muts){
+    muts.forEach(function(m){ m.addedNodes.forEach(function(n){ if (n.nodeType === 1) scan(n); }); });
+  }).observe(document.body, { childList: true, subtree: true });
 })();
 </script>
 
