@@ -963,6 +963,86 @@
     return "<br><br>" + gmT("real_product_line", { name: p.name, price: Math.round(p.price) });
   }
 
+
+  // ---------------------------------------------------------------------------
+  // Product recommendations from the shared Smart Energy Search catalog
+  // (Firestore "catalogProducts", loaded into window.GM_catalog by the module
+  // script; until that loads — or if it was never seeded — a compact built-in
+  // copy of the same catalog is used so EMBER can always answer).
+  // ---------------------------------------------------------------------------
+  var GM_CATALOG_FALLBACK = [{"id": "p1", "type": "Solar Panel", "brand": "SunCrest", "name": "SunCrest Mono X550", "price": 14500, "capacityLabel": "550 W", "efficiency": 21.4, "warranty": 25, "score": 94, "bestFor": "Rooftop homes with strong, direct sunlight"}, {"id": "p2", "type": "Solar Panel", "brand": "Suryodaya", "name": "Suryodaya Value 330", "price": 7200, "capacityLabel": "330 W", "efficiency": 18.2, "warranty": 12, "score": 78, "bestFor": "Budget installs, small rooftops, first-time buyers"}, {"id": "p3", "type": "Solar Panel", "brand": "Helios Grid", "name": "Helios Grid Bifacial 450", "price": 11800, "capacityLabel": "450 W", "efficiency": 20.1, "warranty": 20, "score": 88, "bestFor": "Ground-mounts and reflective rooftops (terrace, gravel)"}, {"id": "p4", "type": "Wind Turbine", "brand": "Vayuveer", "name": "Vayuveer VH-3000", "price": 168000, "capacityLabel": "3 kW", "efficiency": 42, "warranty": 10, "score": 82, "bestFor": "Open plots with average wind speed above 5 m/s"}, {"id": "p5", "type": "Wind Turbine", "brand": "AeroWatt", "name": "AeroWatt Micro-1200", "price": 62000, "capacityLabel": "1.2 kW", "efficiency": 38, "warranty": 8, "score": 71, "bestFor": "Farms and small plots supplementing solar"}, {"id": "p6", "type": "Wind Turbine", "brand": "TerraWind", "name": "TerraWind Helix-2000", "price": 121000, "capacityLabel": "2 kW", "efficiency": 40, "warranty": 12, "score": 85, "bestFor": "Coastal and hill sites with variable wind direction"}, {"id": "p7", "type": "Hybrid Kit", "brand": "GreenMap Home", "name": "GreenMap Home Hybrid 5kW", "price": 285000, "capacityLabel": "5 kW combined", "efficiency": 44, "warranty": 15, "score": 91, "bestFor": "Sites with both good sun and moderate wind"}, {"id": "p8", "type": "Solar Panel", "brand": "Suryodaya", "name": "Suryodaya Terrace 400", "price": 9600, "capacityLabel": "400 W", "efficiency": 19.5, "warranty": 15, "score": 80, "bestFor": "Mid-size rooftops balancing cost and output"}, {"id": "p9", "type": "Solar Panel", "brand": "Waaree", "name": "Waaree Bifacial 545", "price": 12500, "capacityLabel": "545 W", "efficiency": 21.17, "warranty": 30, "score": 95, "bestFor": "Rooftops wanting top-tier efficiency at a lower price point"}, {"id": "p10", "type": "Solar Panel", "brand": "Vikram Solar", "name": "Vikram Solar HYPERSOL 440", "price": 8500, "capacityLabel": "440 W", "efficiency": 22.02, "warranty": 30, "score": 93, "bestFor": "Rooftops wanting the highest per-panel efficiency in this catalog"}, {"id": "p11", "type": "Hybrid Kit", "brand": "Luminous", "name": "Luminous Hybrid TX 5kVA Solar Combo", "price": 223395, "capacityLabel": "5 kVA inverter + 2.36 kW solar", "efficiency": 93, "warranty": 6, "score": 90, "bestFor": "Homes wanting a complete, ready-to-install solar + battery + inverter system"}, {"id": "p12", "type": "Solar Panel", "brand": "JinkoSolar", "name": "JinkoSolar Tiger Neo 590 (JKM590N-72HL4-BDV)", "price": 13000, "capacityLabel": "590 W", "efficiency": 22.84, "warranty": 30, "score": 90, "bestFor": "Roof or ground sites that want the most power per panel from N-type TOPCon"}, {"id": "p13", "type": "Wind Turbine", "brand": "SM Windsol", "name": "SM Windsol WM-2000 (2 kW)", "price": 140000, "capacityLabel": "2 kW", "efficiency": 0, "warranty": 0, "score": 72, "bestFor": "Open, windy sites with average wind above about 4.5 m/s"}, {"id": "p14", "type": "Wind Turbine", "brand": "SM Windsol", "name": "SM Windsol WM-3000 (3 kW)", "price": 210000, "capacityLabel": "3 kW", "efficiency": 0, "warranty": 0, "score": 72, "bestFor": "Farms and open plots with steady wind and higher power needs"}];
+  function emberCatalog(){ var c = window.GM_catalog; return (c && c.length) ? c : GM_CATALOG_FALLBACK; }
+  function emberEsc(t){ return String(t == null ? "" : t).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+  function emberRupees(n){ return Math.round(n).toLocaleString("en-IN"); }
+  function emberBudget(q){
+    var t = q.replace(/₹|rs\.?|inr/g, " ").replace(/\d+(?:\.\d+)?\s*(?:kw|kva|w|watts?|m\/s|%|years?|yrs?)\b/g, " ");
+    var re = /(\d[\d,]*(?:\.\d+)?)\s*(k|lakhs?|lacs?)?(?![a-z])/g, m;
+    while ((m = re.exec(t))){
+      var n = parseFloat(m[1].replace(/,/g, ""));
+      if (m[2]) n *= /^k/.test(m[2]) ? 1000 : 100000;
+      if (n >= 2000) return Math.round(n);
+    }
+    return 0;
+  }
+  function emberKind(q){
+    var sol = /solar|panel/.test(q) || gmHasAny(q, W("kind_solar"));
+    var win = /wind|turbine/.test(q) || gmHasAny(q, W("kind_wind"));
+    var hyb = /hybrid|kit/.test(q) || gmHasAny(q, W("kind_hybrid"));
+    if (hyb) return "hybrid";
+    if (sol && win) return "";
+    return win ? "wind" : (sol ? "solar" : "");
+  }
+  function emberProductIntent(q){
+    if (/location|potential|district|where|region|\barea\b|\bplace\b|subsid|scheme|govt|government/.test(q)) return false;
+    if (gmHasAny(q, W("route_product"))) return true;
+    var kindWord = /solar|panel|wind|turbine|hybrid|inverter|\bkit\b/.test(q) || gmHasAny(q, W("kind_solar")) || gmHasAny(q, W("kind_wind")) || gmHasAny(q, W("kind_hybrid"));
+    var wantWord = /best|cheap|recommend|suggest|which|\bbuy\b|price|cost|under|below|within|upto|up to|budget|efficien|warranty|affordable/.test(q) || gmHasAny(q, W("cheap_w")) || gmHasAny(q, W("eff_w"));
+    return kindWord && (wantWord || emberBudget(q) > 0);
+  }
+  function emberProducts(q){
+    var kind = emberKind(q), budget = emberBudget(q);
+    var typeOf = { solar: "Solar Panel", wind: "Wind Turbine", hybrid: "Hybrid Kit" };
+    var mode = (/cheap|lowest|affordable|low cost|least expensive/.test(q) || gmHasAny(q, W("cheap_w"))) ? "cheap"
+             : (/efficien|most power|highest output/.test(q) || gmHasAny(q, W("eff_w"))) ? "eff" : "best";
+    var pool = emberCatalog().filter(function(p){
+      return typeof p.price === "number" && p.price > 0 && (!kind || p.type === typeOf[kind]) && (!budget || p.price <= budget);
+    });
+    var kindTxt = gmT("cat_kind_" + (kind || "any"));
+    var budTxt = budget ? gmT("cat_budget", { amt: emberRupees(budget) }) : "";
+    if (!pool.length){
+      agentAddMsg(gmT("cat_none", { budget: budTxt }) + emberLinkRow(["Smart Energy Search"]), "bot");
+      emberAskRandom("link"); return;
+    }
+    pool.sort(function(a, b){
+      if (mode === "cheap") return a.price - b.price;
+      if (mode === "eff")   return ((b.efficiency || 0) - (a.efficiency || 0)) || (b.score - a.score);
+      return (b.score - a.score) || (a.price - b.price);
+    });
+    var pick = pool[0];
+    var showEff = pick.efficiency > 0 && pick.type !== "Hybrid Kit";
+    var html = gmT("cat_lead_" + mode, { kind: kindTxt, budget: budTxt }) + " " +
+      gmT("cat_line", { name: emberEsc(pick.name), brand: emberEsc(pick.brand), price: emberRupees(pick.price), cap: emberEsc(pick.capacityLabel || ""),
+        eff: showEff ? gmT("cat_eff", { n: pick.efficiency }) : "", war: pick.warranty > 0 ? gmT("cat_war", { n: pick.warranty }) : "" });
+    if (gmLang() === "en" && pick.bestFor) html += " Best for: " + emberEsc(pick.bestFor) + ".";
+    var more = pool.slice(1, 3).map(function(p){ return emberEsc(p.name) + " (₹" + emberRupees(p.price) + ")"; });
+    if (more.length) html += "<br><br>" + gmT("cat_more", { list: more.join(", ") });
+    if (pick.type === "Solar Panel"){
+      var watts = parseFloat(pick.capacityLabel);
+      var d = computeApplianceUsage(), kw = parseFloat(d && d.solarKw);
+      if (watts > 0 && kw > 0) html += "<br><br>" + gmT("cat_size", { kw: kw, n: Math.ceil(kw * 1000 / watts) });
+    }
+    var shopRe = { solar: /solar|panel/, wind: /wind|turbine/, hybrid: /hybrid/ }[kind];
+    var shops = (window.GM_realProducts || []).filter(function(p){
+      var hay = ((p.name || "") + " " + (p.category || "")).toLowerCase();
+      return !p.outOfStock && typeof p.price === "number" && (!budget || p.price <= budget) &&
+             (shopRe ? shopRe.test(hay) : /solar|wind|panel|turbine|hybrid/.test(hay));
+    }).sort(function(a, b){ return a.price - b.price; });
+    if (shops.length) html += "<br><br>" + gmT("real_product_line", { name: emberEsc(shops[0].name), price: emberRupees(shops[0].price) });
+    html += "<br><br><i>" + gmT("cat_note") + "</i>" + emberLinkRow(["Smart Energy Search", "EnergyHub"]);
+    agentAddMsg(html, "bot");
+    emberAskRandom("link");
+  }
+
   function emberAdvice(kind){
     var d = computeApplianceUsage();
     var rs = function(n){ return "\u20B9" + Math.round(n); };
@@ -988,6 +1068,7 @@
     if (/reduce|lower|cut down|less (power|current|usage)/.test(q) || gmHasAny(q, W("reduce"))){ emberAdvice("reduce"); return true; }
     if (/how.*(save|saving)/.test(q) || gmHasAny(q, W("route_habits"))){ emberAdvice("habits"); return true; }
     if (/saving|want.*sav|save money/.test(q) || gmHasAny(q, W("saving"))){ emberAdvice("overview"); return true; }
+    if (emberProductIntent(q)){ emberProducts(q); return true; }
     var links = [];
     if (/smart energy|compare|search/.test(q) || gmHasAny(q, W("link_ses"))) links.push("Smart Energy Search");
     if (/scope|map|wind|potential/.test(q) || gmHasAny(q, W("link_es"))) links.push("EnergyScope");
@@ -1176,6 +1257,21 @@
       ans_bill: "About {amt}/month ({day}/day).",
       ans_default: "I can tell you your cost, solar size, biggest consumer, or savings — what would you like to know?",
       real_schemes_line: "Real schemes available right now: {list}.", real_product_line: "Cheapest matching product in EnergyHub right now: {name} — ₹{price}.",
+      cat_lead_best: "My top pick — {kind}{budget}:",
+      cat_lead_cheap: "Cheapest option — {kind}{budget}:",
+      cat_lead_eff: "Most efficient option — {kind}{budget}:",
+      cat_kind_solar: "solar panels",
+      cat_kind_wind: "wind turbines",
+      cat_kind_hybrid: "hybrid kits",
+      cat_kind_any: "solar, wind and hybrid systems",
+      cat_budget: " under ₹{amt}",
+      cat_line: "<b>{name}</b> ({brand}) — ₹{price}, {cap}{eff}{war}.",
+      cat_eff: ", {n}% efficiency",
+      cat_war: ", {n}-year warranty",
+      cat_more: "Also worth a look: {list}.",
+      cat_size: "For your usage (about {kw} kW of solar), plan on roughly {n} × this panel.",
+      cat_none: "I couldn't find a product{budget} in the catalog. Try a higher budget, or browse Smart Energy Search.",
+      cat_note: "Prices are indicative — confirm with the shop or on Smart Energy Search.",
       // --- EMBER rule-based bot (menu / app info / advice / follow-ups) ---
       ember_hello: "Hai! 👋 How can I help you?",
       ember_help_menu: "This app can help you with these things:",
@@ -1247,6 +1343,21 @@
       ans_bill: "लगभग {amt}/माह ({day}/दिन)।",
       ans_default: "मैं आपकी लागत, सोलर साइज़, सबसे ज़्यादा खपत करने वाला उपकरण, या बचत बता सकता हूँ — आप क्या जानना चाहेंगे?",
       real_schemes_line: "अभी उपलब्ध वास्तविक योजनाएं: {list}।", real_product_line: "EnergyHub में अभी सबसे सस्ता मिलता-जुलता उत्पाद: {name} — ₹{price}।",
+      cat_lead_best: "मेरी टॉप पसंद — {kind}{budget}:",
+      cat_lead_cheap: "सबसे सस्ता विकल्प — {kind}{budget}:",
+      cat_lead_eff: "सबसे कुशल विकल्प — {kind}{budget}:",
+      cat_kind_solar: "सोलर पैनल",
+      cat_kind_wind: "विंड टरबाइन",
+      cat_kind_hybrid: "हाइब्रिड किट",
+      cat_kind_any: "सोलर, विंड और हाइब्रिड सिस्टम",
+      cat_budget: " ₹{amt} के अंदर",
+      cat_line: "<b>{name}</b> ({brand}) — ₹{price}, {cap}{eff}{war}.",
+      cat_eff: ", {n}% दक्षता",
+      cat_war: ", {n} साल की वारंटी",
+      cat_more: "ये भी देखें: {list}।",
+      cat_size: "आपके उपयोग (लगभग {kw} kW सोलर) के लिए लगभग {n} × यह पैनल लगेगा।",
+      cat_none: "कैटलॉग में{budget} कोई उत्पाद नहीं मिला। बजट बढ़ाएं या स्मार्ट एनर्जी सर्च देखें।",
+      cat_note: "कीमतें अनुमानित हैं — दुकान से या स्मार्ट एनर्जी सर्च पर पुष्टि करें।",
       ember_hello: "हाय! 👋 मैं आपकी कैसे मदद कर सकता हूँ?",
       ember_help_menu: "यह ऐप आपकी इन चीज़ों में मदद कर सकता है:",
       opt_chart: "मेरा खपत चार्ट दिखाएं", opt_save: "करंट कैसे बचाएं?", opt_energy: "क्या आपको ऊर्जा बचत चाहिए?", opt_about: "यह ऐप क्या है?",
@@ -1317,6 +1428,21 @@
       ans_bill: "மாதத்திற்கு சுமார் {amt} (நாளொன்றுக்கு {day}).",
       ans_default: "உங்கள் செலவு, சோலார் அளவு, அதிகம் பயன்படுத்தும் உபகரணம், அல்லது சேமிப்பு பற்றி சொல்ல முடியும் — நீங்கள் என்ன தெரிந்துகொள்ள விரும்புகிறீர்கள்?",
       real_schemes_line: "இப்போது கிடைக்கும் உண்மையான திட்டங்கள்: {list}.", real_product_line: "EnergyHub இல் இப்போது மலிவான பொருத்தமான பொருள்: {name} — ₹{price}.",
+      cat_lead_best: "என் சிறந்த தேர்வு — {kind}{budget}:",
+      cat_lead_cheap: "மிகக் குறைந்த விலைத் தேர்வு — {kind}{budget}:",
+      cat_lead_eff: "மிகத் திறமையான தேர்வு — {kind}{budget}:",
+      cat_kind_solar: "சோலார் பேனல்கள்",
+      cat_kind_wind: "காற்றாலை டர்பைன்கள்",
+      cat_kind_hybrid: "ஹைபிரிட் கிட்கள்",
+      cat_kind_any: "சோலார், காற்றாலை, ஹைபிரிட் அமைப்புகள்",
+      cat_budget: " ₹{amt}க்குள்",
+      cat_line: "<b>{name}</b> ({brand}) — ₹{price}, {cap}{eff}{war}.",
+      cat_eff: ", {n}% செயல்திறன்",
+      cat_war: ", {n} ஆண்டு உத்தரவாதம்",
+      cat_more: "இவற்றையும் பாருங்கள்: {list}.",
+      cat_size: "உங்கள் பயன்பாட்டுக்கு (சுமார் {kw} kW சோலார்) இந்தப் பேனல் சுமார் {n} × தேவை.",
+      cat_none: "பட்டியலில்{budget} பொருள் கிடைக்கவில்லை. பட்ஜெட்டை உயர்த்துங்கள் அல்லது ஸ்மார்ட் எனர்ஜி சர்ச்சைப் பாருங்கள்.",
+      cat_note: "விலைகள் தோராயமானவை — கடையிலோ ஸ்மார்ட் எனர்ஜி சர்ச்சிலோ உறுதிசெய்யுங்கள்.",
       ember_hello: "ஹாய்! 👋 நான் உங்களுக்கு எப்படி உதவ முடியும்?",
       ember_help_menu: "இந்த ஆப் உங்களுக்கு இவற்றில் உதவ முடியும்:",
       opt_chart: "என் பயன்பாட்டு விளக்கப்படத்தைக் காட்டு", opt_save: "மின்சாரத்தை எப்படி சேமிப்பது?", opt_energy: "உங்களுக்கு ஆற்றல் சேமிப்பு வேண்டுமா?", opt_about: "இந்த ஆப் என்ன?",
@@ -1387,6 +1513,21 @@
       ans_bill: "ತಿಂಗಳಿಗೆ ಸುಮಾರು {amt} (ದಿನಕ್ಕೆ {day}).",
       ans_default: "ನಿಮ್ಮ ವೆಚ್ಚ, ಸೋಲಾರ್ ಗಾತ್ರ, ಅತ್ಯಧಿಕ ಬಳಕೆಯ ಉಪಕರಣ, ಅಥವಾ ಉಳಿತಾಯದ ಬಗ್ಗೆ ಹೇಳಬಲ್ಲೆ — ನಿಮಗೆ ಏನು ತಿಳಿದುಕೊಳ್ಳಬೇಕು?",
       real_schemes_line: "ಈಗ ಲಭ್ಯವಿರುವ ನೈಜ ಯೋಜನೆಗಳು: {list}.", real_product_line: "EnergyHub ನಲ್ಲಿ ಈಗ ಅಗ್ಗದ ಹೊಂದಾಣಿಕೆಯ ಉತ್ಪನ್ನ: {name} — ₹{price}.",
+      cat_lead_best: "ನನ್ನ ಉತ್ತಮ ಆಯ್ಕೆ — {kind}{budget}:",
+      cat_lead_cheap: "ಅತಿ ಅಗ್ಗದ ಆಯ್ಕೆ — {kind}{budget}:",
+      cat_lead_eff: "ಅತ್ಯಂತ ದಕ್ಷ ಆಯ್ಕೆ — {kind}{budget}:",
+      cat_kind_solar: "ಸೋಲಾರ್ ಪ್ಯಾನೆಲ್‌ಗಳು",
+      cat_kind_wind: "ವಿಂಡ್ ಟರ್ಬೈನ್‌ಗಳು",
+      cat_kind_hybrid: "ಹೈಬ್ರಿಡ್ ಕಿಟ್‌ಗಳು",
+      cat_kind_any: "ಸೋಲಾರ್, ವಿಂಡ್, ಹೈಬ್ರಿಡ್ ವ್ಯವಸ್ಥೆಗಳು",
+      cat_budget: " ₹{amt} ಒಳಗೆ",
+      cat_line: "<b>{name}</b> ({brand}) — ₹{price}, {cap}{eff}{war}.",
+      cat_eff: ", {n}% ದಕ್ಷತೆ",
+      cat_war: ", {n} ವರ್ಷ ವಾರಂಟಿ",
+      cat_more: "ಇವನ್ನೂ ನೋಡಿ: {list}.",
+      cat_size: "ನಿಮ್ಮ ಬಳಕೆಗೆ (ಸುಮಾರು {kw} kW ಸೋಲಾರ್) ಈ ಪ್ಯಾನೆಲ್ ಸುಮಾರು {n} × ಬೇಕು.",
+      cat_none: "ಕ್ಯಾಟಲಾಗ್‌ನಲ್ಲಿ{budget} ಉತ್ಪನ್ನ ಸಿಗಲಿಲ್ಲ. ಬಜೆಟ್ ಹೆಚ್ಚಿಸಿ ಅಥವಾ ಸ್ಮಾರ್ಟ್ ಎನರ್ಜಿ ಸರ್ಚ್ ನೋಡಿ.",
+      cat_note: "ಬೆಲೆಗಳು ಅಂದಾಜು — ಅಂಗಡಿಯಲ್ಲಿ ಅಥವಾ ಸ್ಮಾರ್ಟ್ ಎನರ್ಜಿ ಸರ್ಚ್‌ನಲ್ಲಿ ಖಚಿತಪಡಿಸಿ.",
       ember_hello: "ಹಾಯ್! 👋 ನಾನು ನಿಮಗೆ ಹೇಗೆ ಸಹಾಯ ಮಾಡಲಿ?",
       ember_help_menu: "ಈ ಆ್ಯಪ್ ನಿಮಗೆ ಈ ವಿಷಯಗಳಲ್ಲಿ ಸಹಾಯ ಮಾಡಬಲ್ಲದು:",
       opt_chart: "ನನ್ನ ಬಳಕೆ ಚಾರ್ಟ್ ತೋರಿಸಿ", opt_save: "ಕರೆಂಟ್ ಹೇಗೆ ಉಳಿಸುವುದು?", opt_energy: "ನಿಮಗೆ ಇಂಧನ ಉಳಿತಾಯ ಬೇಕೇ?", opt_about: "ಈ ಆ್ಯಪ್ ಎಂದರೇನು?",
@@ -1457,6 +1598,21 @@
       ans_bill: "నెలకు సుమారు {amt} (రోజుకు {day}).",
       ans_default: "మీ ఖర్చు, సోలార్ సైజు, ఎక్కువ వాడే ఉపకరణం లేదా పొదుపు గురించి చెప్పగలను — మీకు ఏం తెలుసుకోవాలి?",
       real_schemes_line: "ఇప్పుడు అందుబాటులో ఉన్న నిజమైన పథకాలు: {list}.", real_product_line: "EnergyHubలో ఇప్పుడు చౌకైన సరిపోలే ఉత్పత్తి: {name} — ₹{price}.",
+      cat_lead_best: "నా ఉత్తమ ఎంపిక — {kind}{budget}:",
+      cat_lead_cheap: "అత్యంత చౌకైన ఎంపిక — {kind}{budget}:",
+      cat_lead_eff: "అత్యంత సమర్థవంతమైన ఎంపిక — {kind}{budget}:",
+      cat_kind_solar: "సోలార్ ప్యానెళ్లు",
+      cat_kind_wind: "విండ్ టర్బైన్లు",
+      cat_kind_hybrid: "హైబ్రిడ్ కిట్లు",
+      cat_kind_any: "సోలార్, విండ్, హైబ్రిడ్ వ్యవస్థలు",
+      cat_budget: " ₹{amt} లోపు",
+      cat_line: "<b>{name}</b> ({brand}) — ₹{price}, {cap}{eff}{war}.",
+      cat_eff: ", {n}% సామర్థ్యం",
+      cat_war: ", {n} సంవత్సరాల వారంటీ",
+      cat_more: "ఇవి కూడా చూడండి: {list}.",
+      cat_size: "మీ వినియోగానికి (సుమారు {kw} kW సోలార్) ఈ ప్యానెల్ సుమారు {n} × అవసరం.",
+      cat_none: "కేటలాగ్‌లో{budget} ఉత్పత్తి దొరకలేదు. బడ్జెట్ పెంచండి లేదా స్మార్ట్ ఎనర్జీ సెర్చ్ చూడండి.",
+      cat_note: "ధరలు సూచనాత్మకమైనవి — షాప్‌లో లేదా స్మార్ట్ ఎనర్జీ సెర్చ్‌లో నిర్ధారించుకోండి.",
       ember_hello: "హాయ్! 👋 నేను మీకు ఎలా సహాయం చేయగలను?",
       ember_help_menu: "ఈ యాప్ మీకు ఇలా సహాయం చేయగలదు:",
       opt_chart: "నా వినియోగ చార్ట్ చూపించు", opt_save: "కరెంట్ ఎలా ఆదా చేయాలి?", opt_energy: "మీకు ఇంధన పొదుపు కావాలా?", opt_about: "ఈ యాప్ అంటే ఏమిటి?",
@@ -1563,6 +1719,12 @@
   }
   // true if the text contains any of the given (Telugu) words
   var INTENT_WORDS = {
+    route_product: { te: ["ప్యానెల్","టర్బైన్","హైబ్రిడ్ కిట్","ఏ సోలార్","ఏ విండ్","సోలార్ కొను","సిఫార్సు"], hi: ["पैनल","टरबाइन","हाइब्रिड किट","कौन सा सोलर","कौन सा पैनल","सोलर खरीद","सिफ़ारिश","सुझाव"], ta: ["பேனல்","டர்பைன்","ஹைபிரிட் கிட்","எந்த சோலார்","எந்த பேனல்","சோலார் வாங்க","பரிந்துரை"], kn: ["ಪ್ಯಾನೆಲ್","ಟರ್ಬೈನ್","ಹೈಬ್ರಿಡ್ ಕಿಟ್","ಯಾವ ಸೋಲಾರ್","ಯಾವ ಪ್ಯಾನೆಲ್","ಸೋಲಾರ್ ಖರೀದಿ","ಶಿಫಾರಸು"] },
+    kind_solar:  { te: ["సోలార్","ప్యానెల్"], hi: ["सोलर","पैनल"], ta: ["சோலார்","பேனல்"], kn: ["ಸೋಲಾರ್","ಪ್ಯಾನೆಲ್"] },
+    kind_wind:   { te: ["విండ్","గాలి","టర్బైన్"], hi: ["विंड","हवा","टरबाइन"], ta: ["காற்று","டர்பைன்","விண்ட்"], kn: ["ಗಾಳಿ","ವಿಂಡ್","ಟರ್ಬೈನ್"] },
+    kind_hybrid: { te: ["హైబ్రిడ్"], hi: ["हाइब्रिड"], ta: ["ஹைபிரிட்"], kn: ["ಹೈಬ್ರಿಡ್"] },
+    cheap_w:     { te: ["చౌక","తక్కువ ధర"], hi: ["सस्ता","कम कीमत"], ta: ["மலிவு","விலை குறைவு"], kn: ["ಅಗ್ಗ","ಕಡಿಮೆ ಬೆಲೆ"] },
+    eff_w:       { te: ["సామర్థ్యం"], hi: ["दक्षता","कुशल"], ta: ["செயல்திறன்"], kn: ["ದಕ್ಷತೆ"] },
     most:          { te: ["ఎక్కువ","అత్యధిక"], hi: ["सबसे ज़्यादा","अधिकतम"], ta: ["அதிகம்","அதிகமாக"], kn: ["ಹೆಚ್ಚು","ಅತ್ಯಧಿಕ"] },
     reduce:        { te: ["తగ్గించ","తగ్గ","చిట్కా"], hi: ["कम करें","घटाएं","टिप"], ta: ["குறை","குறைக்க","டிப்"], kn: ["ಕಡಿಮೆ","ಕಡಿಮೆ ಮಾಡಿ","ಟಿಪ್"] },
     subsidy_scheme:{ te: ["సబ్సిడీ","పథక","ప్రభుత్వ"], hi: ["सब्सिडी","योजना","सरकार"], ta: ["மானியம்","திட்டம்","அரசு"], kn: ["ಸಬ್ಸಿಡಿ","ಯೋಜನೆ","ಸರ್ಕಾರ"] },
@@ -1861,19 +2023,26 @@ onAuthStateChanged(auth, function(){
 // ---------------------------------------------------------------------------
 // Real data for EMBER — schemes from govtSchemes and products from every
 // shop's products subcollection (via collectionGroup, so one query reaches
-// across all shops). Both are genuinely shared Firestore data, unlike Smart
-// Energy Search's catalog which still lives only inside that page's own JS.
+// across all shops). The Smart Energy Search catalog is shared the same way
+// (Firestore "catalogProducts").
 // Fetched once, cached on window so EMBER's (classic-script) answer logic
 // can read them synchronously once loaded; empty arrays until then, so
 // nothing breaks if the fetch is slow or the collections are still empty.
 // ---------------------------------------------------------------------------
 window.GM_realSchemes = [];
 window.GM_realProducts = [];
+window.GM_catalog = []; // Smart Energy Search catalog (Firestore "catalogProducts"); EMBER falls back to a built-in copy if empty
 async function loadEmberRealData(){
   try {
     var schemeSnap = await getDocs(collection(db, "govtSchemes"));
     window.GM_realSchemes = schemeSnap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
   } catch (err){ console.warn("EMBER: could not load real schemes:", err); }
+  try {
+    var catSnap = await getDocs(collection(db, "catalogProducts"));
+    var cat = catSnap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
+    cat.sort(function(a, b){ return (a.order || 0) - (b.order || 0); });
+    if (cat.length) window.GM_catalog = cat;
+  } catch (err){ console.warn("EMBER: could not load the product catalog (using the built-in copy):", err); }
   try {
     var productSnap = await getDocs(collectionGroup(db, "products"));
     window.GM_realProducts = productSnap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
