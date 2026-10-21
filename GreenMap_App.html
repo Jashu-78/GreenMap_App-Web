@@ -191,7 +191,7 @@
   #homeScreen .about-thanks{font-size:12.5px;color:var(--textMuted);margin-top:14px;font-style:italic;}
 
 /* --- Energy Agent floating icon + chat panel --- */
-#homeScreen .energy-agent-fab{position:fixed;bottom:18px;right:14px;width:66px;height:66px;background:transparent;border:none;padding:0;z-index:40;cursor:pointer;}
+#homeScreen .energy-agent-fab{position:fixed;bottom:27px;right:19px;width:66px;height:66px;scale:1.14;background:transparent;border:none;padding:0;z-index:40;cursor:pointer;}
 #homeScreen .energy-agent-fab::before{content:"";position:absolute;left:5.5px;right:5.5px;bottom:0;height:55px;border-radius:50%;border:1.5px solid rgba(255,255,255,.75);background:radial-gradient(circle at 30% 22%,rgba(255,255,255,.6),rgba(255,255,255,.16) 55%,rgba(255,255,255,.06));-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);box-shadow:0 4px 10px rgba(0,0,0,.18),inset 0 2px 5px rgba(255,255,255,.7),inset 0 -4px 8px rgba(255,255,255,.18);pointer-events:none;}
 #homeScreen .ember-scene{position:relative;width:100%;height:100%;overflow:visible;}
 #homeScreen .ember-hole{position:absolute;left:50%;bottom:0;width:var(--hw,60px);height:var(--hh,26px);transform:translateX(-50%);background-repeat:no-repeat;background-position:center bottom;background-size:100% 100%;pointer-events:none;}
@@ -210,7 +210,7 @@
 #homeScreen .agent-panel .agent-chip-row,#homeScreen .agent-panel .agent-input-row,#homeScreen .agent-panel .agent-options-popup,#homeScreen .agent-panel .agent-chart-popup{background:rgba(255,255,255,.3);border-top:1px solid rgba(255,255,255,.55);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);}
 #homeScreen .agent-panel .agent-input-row input{background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.7);}
 #homeScreen .agent-panel .agent-chip{background:rgba(255,255,255,.55);border:1px solid rgba(255,255,255,.7);}
-#homeScreen .agent-panel{width:min(92vw,380px)!important;top:auto!important;bottom:96px;right:12px;height:min(70vh,520px);border-radius:24px;border:1px solid rgba(255,255,255,.55);overflow:hidden;transform:translateY(24px) scale(.9);transform-origin:bottom right;opacity:0;pointer-events:none;transition:transform .24s cubic-bezier(.2,.9,.3,1.1),opacity .2s ease;box-shadow:0 14px 40px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.5);}
+#homeScreen .agent-panel{width:min(94vw,415px)!important;top:auto!important;bottom:104px;right:12px;height:min(76vh,590px);border-radius:24px;border:1px solid rgba(255,255,255,.55);overflow:hidden;transform:translateY(24px) scale(.9);transform-origin:bottom right;opacity:0;pointer-events:none;transition:transform .24s cubic-bezier(.2,.9,.3,1.1),opacity .2s ease;box-shadow:0 14px 40px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.5);}
 #homeScreen .agent-panel.open{transform:none;opacity:1;pointer-events:auto;}
 #homeScreen #agentOverlay{background:rgba(9,26,17,.2);}
 #homeScreen .energy-agent-fab{transition:opacity .35s ease,transform .45s cubic-bezier(.5,0,.7,.4);transform-origin:50% 0;}
@@ -247,7 +247,9 @@
 #homeScreen .agent-icon-btn{width:38px;height:38px;border-radius:50%;background:var(--accent);color:var(--primaryDeep);border:none;font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .15s ease,transform .1s ease;}
 #homeScreen .agent-icon-btn:active{transform:scale(0.93);}
 #homeScreen .agent-icon-btn.is-open{background:var(--primaryDeep);color:#fff;}
-#homeScreen .agent-options-popup{display:none;border-top:1px solid var(--line);background:#fff;max-height:38vh;overflow-y:auto;flex-shrink:0;}
+#homeScreen .agent-options-popup{display:none;border-top:1px solid var(--line);background:#fff;max-height:min(34vh,250px);overflow-y:auto;flex-shrink:0;}
+  #homeScreen .agent-options-head{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:7px 10px 7px 14px;background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:13px;font-weight:700;color:var(--textDark);}
+  #homeScreen .agent-options-close{width:30px;height:30px;border-radius:50%;border:none;background:var(--primary);color:#fff;font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
 #homeScreen .agent-options-popup.open{display:block;}
 #homeScreen .agent-chart-popup{display:none;padding:12px;border-top:1px solid var(--line);background:#fff;max-height:260px;overflow-y:auto;font-size:12.5px;color:var(--textDark);}
 #homeScreen .agent-chart-popup.open{display:block;}
@@ -504,6 +506,10 @@
   </div>
   <div class="agent-body" id="agentChatBody"></div>
   <div class="agent-options-popup" id="agentOptionsPopup">
+    <div class="agent-options-head">
+      <span data-i18n="ember_add_title">Add appliances</span>
+      <button type="button" class="agent-options-close" onclick="toggleAgentOptions(false)" aria-label="Close">&#10005;</button>
+    </div>
     <div class="agent-chip-row" id="agentChipRow"></div>
   </div>
   <div class="agent-input-row">
@@ -966,9 +972,9 @@
 
   // ---------------------------------------------------------------------------
   // Product recommendations from the shared Smart Energy Search catalog
-  // (Firestore "catalogProducts", loaded into window.GM_catalog by the module
-  // script; until that loads — or if it was never seeded — a compact built-in
-  // copy of the same catalog is used so EMBER can always answer).
+  // (catalog.json, loaded into window.GM_catalog by the module script; until that
+  // loads — or if the file is missing — a compact built-in copy is used so EMBER
+  // can always answer).
   // ---------------------------------------------------------------------------
   var GM_CATALOG_FALLBACK = [{"id": "p1", "type": "Solar Panel", "brand": "SunCrest", "name": "SunCrest Mono X550", "price": 14500, "capacityLabel": "550 W", "efficiency": 21.4, "warranty": 25, "score": 94, "bestFor": "Rooftop homes with strong, direct sunlight"}, {"id": "p2", "type": "Solar Panel", "brand": "Suryodaya", "name": "Suryodaya Value 330", "price": 7200, "capacityLabel": "330 W", "efficiency": 18.2, "warranty": 12, "score": 78, "bestFor": "Budget installs, small rooftops, first-time buyers"}, {"id": "p3", "type": "Solar Panel", "brand": "Helios Grid", "name": "Helios Grid Bifacial 450", "price": 11800, "capacityLabel": "450 W", "efficiency": 20.1, "warranty": 20, "score": 88, "bestFor": "Ground-mounts and reflective rooftops (terrace, gravel)"}, {"id": "p4", "type": "Wind Turbine", "brand": "Vayuveer", "name": "Vayuveer VH-3000", "price": 168000, "capacityLabel": "3 kW", "efficiency": 42, "warranty": 10, "score": 82, "bestFor": "Open plots with average wind speed above 5 m/s"}, {"id": "p5", "type": "Wind Turbine", "brand": "AeroWatt", "name": "AeroWatt Micro-1200", "price": 62000, "capacityLabel": "1.2 kW", "efficiency": 38, "warranty": 8, "score": 71, "bestFor": "Farms and small plots supplementing solar"}, {"id": "p6", "type": "Wind Turbine", "brand": "TerraWind", "name": "TerraWind Helix-2000", "price": 121000, "capacityLabel": "2 kW", "efficiency": 40, "warranty": 12, "score": 85, "bestFor": "Coastal and hill sites with variable wind direction"}, {"id": "p7", "type": "Hybrid Kit", "brand": "GreenMap Home", "name": "GreenMap Home Hybrid 5kW", "price": 285000, "capacityLabel": "5 kW combined", "efficiency": 44, "warranty": 15, "score": 91, "bestFor": "Sites with both good sun and moderate wind"}, {"id": "p8", "type": "Solar Panel", "brand": "Suryodaya", "name": "Suryodaya Terrace 400", "price": 9600, "capacityLabel": "400 W", "efficiency": 19.5, "warranty": 15, "score": 80, "bestFor": "Mid-size rooftops balancing cost and output"}, {"id": "p9", "type": "Solar Panel", "brand": "Waaree", "name": "Waaree Bifacial 545", "price": 12500, "capacityLabel": "545 W", "efficiency": 21.17, "warranty": 30, "score": 95, "bestFor": "Rooftops wanting top-tier efficiency at a lower price point"}, {"id": "p10", "type": "Solar Panel", "brand": "Vikram Solar", "name": "Vikram Solar HYPERSOL 440", "price": 8500, "capacityLabel": "440 W", "efficiency": 22.02, "warranty": 30, "score": 93, "bestFor": "Rooftops wanting the highest per-panel efficiency in this catalog"}, {"id": "p11", "type": "Hybrid Kit", "brand": "Luminous", "name": "Luminous Hybrid TX 5kVA Solar Combo", "price": 223395, "capacityLabel": "5 kVA inverter + 2.36 kW solar", "efficiency": 93, "warranty": 6, "score": 90, "bestFor": "Homes wanting a complete, ready-to-install solar + battery + inverter system"}, {"id": "p12", "type": "Solar Panel", "brand": "JinkoSolar", "name": "JinkoSolar Tiger Neo 590 (JKM590N-72HL4-BDV)", "price": 13000, "capacityLabel": "590 W", "efficiency": 22.84, "warranty": 30, "score": 90, "bestFor": "Roof or ground sites that want the most power per panel from N-type TOPCon"}, {"id": "p13", "type": "Wind Turbine", "brand": "SM Windsol", "name": "SM Windsol WM-2000 (2 kW)", "price": 140000, "capacityLabel": "2 kW", "efficiency": 0, "warranty": 0, "score": 72, "bestFor": "Open, windy sites with average wind above about 4.5 m/s"}, {"id": "p14", "type": "Wind Turbine", "brand": "SM Windsol", "name": "SM Windsol WM-3000 (3 kW)", "price": 210000, "capacityLabel": "3 kW", "efficiency": 0, "warranty": 0, "score": 72, "bestFor": "Farms and open plots with steady wind and higher power needs"}];
   function emberCatalog(){ var c = window.GM_catalog; return (c && c.length) ? c : GM_CATALOG_FALLBACK; }
@@ -1142,6 +1148,7 @@
   }
 
   function toggleEnergyAgent(open){
+    if (open && window.GM_refreshEmberData && Date.now() - (window.GM_lastEmberLoad || 0) > 5 * 60 * 1000) window.GM_refreshEmberData();
     document.getElementById('agentOverlay').classList.toggle('open', open);
     document.getElementById('agentPanel').classList.toggle('open', open);
     if (open && !document.getElementById("agentChatBody").children.length){
@@ -2023,31 +2030,32 @@ onAuthStateChanged(auth, function(){
 // ---------------------------------------------------------------------------
 // Real data for EMBER — schemes from govtSchemes and products from every
 // shop's products subcollection (via collectionGroup, so one query reaches
-// across all shops). The Smart Energy Search catalog is shared the same way
-// (Firestore "catalogProducts").
+// across all shops). The Smart Energy Search catalog comes from catalog.json
+// (same folder as the pages), so there is nothing to seed.
 // Fetched once, cached on window so EMBER's (classic-script) answer logic
 // can read them synchronously once loaded; empty arrays until then, so
 // nothing breaks if the fetch is slow or the collections are still empty.
 // ---------------------------------------------------------------------------
 window.GM_realSchemes = [];
 window.GM_realProducts = [];
-window.GM_catalog = []; // Smart Energy Search catalog (Firestore "catalogProducts"); EMBER falls back to a built-in copy if empty
+window.GM_catalog = []; // Smart Energy Search catalog (catalog.json); EMBER falls back to a built-in copy if it cannot be loaded
 async function loadEmberRealData(){
+  window.GM_lastEmberLoad = Date.now();
+  try {
+    // Smart Energy Search's product list lives in catalog.json (same folder as the pages) — no manual step, always the latest upload.
+    var catRes = await fetch("catalog.json", { cache: "no-cache" });
+    if (catRes.ok){ var cat = await catRes.json(); if (Array.isArray(cat) && cat.length) window.GM_catalog = cat; }
+  } catch (err){ console.warn("EMBER: could not load catalog.json (using the built-in copy):", err); }
   try {
     var schemeSnap = await getDocs(collection(db, "govtSchemes"));
     window.GM_realSchemes = schemeSnap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
   } catch (err){ console.warn("EMBER: could not load real schemes:", err); }
   try {
-    var catSnap = await getDocs(collection(db, "catalogProducts"));
-    var cat = catSnap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
-    cat.sort(function(a, b){ return (a.order || 0) - (b.order || 0); });
-    if (cat.length) window.GM_catalog = cat;
-  } catch (err){ console.warn("EMBER: could not load the product catalog (using the built-in copy):", err); }
-  try {
     var productSnap = await getDocs(collectionGroup(db, "products"));
     window.GM_realProducts = productSnap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
   } catch (err){ console.warn("EMBER: could not load real products:", err); }
 }
+window.GM_refreshEmberData = loadEmberRealData;   // EMBER re-pulls everything each time it is opened (at most every 5 min)
 loadEmberRealData();
 
 // ---------------------------------------------------------------------------

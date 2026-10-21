@@ -27,7 +27,7 @@
   .header-inner{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:0;}
   .back-row{align-self:flex-start;margin-bottom:-8px;}
   .top-row{display:flex;align-items:center;gap:10px;width:100%;position:relative;}
-  .menu-btn{background:rgba(255,255,255,.15);border:none;border-radius:10px;width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .menu-btn{background:rgba(255,255,255,.15);border:none;border-radius:10px;width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;top:2px;}
   .menu-btn:active{background:rgba(255,255,255,.28);}
   .bell-btn{background:var(--bell);box-shadow:inset 0 0 0 1.5px var(--bellRing);border-radius:10px;width:34px;height:34px;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;top:-1px;}
   .bell-dot{display:none;position:absolute;top:-4px;right:-4px;min-width:16px;height:16px;padding:0 3px;border-radius:999px;background:#E8433B;color:#fff;font-size:9.5px;font-weight:800;line-height:16px;text-align:center;box-shadow:0 0 0 1.5px var(--bell);}
@@ -238,7 +238,7 @@
   .footer-note{text-align:center;padding:28px 20px 90px;font-size:11.5px;color:var(--textMuted);}
 
   .back-row{width:100%;display:flex;justify-content:flex-start;}
-  .back-btn{color:#fff;text-decoration:none;font-size:11px;display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);padding:3px 9px 3px 6px;border-radius:16px;}
+  .back-btn{color:#fff;text-decoration:none;font-size:11px;display:inline-flex;align-items:center;gap:4px;background:rgba(255,255,255,.15);padding:4px 10px 4px 7px;border-radius:16px;position:relative;top:4px;}
   .back-btn:active{background:rgba(255,255,255,.28);}
 
   @media (max-width:760px){
@@ -398,10 +398,6 @@ html[lang="te"] body,html[lang="hi"] body,html[lang="ta"] body,html[lang="kn"] b
 <div class="menu-panel" id="menuPanelSES">
   <div class="menu-panel-header">Smart Energy Search</div>
   <div class="menu-items">
-    <div class="menu-item" id="adminSeedCatalogItem" style="display:none;" onclick="seedCatalogToFirestore()">
-      <span class="menu-item-icon">☁️</span>
-      <span>Seed catalog to Firestore</span>
-    </div>
   </div>
 </div>
 
@@ -591,8 +587,7 @@ var PRODUCTS = [
 
 var BRANDS = Array.from(new Set(PRODUCTS.map(function(p){ return p.brand; })));
 
-// The catalog is shared through Firestore ("catalogProducts") so EMBER on the home page can quote the same products.
-// This built-in list stays as the offline fallback and as the source the admin "Seed catalog" button writes.
+// The shared product list is catalog.json (EMBER reads it too). This built-in list stays as the offline fallback.
 window.SES_BUILTIN_CATALOG = PRODUCTS.slice();
 function sesStable(o){
   if (Array.isArray(o)) return "[" + o.map(sesStable).join(",") + "]";
@@ -1843,55 +1838,14 @@ import { getFirestore, collection, query, where, getDocs, doc, setDoc, Timestamp
 </script>
 
 
-<script type="module" id="gmCatalogJs">
-// Shared product catalog: reads Firestore "catalogProducts" (so edits there show up here AND in EMBER on the home page),
-// and gives the admin a one-tap "Seed catalog to Firestore" button that writes this page's built-in catalog there.
-import { getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+<script id="gmCatalogFeedJs">
+// Every time this page opens it reads the shared product list (catalog.json, same folder as the pages).
+// EMBER on the home page reads the same file, so one upload keeps both in step. If the file can't be loaded the built-in list stays.
 (function(){
-  var app; try { app = getApp(); } catch (e){ return; }
-  var auth = getAuth(app), db = getFirestore(app);
-  var ADMIN_EMAIL = "k.smjashu78@gmail.com";
-  // Firestore cannot store arrays inside arrays, so specs [["Cell Type","Mono"],...] are saved as [{label,value},...]
-  function toDoc(p, order){
-    var d = JSON.parse(JSON.stringify(p));
-    d.specs = (p.specs || []).map(function(s){ return { label: s[0], value: s[1] }; });
-    d.order = order; delete d.id; return d;
-  }
-  function fromDoc(id, d){
-    var p = Object.assign({}, d); p.id = id;
-    p.specs = (d.specs || []).map(function(s){ return Array.isArray(s) ? s : [s.label, s.value]; });
-    delete p.order; return p;
-  }
-  async function loadCatalog(){
-    try {
-      var snap = await getDocs(collection(db, "catalogProducts"));
-      if (snap.empty) return;
-      var rows = []; snap.forEach(function(d){ rows.push({ id: d.id, data: d.data() }); });
-      rows.sort(function(a, b){ return (a.data.order || 0) - (b.data.order || 0); });
-      var items = rows.map(function(r){ return fromDoc(r.id, r.data); });
-      if (window.SES_setCatalogProducts) window.SES_setCatalogProducts(items);
-    } catch (err){ console.warn("Could not load the shared catalog, keeping the built-in list:", err); }
-  }
-  window.seedCatalogToFirestore = async function(){
-    var user = auth.currentUser;
-    if (!user || user.email !== ADMIN_EMAIL){ alert("Admin only."); return; }
-    var list = window.SES_BUILTIN_CATALOG || [];
-    if (!confirm("Write all " + list.length + " catalog products to Firestore now?")) return;
-    var ok = 0, failed = 0;
-    for (var i = 0; i < list.length; i++){
-      try { await setDoc(doc(db, "catalogProducts", list[i].id), toDoc(list[i], i)); ok++; }
-      catch (err){ failed++; console.error("Failed to seed", list[i].id, err); }
-    }
-    alert("Seeded " + ok + " product(s)" + (failed ? ", " + failed + " failed (see console — most likely the Firestore rule for catalogProducts is not published yet)." : "."));
-    loadCatalog();
-  };
-  onAuthStateChanged(auth, function(u){
-    var it = document.getElementById("adminSeedCatalogItem");
-    if (it) it.style.display = (u && u.email === ADMIN_EMAIL) ? "flex" : "none";
-  });
-  loadCatalog();
+  fetch("catalog.json", { cache: "no-cache" })
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(items){ if (Array.isArray(items) && items.length && window.SES_setCatalogProducts) window.SES_setCatalogProducts(items); })
+    .catch(function(){});
 })();
 </script>
 
