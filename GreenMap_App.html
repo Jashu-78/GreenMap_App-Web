@@ -232,7 +232,7 @@
 #homeScreen .ember-gbtn{display:inline-flex;align-items:center;gap:7px;background:#fff;color:#3c4043;border-color:rgba(0,0,0,.12);}
 #homeScreen .ember-chip:active{transform:scale(.96);}
 #homeScreen .agent-panel.open .ember-scene.mini{animation:emberArrive .55s cubic-bezier(.2,.8,.3,1) .12s both;}
-#homeScreen .agent-body{flex:1;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--bg);}
+#homeScreen .agent-body{flex:1 1 0;min-height:0;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--bg);}
 #homeScreen .agent-msg{max-width:85%;padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.42;}
 #homeScreen .agent-msg.bot{align-self:flex-start;background:var(--card);color:var(--textDark);border-bottom-left-radius:4px;}
 #homeScreen .agent-msg.user{align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:4px;}
@@ -240,14 +240,15 @@
 #homeScreen .agent-chip{display:flex;align-items:center;gap:6px;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:5px 6px 5px 12px;font-size:12px;color:var(--textDark);}
 #homeScreen .agent-chip button{width:20px;height:20px;border-radius:50%;border:none;background:var(--primary);color:#fff;font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;cursor:pointer;}
 #homeScreen .agent-chip .qty{min-width:14px;text-align:center;font-weight:700;}
-#homeScreen .agent-input-row{display:flex;gap:8px;align-items:center;padding:10px 12px;border-top:1px solid var(--line);background:#fff;}
+#homeScreen .agent-input-row{display:flex;gap:8px;align-items:center;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line);background:#fff;flex:0 0 auto;position:relative;z-index:5;}
+  #homeScreen .agent-panel .notif-header{flex:0 0 auto;}
 #homeScreen .agent-input-row input{flex:1;border:1px solid var(--line);border-radius:999px;padding:9px 14px;font-size:13.5px;background:var(--bg);color:var(--textDark);}
 #homeScreen .agent-input-row button{background:var(--primary);color:#fff;border:none;border-radius:999px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;flex-shrink:0;}
 #homeScreen .agent-link{display:block;color:var(--sky);font-weight:700;text-decoration:none;margin-top:4px;font-size:12.5px;}
 #homeScreen .agent-icon-btn{width:38px;height:38px;border-radius:50%;background:var(--accent);color:var(--primaryDeep);border:none;font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;transition:background .15s ease,transform .1s ease;}
 #homeScreen .agent-icon-btn:active{transform:scale(0.93);}
 #homeScreen .agent-icon-btn.is-open{background:var(--primaryDeep);color:#fff;}
-#homeScreen .agent-options-popup{display:none;border-top:1px solid var(--line);background:#fff;max-height:min(34vh,250px);overflow-y:auto;flex-shrink:0;}
+#homeScreen .agent-options-popup{display:none;border-top:1px solid var(--line);background:#fff;max-height:min(250px,calc(100% - 215px));min-height:0;overflow-y:auto;flex:0 1 auto;}
   #homeScreen .agent-options-head{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;padding:7px 10px 7px 14px;background:rgba(255,255,255,.72);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font-size:13px;font-weight:700;color:var(--textDark);}
   #homeScreen .agent-options-close{width:30px;height:30px;border-radius:50%;border:none;background:var(--primary);color:#fff;font-size:14px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
 #homeScreen .agent-options-popup.open{display:block;}
@@ -976,7 +977,7 @@
   // loads — or if the file is missing — a compact built-in copy is used so EMBER
   // can always answer).
   // ---------------------------------------------------------------------------
-  var GM_CATALOG_FALLBACK = [{"id": "p1", "type": "Solar Panel", "brand": "SunCrest", "name": "SunCrest Mono X550", "price": 14500, "capacityLabel": "550 W", "efficiency": 21.4, "warranty": 25, "score": 94, "bestFor": "Rooftop homes with strong, direct sunlight"}, {"id": "p2", "type": "Solar Panel", "brand": "Suryodaya", "name": "Suryodaya Value 330", "price": 7200, "capacityLabel": "330 W", "efficiency": 18.2, "warranty": 12, "score": 78, "bestFor": "Budget installs, small rooftops, first-time buyers"}, {"id": "p3", "type": "Solar Panel", "brand": "Helios Grid", "name": "Helios Grid Bifacial 450", "price": 11800, "capacityLabel": "450 W", "efficiency": 20.1, "warranty": 20, "score": 88, "bestFor": "Ground-mounts and reflective rooftops (terrace, gravel)"}, {"id": "p4", "type": "Wind Turbine", "brand": "Vayuveer", "name": "Vayuveer VH-3000", "price": 168000, "capacityLabel": "3 kW", "efficiency": 42, "warranty": 10, "score": 82, "bestFor": "Open plots with average wind speed above 5 m/s"}, {"id": "p5", "type": "Wind Turbine", "brand": "AeroWatt", "name": "AeroWatt Micro-1200", "price": 62000, "capacityLabel": "1.2 kW", "efficiency": 38, "warranty": 8, "score": 71, "bestFor": "Farms and small plots supplementing solar"}, {"id": "p6", "type": "Wind Turbine", "brand": "TerraWind", "name": "TerraWind Helix-2000", "price": 121000, "capacityLabel": "2 kW", "efficiency": 40, "warranty": 12, "score": 85, "bestFor": "Coastal and hill sites with variable wind direction"}, {"id": "p7", "type": "Hybrid Kit", "brand": "GreenMap Home", "name": "GreenMap Home Hybrid 5kW", "price": 285000, "capacityLabel": "5 kW combined", "efficiency": 44, "warranty": 15, "score": 91, "bestFor": "Sites with both good sun and moderate wind"}, {"id": "p8", "type": "Solar Panel", "brand": "Suryodaya", "name": "Suryodaya Terrace 400", "price": 9600, "capacityLabel": "400 W", "efficiency": 19.5, "warranty": 15, "score": 80, "bestFor": "Mid-size rooftops balancing cost and output"}, {"id": "p9", "type": "Solar Panel", "brand": "Waaree", "name": "Waaree Bifacial 545", "price": 12500, "capacityLabel": "545 W", "efficiency": 21.17, "warranty": 30, "score": 95, "bestFor": "Rooftops wanting top-tier efficiency at a lower price point"}, {"id": "p10", "type": "Solar Panel", "brand": "Vikram Solar", "name": "Vikram Solar HYPERSOL 440", "price": 8500, "capacityLabel": "440 W", "efficiency": 22.02, "warranty": 30, "score": 93, "bestFor": "Rooftops wanting the highest per-panel efficiency in this catalog"}, {"id": "p11", "type": "Hybrid Kit", "brand": "Luminous", "name": "Luminous Hybrid TX 5kVA Solar Combo", "price": 223395, "capacityLabel": "5 kVA inverter + 2.36 kW solar", "efficiency": 93, "warranty": 6, "score": 90, "bestFor": "Homes wanting a complete, ready-to-install solar + battery + inverter system"}, {"id": "p12", "type": "Solar Panel", "brand": "JinkoSolar", "name": "JinkoSolar Tiger Neo 590 (JKM590N-72HL4-BDV)", "price": 13000, "capacityLabel": "590 W", "efficiency": 22.84, "warranty": 30, "score": 90, "bestFor": "Roof or ground sites that want the most power per panel from N-type TOPCon"}, {"id": "p13", "type": "Wind Turbine", "brand": "SM Windsol", "name": "SM Windsol WM-2000 (2 kW)", "price": 140000, "capacityLabel": "2 kW", "efficiency": 0, "warranty": 0, "score": 72, "bestFor": "Open, windy sites with average wind above about 4.5 m/s"}, {"id": "p14", "type": "Wind Turbine", "brand": "SM Windsol", "name": "SM Windsol WM-3000 (3 kW)", "price": 210000, "capacityLabel": "3 kW", "efficiency": 0, "warranty": 0, "score": 72, "bestFor": "Farms and open plots with steady wind and higher power needs"}];
+  var GM_CATALOG_FALLBACK = [{"id": "p1", "type": "Solar Panel", "brand": "SunCrest", "name": "SunCrest Mono X550", "price": 14500, "capacityLabel": "550 W", "efficiency": 21.4, "warranty": 25, "score": 94, "bestFor": "Rooftop homes with strong, direct sunlight"}, {"id": "p2", "type": "Solar Panel", "brand": "Suryodaya", "name": "Suryodaya Value 330", "price": 7200, "capacityLabel": "330 W", "efficiency": 18.2, "warranty": 12, "score": 78, "bestFor": "Budget installs, small rooftops, first-time buyers"}, {"id": "p3", "type": "Solar Panel", "brand": "Helios Grid", "name": "Helios Grid Bifacial 450", "price": 11800, "capacityLabel": "450 W", "efficiency": 20.1, "warranty": 20, "score": 88, "bestFor": "Ground-mounts and reflective rooftops (terrace, gravel)"}, {"id": "p4", "type": "Wind Turbine", "brand": "Vayuveer", "name": "Vayuveer VH-3000", "price": 168000, "capacityLabel": "3 kW", "efficiency": 42, "warranty": 10, "score": 82, "bestFor": "Open plots with average wind speed above 5 m/s"}, {"id": "p5", "type": "Wind Turbine", "brand": "AeroWatt", "name": "AeroWatt Micro-1200", "price": 62000, "capacityLabel": "1.2 kW", "efficiency": 38, "warranty": 8, "score": 71, "bestFor": "Farms and small plots supplementing solar"}, {"id": "p6", "type": "Wind Turbine", "brand": "TerraWind", "name": "TerraWind Helix-2000", "price": 121000, "capacityLabel": "2 kW", "efficiency": 40, "warranty": 12, "score": 85, "bestFor": "Coastal and hill sites with variable wind direction"}, {"id": "p7", "type": "Hybrid Kit", "brand": "GreenMap Home", "name": "GreenMap Home Hybrid 5kW", "price": 285000, "capacityLabel": "5 kW combined", "efficiency": 44, "warranty": 15, "score": 91, "bestFor": "Sites with both good sun and moderate wind"}, {"id": "p8", "type": "Solar Panel", "brand": "Suryodaya", "name": "Suryodaya Terrace 400", "price": 9600, "capacityLabel": "400 W", "efficiency": 19.5, "warranty": 15, "score": 80, "bestFor": "Mid-size rooftops balancing cost and output"}, {"id": "p9", "type": "Solar Panel", "brand": "Waaree", "name": "Waaree Bifacial 545", "price": 12500, "capacityLabel": "545 W", "efficiency": 21.17, "warranty": 30, "score": 95, "bestFor": "Rooftops wanting top-tier efficiency at a lower price point"}, {"id": "p10", "type": "Solar Panel", "brand": "Vikram Solar", "name": "Vikram Solar HYPERSOL 440", "price": 8500, "capacityLabel": "440 W", "efficiency": 22.02, "warranty": 30, "score": 93, "bestFor": "Rooftops wanting the highest per-panel efficiency in this catalog"}, {"id": "p11", "type": "Hybrid Kit", "brand": "Luminous", "name": "Luminous Hybrid TX 5kVA Solar Combo", "price": 223395, "capacityLabel": "5 kVA inverter + 2.36 kW solar", "efficiency": 93, "warranty": 6, "score": 90, "bestFor": "Homes wanting a complete, ready-to-install solar + battery + inverter system"}, {"id": "p12", "type": "Solar Panel", "brand": "JinkoSolar", "name": "JinkoSolar Tiger Neo 590 (JKM590N-72HL4-BDV)", "price": 13000, "capacityLabel": "590 W", "efficiency": 22.84, "warranty": 30, "score": 90, "bestFor": "Roof or ground sites that want the most power per panel from N-type TOPCon"}, {"id": "p13", "type": "Wind Turbine", "brand": "SM Windsol", "name": "SM Windsol WM-2000 (2 kW)", "price": 140000, "capacityLabel": "2 kW", "efficiency": 0, "warranty": 0, "score": 72, "bestFor": "Open, windy sites with average wind above about 4.5 m/s"}, {"id": "p14", "type": "Wind Turbine", "brand": "SM Windsol", "name": "SM Windsol WM-3000 (3 kW)", "price": 210000, "capacityLabel": "3 kW", "efficiency": 0, "warranty": 0, "score": 72, "bestFor": "Farms and open plots with steady wind and higher power needs"}, {"id": "p15", "type": "Accessories", "brand": "Luminous", "name": "Luminous LPTT12200H 200Ah Tall Tubular Solar Battery", "price": 21597, "capacityLabel": "200 Ah", "efficiency": 0, "warranty": 6, "score": 80, "bestFor": "Budget-friendly backup for lead-acid tubular inverter/solar systems"}, {"id": "p16", "type": "Accessories", "brand": "Lithium India", "name": "Lithium India 12V 100Ah LiFePO4 Smart BMS Battery", "price": 18867, "capacityLabel": "100 Ah", "efficiency": 0, "warranty": 5, "score": 85, "bestFor": "Compact, lightweight backup for hybrid solar + inverter systems wanting faster charging and longer life"}, {"id": "p17", "type": "Accessories", "brand": "Polycab", "name": "Polycab Solar DC Cable, 4 sq mm", "price": 44, "capacityLabel": "4 sq mm, per metre", "efficiency": 0, "warranty": 0, "score": 78, "bestFor": "Standard panel-to-inverter wiring runs for residential rooftop systems"}, {"id": "p18", "type": "Accessories", "brand": "KEI", "name": "KEI Solar DC Cable, 6 sq mm", "price": 73, "capacityLabel": "6 sq mm, per metre", "efficiency": 0, "warranty": 0, "score": 76, "bestFor": "Longer cable runs or higher-current strings where 4 sq mm would overheat"}, {"id": "p19", "type": "Accessories", "brand": "Solar Universe India", "name": "MC4 Solar Connector Pairs, IP67, 1500V (Set of 10)", "price": 492, "capacityLabel": "Set of 10 pieces", "efficiency": 0, "warranty": 0, "score": 80, "bestFor": "Connecting and extending solar panel strings, or replacing damaged connectors"}, {"id": "p20", "type": "Accessories", "brand": "Generic/UTL-class", "name": "40A MPPT Solar Charge Controller (12-48V)", "price": 4800, "capacityLabel": "40 A, 12-48V auto", "efficiency": 0, "warranty": 0, "score": 82, "bestFor": "Off-grid or hybrid battery banks needing efficient charge regulation from solar panels"}];
   function emberCatalog(){ var c = window.GM_catalog; return (c && c.length) ? c : GM_CATALOG_FALLBACK; }
   function emberEsc(t){ return String(t == null ? "" : t).replace(/[&<>"]/g, function(c){ return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
   function emberRupees(n){ return Math.round(n).toLocaleString("en-IN"); }
@@ -1147,9 +1148,28 @@
     btn.textContent = open ? "✕" : "🧮";
   }
 
+  // Keep EMBER's typing bar permanently visible: when the phone keyboard opens, lift the window above it and fit its height.
+  (function(){
+    var vv = window.visualViewport;
+    function fit(){
+      var panel = document.getElementById('agentPanel');
+      if (!panel) return;
+      var kb = vv ? Math.max(0, window.innerHeight - vv.height - vv.offsetTop) : 0;
+      if (panel.classList.contains('open') && kb > 100){
+        panel.style.bottom = (kb + 10) + 'px';
+        panel.style.height = Math.max(240, Math.min(590, vv.height - 24)) + 'px';
+      } else { panel.style.bottom = ''; panel.style.height = ''; }
+    }
+    if (vv){ vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); }
+    window.addEventListener('resize', fit);
+    window.GM_fitEmberPanel = fit;
+    document.addEventListener('focusin', function(e){ if (e.target && e.target.id === 'agentTextInput') setTimeout(fit, 350); });
+    document.addEventListener('focusout', function(e){ if (e.target && e.target.id === 'agentTextInput') setTimeout(fit, 350); });
+  })();
   function toggleEnergyAgent(open){
     if (open && window.GM_refreshEmberData && Date.now() - (window.GM_lastEmberLoad || 0) > 5 * 60 * 1000) window.GM_refreshEmberData();
     document.getElementById('agentOverlay').classList.toggle('open', open);
+    setTimeout(function(){ if (window.GM_fitEmberPanel) window.GM_fitEmberPanel(); }, 60);
     document.getElementById('agentPanel').classList.toggle('open', open);
     if (open && !document.getElementById("agentChatBody").children.length){
       var restored = emberLoadChat();
@@ -2038,14 +2058,9 @@ onAuthStateChanged(auth, function(){
 // ---------------------------------------------------------------------------
 window.GM_realSchemes = [];
 window.GM_realProducts = [];
-window.GM_catalog = []; // Smart Energy Search catalog (catalog.json); EMBER falls back to a built-in copy if it cannot be loaded
+window.GM_catalog = []; // Smart Energy Search's catalog, same Firestore "SEScollection" collection SES itself reads — EMBER falls back to its own built-in GM_CATALOG_FALLBACK copy if Firestore has nothing seeded yet.
 async function loadEmberRealData(){
   window.GM_lastEmberLoad = Date.now();
-  try {
-    // Smart Energy Search's product list lives in catalog.json (same folder as the pages) — no manual step, always the latest upload.
-    var catRes = await fetch("catalog.json", { cache: "no-cache" });
-    if (catRes.ok){ var cat = await catRes.json(); if (Array.isArray(cat) && cat.length) window.GM_catalog = cat; }
-  } catch (err){ console.warn("EMBER: could not load catalog.json (using the built-in copy):", err); }
   try {
     var schemeSnap = await getDocs(collection(db, "govtSchemes"));
     window.GM_realSchemes = schemeSnap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
@@ -2054,6 +2069,10 @@ async function loadEmberRealData(){
     var productSnap = await getDocs(collectionGroup(db, "products"));
     window.GM_realProducts = productSnap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
   } catch (err){ console.warn("EMBER: could not load real products:", err); }
+  try {
+    var catSnap = await getDocs(collection(db, "SEScollection"));
+    if (!catSnap.empty) window.GM_catalog = catSnap.docs.map(function(d){ return Object.assign({ id: d.id }, d.data()); });
+  } catch (err){ console.warn("EMBER: could not load live catalog (using the built-in copy):", err); }
 }
 window.GM_refreshEmberData = loadEmberRealData;   // EMBER re-pulls everything each time it is opened (at most every 5 min)
 loadEmberRealData();

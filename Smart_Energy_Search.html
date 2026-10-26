@@ -504,6 +504,7 @@ function icon(name, size, color, strokeWidth){
     case "battery": return '<svg '+a+'><rect x="1" y="7" width="18" height="10" rx="2"/><line x1="23" y1="10" x2="23" y2="14"/><path d="M7 9.5 5 12h3l-2 2.5"/></svg>';
     case "leaf": return '<svg '+a+'><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"/></svg>';
     case "store": return '<svg '+a+'><path d="M3 9l1-5h16l1 5"/><path d="M3 9a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0"/><path d="M4 9v9a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/></svg>';
+    case "tool": return '<svg '+a+'><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>';
     default: return "";
   }
 }
@@ -582,7 +583,37 @@ var PRODUCTS = [
     specs:[["Turbine Type","Horizontal Axis, on-grid and hybrid options"],["Rated Power","3 kW"],["Rotor Diameter","4 m"],["Rated Wind Speed","10 m/s"],["Start-up Wind Speed","3 m/s"],["Price basis","Indicative estimate only. Supplier lists 'Get latest price', so ask for a quote"]],
     pros:["Low 3 m/s start-up wind speed","3 kW output suits farms and small commercial loads","Part of a scalable range from 1 kW to 20 kW"],
     cons:["Rated output only at 10 m/s wind, so real output is lower on average sites","Installation, tower and batteries add to the total","Needs open land clear of buildings and trees"],
-    why:"Real model data from an Indian supplier listing. Check wind data for your exact site, because output falls sharply at lower wind speeds." }
+    why:"Real model data from an Indian supplier listing. Check wind data for your exact site, because output falls sharply at lower wind speeds." },
+  { id:"p15", type:"Accessories", icon:"tool", brand:"Luminous", name:"Luminous LPTT12200H 200Ah Tall Tubular Solar Battery", price:21597, capacityLabel:"200 Ah", efficiency:0, warranty:6, score:80, userRating:0, userCount:0, expertRating:0, bestFor:"Budget-friendly backup for lead-acid tubular inverter/solar systems",
+    specs:[["Capacity","200 Ah"],["Technology","Flooded Tubular, C10 rated"],["Voltage","12 V"],["Cycle Life","Up to 1500 cycles"],["Warranty","72 months (as listed)"],["Weight","About 54 kg"]],
+    pros:["Widely available through Luminous's large pan-India service network","Proven, low-maintenance tubular technology","Long 72-month warranty"],
+    cons:["Heavier and bulkier than lithium for the same backup","Flooded type needs periodic water top-up"],
+    why:"A real, currently listed Luminous tubular solar battery — the most common choice for Indian rooftop and backup systems, priced from recent online retail data." },
+  { id:"p16", type:"Accessories", icon:"tool", brand:"Lithium India", name:"Lithium India 12V 100Ah LiFePO4 Smart BMS Battery", price:18867, capacityLabel:"100 Ah", efficiency:0, warranty:5, score:85, userRating:0, userCount:0, expertRating:0, bestFor:"Compact, lightweight backup for hybrid solar + inverter systems wanting faster charging and longer life",
+    specs:[["Chemistry","LiFePO4 (LFP)"],["Capacity","100 Ah, about 1280 Wh"],["Voltage","12.8 V"],["Cycle Life","4000+ cycles"],["Claimed Life","15 years"],["Weight","About 10-13 kg"]],
+    pros:["Much lighter than an equivalent lead-acid battery","Far higher cycle life than tubular (4000+ vs about 1500)","Faster charging with a built-in smart BMS"],
+    cons:["Higher upfront cost per Ah than tubular lead-acid","Fewer nationwide service centers than established brands"],
+    why:"A real current online listing for a 12V 100Ah LiFePO4 battery with smart BMS, solar-compatible, representative of the budget-lithium segment now common in India." },
+  { id:"p17", type:"Accessories", icon:"tool", brand:"Polycab", name:"Polycab Solar DC Cable, 4 sq mm", price:44, capacityLabel:"4 sq mm, per metre", efficiency:0, warranty:0, score:78, userRating:0, userCount:0, expertRating:0, bestFor:"Standard panel-to-inverter wiring runs for residential rooftop systems",
+    specs:[["Cross-section","4 sq mm"],["Conductor","Tinned copper, single core"],["Rated Voltage","600/1000 V DC (IS 694)"],["Insulation","XLPE/XLPO, UV and weather resistant"],["Typical price","About ₹40-70/metre depending on seller"]],
+    pros:["IS 694 compliant, double-insulated for outdoor sun exposure","Standard size compatible with most MC4 connectors","Widely stocked by electrical suppliers"],
+    cons:["Price varies noticeably by seller — compare before bulk buying","Longer or high-current runs may need 6 sq mm instead"],
+    why:"Real per-metre pricing gathered from multiple Indian electrical suppliers for solar DC cable, the standard choice for rooftop panel wiring." },
+  { id:"p18", type:"Accessories", icon:"tool", brand:"KEI", name:"KEI Solar DC Cable, 6 sq mm", price:73, capacityLabel:"6 sq mm, per metre", efficiency:0, warranty:0, score:76, userRating:0, userCount:0, expertRating:0, bestFor:"Longer cable runs or higher-current strings where 4 sq mm would overheat",
+    specs:[["Cross-section","6 sq mm"],["Conductor","Copper, single core"],["Ideal for","Solar panel/generator wiring"],["Typical price","About ₹70-80/metre"]],
+    pros:["Lower resistance loss than 4 sq mm on longer runs","Still compatible with standard solar connectors"],
+    cons:["Costs more per metre than 4 sq mm","Overkill for short, low-current rooftop runs"],
+    why:"Real per-metre pricing for a thicker-gauge solar cable, useful when panel strings sit far from the inverter or battery bank." },
+  { id:"p19", type:"Accessories", icon:"tool", brand:"Solar Universe India", name:"MC4 Solar Connector Pairs, IP67, 1500V (Set of 10)", price:492, capacityLabel:"Set of 10 pieces", efficiency:0, warranty:0, score:80, userRating:0, userCount:0, expertRating:0, bestFor:"Connecting and extending solar panel strings, or replacing damaged connectors",
+    specs:[["Type","MC4-compatible, IP67 rated"],["Voltage","1500 V DC"],["Current","30 A"],["Compatible cable","2.5-6 sq mm"],["Pack size","Set of 10 pieces"]],
+    pros:["Weatherproof IP67 rating for outdoor rooftop use","Compatible with nearly all standard solar panels","Cheap to keep as spares"],
+    cons:["Genuine branded connectors cost more than unbranded ones","Must match male/female polarity correctly during install"],
+    why:"A real current online listing for IP67-rated MC4 connectors, the universal standard for solar panel wiring in India." },
+  { id:"p20", type:"Accessories", icon:"tool", brand:"Generic/UTL-class", name:"40A MPPT Solar Charge Controller (12-48V)", price:4800, capacityLabel:"40 A, 12-48V auto", efficiency:0, warranty:0, score:82, userRating:0, userCount:0, expertRating:0, bestFor:"Off-grid or hybrid battery banks needing efficient charge regulation from solar panels",
+    specs:[["Type","MPPT (Maximum Power Point Tracking)"],["Max Output Current","40 A"],["System Voltage","12-48 V auto-sensing"],["Max PV Input Power","2 kW"],["Use case","Battery charge regulation from solar array"]],
+    pros:["MPPT tracking extracts more usable power than basic PWM controllers","Works across 12V/24V/48V battery banks","Supports fairly large 2kW panel arrays"],
+    cons:["Premium branded MPPT controllers (e.g. Victron) cost significantly more","Street-market units vary in build quality — verify seller rating"],
+    why:"Real current India market pricing for a 40A MPPT controller, the component that regulates charging between solar panels and a battery bank." }
 ];
 
 var BRANDS = Array.from(new Set(PRODUCTS.map(function(p){ return p.brand; })));
@@ -610,7 +641,7 @@ var BUDGETS = [
   { label:"₹50,000 – ₹1,50,000", min:50000, max:150000 },
   { label:"₹1,50,000 & above", min:150000, max:Infinity }
 ];
-var TYPES = ["Solar Panel", "Wind Turbine", "Hybrid Kit"];
+var TYPES = ["Solar Panel", "Wind Turbine", "Hybrid Kit", "Accessories"];
 
 function scoreColor(score){
   if (score >= 88) return C.primary2;
@@ -891,6 +922,7 @@ function renderTypeToggles(){
     { type:"Solar Panel", label:"Solar", ic:"sun" },
     { type:"Wind Turbine", label:"Wind", ic:"wind" },
     { type:"Hybrid Kit", label:"Hybrid", ic:"zap" },
+    { type:"Accessories", label:"Accessories", ic:"tool" },
     { type:"Other Renewable", label:"Others", ic:"leaf" }
   ];
   var html = items.map(function(it){
@@ -1632,7 +1664,7 @@ sesUpdateBellBadge();
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAWp6wb0nSg2xOMNDCDzpwBV6k27AxIBn4",
@@ -1646,6 +1678,52 @@ const firebaseConfig = {
 const sesApp = initializeApp(firebaseConfig);
 const sesAuth = getAuth(sesApp);
 const sesDb = getFirestore(sesApp);
+
+var SES_ADMIN_EMAIL = "k.smjashu78@gmail.com";
+
+// Same pattern as Govt Schemes: loads products from Firestore (if any have been
+// seeded there yet) and swaps them in for the hardcoded PRODUCTS fallback.
+// Safe to call even if the collection is empty or unreachable — the page just
+// keeps showing the built-in catalog in that case.
+async function loadLiveCatalog(){
+  try{
+    var snap = await getDocs(collection(sesDb, "SEScollection"));
+    if (snap.empty) return;
+    var live = [];
+    snap.forEach(function(docSnap){
+      live.push(Object.assign({ id: docSnap.id }, docSnap.data()));
+    });
+    if (live.length && window.SES_setCatalogProducts) window.SES_setCatalogProducts(live);
+  } catch (err){
+    console.warn("Could not load live catalog, keeping the built-in list:", err);
+  }
+}
+
+// Admin-only, fully automatic — runs by itself the moment the admin account opens
+// this page (no button, no confirmation). Pushes the current built-in PRODUCTS
+// list into Firestore so loadLiveCatalog() above always has the latest data, and
+// so EMBER (which reads the same "SEScollection" collection) stays in sync too.
+// Silent: logs to console only, nothing shown to the person using the page.
+async function autoSyncCatalogIfAdmin(){
+  var user = sesAuth.currentUser;
+  if (!user || user.email !== SES_ADMIN_EMAIL) return;
+  var list = window.SES_BUILTIN_CATALOG || [];
+  var ok = 0, failed = 0;
+  for (var i = 0; i < list.length; i++){
+    var p = list[i];
+    try{
+      var data = Object.assign({}, p);
+      delete data.id;
+      await setDoc(doc(sesDb, "SEScollection", p.id), data);
+      ok++;
+    } catch (err){
+      failed++;
+      console.error("Auto-sync failed for product", p.id, err);
+    }
+  }
+  console.log("Auto-synced " + ok + " product(s) to Firestore" + (failed ? ", " + failed + " failed." : "."));
+  loadLiveCatalog();
+};
 
 var sesAuthReadyResolve;
 window.SES_authReady = new Promise(function(resolve){ sesAuthReadyResolve = resolve; });
@@ -1688,8 +1766,10 @@ async function sesFetchFirebaseNotifs(){
 onAuthStateChanged(sesAuth, function(){
   if (!sesAuthReadyDone){ sesAuthReadyDone = true; sesAuthReadyResolve(); }
   sesFetchFirebaseNotifs();
+  autoSyncCatalogIfAdmin();
 });
 sesFetchFirebaseNotifs();
+loadLiveCatalog();
 window.addEventListener("gm-notifs-updated", sesFetchFirebaseNotifs);
 setInterval(sesFetchFirebaseNotifs, 60000);
 </script>
@@ -1839,14 +1919,8 @@ import { getFirestore, collection, query, where, getDocs, doc, setDoc, Timestamp
 
 
 <script id="gmCatalogFeedJs">
-// Every time this page opens it reads the shared product list (catalog.json, same folder as the pages).
-// EMBER on the home page reads the same file, so one upload keeps both in step. If the file can't be loaded the built-in list stays.
-(function(){
-  fetch("catalog.json", { cache: "no-cache" })
-    .then(function(r){ return r.ok ? r.json() : null; })
-    .then(function(items){ if (Array.isArray(items) && items.length && window.SES_setCatalogProducts) window.SES_setCatalogProducts(items); })
-    .catch(function(){});
-})();
+// This page now uses only its own built-in PRODUCTS list (no shared catalog.json fetch).
+// EMBER on the home page keeps its own separate built-in copy — update both files directly when products change.
 </script>
 
 <script id="gmI18nJs">

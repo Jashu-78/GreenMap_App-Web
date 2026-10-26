@@ -411,10 +411,6 @@ html[lang="te"] body,html[lang="hi"] body,html[lang="ta"] body,html[lang="kn"] b
       <span class="my-notify-chev"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></span>
     </div>
     <div class="my-notify-list" id="myNotifyList"></div>
-    <div class="menu-item" id="adminSeedSchemesItem" style="display:none;" onclick="seedSchemesToFirestore()">
-      <span class="menu-item-icon">☁️</span>
-      <span>Seed schemes to Firestore</span>
-    </div>
   </div>
 </div>
 
@@ -992,6 +988,35 @@ var SCHEMES = [
     benefitsFromGovt: "Central subsidy + up to \u20b920,000 state top-up",
     source: "https://www.energetica-india.net/keyword/pm-surya-ghar-muft-bijli-yojana-state-top-up",
     trust: 85
+  },
+  {
+    id: "bess-vgf-scheme",
+    title: "Battery Energy Storage Systems (BESS) Viability Gap Funding Scheme",
+    org: "Ministry of Power, Government of India",
+    cat: ["central","hybrid"],
+    iconName: "hybrid",
+    domain: "powermin.gov.in",
+    benefit: "Up to 40% of project capital cost",
+    desc: "A central scheme that pays Viability Gap Funding (VGF) toward the capital cost of grid-scale Battery Energy Storage System (BESS) projects, helping bring down the cost of storing renewable power for use during peak hours. This is aimed at developers and DISCOMs building storage capacity, not a direct subsidy for a homeowner's personal battery purchase, but it explains why battery storage is becoming more available and affordable across the grid.",
+    specs: [
+      ["Support", "Up to 40% of capital cost as Viability Gap Funding"],
+      ["Latest tranche", "₹5,400 crore for 30 GWh of new BESS capacity, approved 14 May 2026"],
+      ["First tranche", "₹3,760 crore for 4,000 MWh, approved Sept 2023"],
+      ["Payout", "Released in 5 tranches tied to project milestones, via SECI tenders"],
+      ["Who it's for", "BESS project developers, DISCOMs, and state agencies — not individual households"]
+    ],
+    steps: [
+      "This scheme is accessed by project developers and DISCOMs, not by individual applicants.",
+      "SECI (Solar Energy Corporation of India) runs competitive tenders for BESS capacity under the scheme.",
+      "Selected developers receive VGF support in stages as their BESS project reaches each milestone.",
+      "Homeowners benefit indirectly as grid-scale storage lowers the cost and improves reliability of renewable power.",
+      "For a personal home battery, compare products directly in Smart Energy Search instead."
+    ],
+    regDate: "First tranche Sept 2023; expanded tranche approved 14 May 2026",
+    expiryDate: "Target: 13.2+ GWh of supported capacity by FY 2027-28",
+    benefitsFromGovt: "Capital cost support for grid-scale battery storage developers",
+    source: "https://www.pmindia.gov.in/en/news_updates/cabinet-approves-the-scheme-titled-viability-gap-funding-for-development-of-battery-energy-storage-systems-bess/",
+    trust: 90
   },
   {
     id: "test-expired-demo",
@@ -1962,13 +1987,14 @@ async function loadLiveSchemes(){
   }
 }
 
-// Admin-only, one-time (safe to re-run) — writes the current SCHEMES array
-// into Firestore so loadLiveSchemes() above has real data to read, and so
-// the future scheme-discovery backend has somewhere to add new ones.
-async function seedSchemesToFirestore(){
+// Admin-only, fully automatic — runs by itself the moment the admin account opens
+// this page (no button, no confirmation). Writes the current SCHEMES array into
+// Firestore so loadLiveSchemes() above always has the latest data, and so the
+// future scheme-discovery backend has somewhere to add new ones.
+// Silent: logs to console only, nothing shown to the person using the page.
+async function autoSyncSchemesIfAdmin(){
   var user = gsAuth.currentUser;
-  if (!user || user.email !== ADMIN_EMAIL){ alert("Admin only."); return; }
-  if (!confirm("Write all " + SCHEMES.length + " schemes to Firestore now?")) return;
+  if (!user || user.email !== ADMIN_EMAIL) return;
   var ok = 0, failed = 0;
   for (var i = 0; i < SCHEMES.length; i++){
     var scheme = SCHEMES[i];
@@ -1979,18 +2005,17 @@ async function seedSchemesToFirestore(){
       ok++;
     } catch (err){
       failed++;
-      console.error("Failed to seed scheme", scheme.id, err);
+      console.error("Auto-sync failed for scheme", scheme.id, err);
     }
   }
-  alert("Seeded " + ok + " scheme(s)" + (failed ? ", " + failed + " failed (see console)." : "."));
+  console.log("Auto-synced " + ok + " scheme(s) to Firestore" + (failed ? ", " + failed + " failed." : "."));
   loadLiveSchemes();
 }
 
 onAuthStateChanged(gsAuth, function(){
   if (!gsAuthReadyDone){ gsAuthReadyDone = true; gsAuthReadyResolve(); }
   gsFetchFirebaseNotifs();
-  var seedItem = document.getElementById("adminSeedSchemesItem");
-  if (seedItem) seedItem.style.display = (gsAuth.currentUser && gsAuth.currentUser.email === ADMIN_EMAIL) ? "flex" : "none";
+  autoSyncSchemesIfAdmin();
 });
 gsFetchFirebaseNotifs();
 loadLiveSchemes();
