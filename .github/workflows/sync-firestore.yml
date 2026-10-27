@@ -1,0 +1,35 @@
+name: Sync Firestore data
+
+# Runs automatically whenever Smart_Energy_Search.html or Govt_Schemes.html
+# change on a push to main — no one needs to open the live app or sign in as
+# admin for new products/schemes to reach Firestore (and from there, EMBER).
+# "Run workflow" button (workflow_dispatch) also lets you trigger it by hand
+# from the Actions tab if you ever need to re-sync without changing a file.
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "Smart_Energy_Search.html"
+      - "Govt_Schemes.html"
+  workflow_dispatch: {}
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install firebase-admin
+        run: npm install firebase-admin
+
+      - name: Sync catalog + schemes to Firestore
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+        run: node scripts/sync-firestore.js
