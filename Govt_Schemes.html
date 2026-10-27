@@ -1017,24 +1017,6 @@ var SCHEMES = [
     benefitsFromGovt: "Capital cost support for grid-scale battery storage developers",
     source: "https://www.pmindia.gov.in/en/news_updates/cabinet-approves-the-scheme-titled-viability-gap-funding-for-development-of-battery-energy-storage-systems-bess/",
     trust: 90
-  },
-  {
-    id: "test-expired-demo",
-    title: "[TEST ENTRY] Sample Expired Scheme — verification only",
-    org: "Not a real scheme — for testing the Expired section",
-    cat: ["central"],
-    iconName: "document",
-    domain: "example.com",
-    benefit: "N/A — test entry",
-    deadline: "2026-08-25",
-    desc: "This is a temporary test entry used only to verify the Expired section displays correctly. It will be removed once confirmed.",
-    specs: [["Purpose", "Feature verification only"]],
-    steps: ["No action needed — this is a test entry."],
-    regDate: "Test entry",
-    expiryDate: "25 August 2026 (test)",
-    benefitsFromGovt: "N/A",
-    source: "https://example.com",
-    trust: 0
   }
 ];
 
@@ -1909,7 +1891,7 @@ renderList();
 // ---------------------------------------------------------------------------
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, collection, query, orderBy, limit, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, collection, query, orderBy, limit, getDocs, doc, setDoc, deleteDoc, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyAWp6wb0nSg2xOMNDCDzpwBV6k27AxIBn4",
@@ -1970,13 +1952,25 @@ var ADMIN_EMAIL = "k.smjashu78@gmail.com";
 // swaps them in for the hardcoded SCHEMES fallback, then redraws the list.
 // Safe to call even if the collection is empty or unreachable — the page
 // just keeps showing the hardcoded 12 schemes in that case.
+// Firestore rejects arrays inside arrays, so spec rows are stored as {label, value}.
+function specsToFs(sp){
+  return Array.isArray(sp) ? sp.map(function(r){ return Array.isArray(r) ? { label: r[0], value: r[1] } : r; }) : sp;
+}
+function specsFromFs(sp){
+  return Array.isArray(sp) ? sp.map(function(r){
+    return (r && !Array.isArray(r) && typeof r === "object" && "label" in r) ? [r.label, r.value] : r;
+  }) : sp;
+}
+
 async function loadLiveSchemes(){
   try{
     var snap = await getDocs(collection(gsDb, "govtSchemes"));
     if (snap.empty) return;
     var live = [];
     snap.forEach(function(docSnap){
-      live.push(Object.assign({ id: docSnap.id }, docSnap.data()));
+      var item = Object.assign({ id: docSnap.id }, docSnap.data());
+      item.specs = specsFromFs(item.specs);
+      live.push(item);
     });
     if (live.length){
       SCHEMES = live;
@@ -1995,12 +1989,48 @@ async function loadLiveSchemes(){
 async function autoSyncSchemesIfAdmin(){
   var user = gsAuth.currentUser;
   if (!user || user.email !== ADMIN_EMAIL) return;
-  var ok = 0, failed = 0;
+
+  // First, see what's already live, so we only notify about real changes —
+  // not every scheme, every single time this runs.
+  var existingById = {};
+  try{
+    var existingSnap = await getDocs(collection(gsDb, "govtSchemes"));
+    existingSnap.forEach(function(d){ existingById[d.id] = d.data(); });
+  } catch (err){
+    console.warn("Could not read existing schemes before sync (will still sync, just won't compute diffs):", err);
+  }
+
+  var newTitles = [];
+  var updatedTitles = [];
   for (var i = 0; i < SCHEMES.length; i++){
-    var scheme = SCHEMES[i];
+    var s = SCHEMES[i];
+    var prev = existingById[s.id];
+    if (!prev){
+      newTitles.push(s.title);
+    } else {
+      var changed = prev.regDate !== s.regDate || prev.expiryDate !== s.expiryDate ||
+                    prev.benefitsFromGovt !== s.benefitsFromGovt || prev.benefit !== s.benefit;
+      if (changed) updatedTitles.push(s.title);
+    }
+  }
+
+  // Schemes deliberately removed from the list: delete them from Firestore too
+  // (the sync below only writes, so removed items would otherwise stay live).
+  var REMOVED_SCHEME_IDS = ["test-expired-demo"];
+  for (var r = 0; r < REMOVED_SCHEME_IDS.length; r++){
+    if (existingById[REMOVED_SCHEME_IDS[r]]){
+      try{ await deleteDoc(doc(gsDb, "govtSchemes", REMOVED_SCHEME_IDS[r])); }
+      catch (err){ console.warn("Could not delete removed scheme", REMOVED_SCHEME_IDS[r], err); }
+    }
+  }
+
+  var ok = 0, failed = 0;
+  for (var j = 0; j < SCHEMES.length; j++){
+    var scheme = SCHEMES[j];
     try{
       var data = Object.assign({}, scheme);
       delete data.id;
+      data.specs = specsToFs(data.specs);
       await setDoc(doc(gsDb, "govtSchemes", scheme.id), data);
       ok++;
     } catch (err){
@@ -2009,6 +2039,33 @@ async function autoSyncSchemesIfAdmin(){
     }
   }
   console.log("Auto-synced " + ok + " scheme(s) to Firestore" + (failed ? ", " + failed + " failed." : "."));
+
+  // Broadcast real changes to the SHARED "notifications" collection (the same
+  // one every page's bell icon reads) — so new/updated government schemes
+  // now show up everywhere, not just inside Govt Schemes' own local list.
+  // This fires once per actual change here on the admin side, instead of the
+  // old per-device localStorage approach that never left this one page.
+  try{
+    if (newTitles.length){
+      await addDoc(collection(gsDb, "notifications"), {
+        type: "scheme",
+        title: "New scheme available",
+        message: newTitles.join(", "),
+        createdAt: serverTimestamp()
+      });
+    }
+    for (var k = 0; k < updatedTitles.length; k++){
+      await addDoc(collection(gsDb, "notifications"), {
+        type: "scheme",
+        title: "Scheme updated",
+        message: updatedTitles[k] + " has new registration or benefit details.",
+        createdAt: serverTimestamp()
+      });
+    }
+  } catch (err){
+    console.warn("Could not broadcast scheme change notification:", err);
+  }
+
   loadLiveSchemes();
 }
 

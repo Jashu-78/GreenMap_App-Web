@@ -1685,13 +1685,25 @@ var SES_ADMIN_EMAIL = "k.smjashu78@gmail.com";
 // seeded there yet) and swaps them in for the hardcoded PRODUCTS fallback.
 // Safe to call even if the collection is empty or unreachable — the page just
 // keeps showing the built-in catalog in that case.
+// Firestore rejects arrays inside arrays, so spec rows are stored as {label, value}.
+function specsToFs(sp){
+  return Array.isArray(sp) ? sp.map(function(r){ return Array.isArray(r) ? { label: r[0], value: r[1] } : r; }) : sp;
+}
+function specsFromFs(sp){
+  return Array.isArray(sp) ? sp.map(function(r){
+    return (r && !Array.isArray(r) && typeof r === "object" && "label" in r) ? [r.label, r.value] : r;
+  }) : sp;
+}
+
 async function loadLiveCatalog(){
   try{
     var snap = await getDocs(collection(sesDb, "SEScollection"));
     if (snap.empty) return;
     var live = [];
     snap.forEach(function(docSnap){
-      live.push(Object.assign({ id: docSnap.id }, docSnap.data()));
+      var item = Object.assign({ id: docSnap.id }, docSnap.data());
+      item.specs = specsFromFs(item.specs);
+      live.push(item);
     });
     if (live.length && window.SES_setCatalogProducts) window.SES_setCatalogProducts(live);
   } catch (err){
@@ -1714,6 +1726,7 @@ async function autoSyncCatalogIfAdmin(){
     try{
       var data = Object.assign({}, p);
       delete data.id;
+      data.specs = specsToFs(data.specs);
       await setDoc(doc(sesDb, "SEScollection", p.id), data);
       ok++;
     } catch (err){
