@@ -47,6 +47,25 @@ function extractArray(filePath, varName) {
   return result;
 }
 
+// Firestore does not allow arrays inside arrays, so each spec row
+// ["Label", "Value"] is stored as {label, value}. The pages convert it back.
+function toFirestoreShape(item) {
+  const data = Object.assign({}, item);
+  delete data.id;
+  if (Array.isArray(data.specs)) {
+    data.specs = data.specs.map(function (row) {
+      return Array.isArray(row) ? { label: row[0], value: row[1] } : row;
+    });
+  }
+  return data;
+}
+
+// Items deliberately removed from the HTML lists: delete them from Firestore too.
+const REMOVED = {
+  govtSchemes: ["test-expired-demo"],
+  SEScollection: []
+};
+
 async function syncCollection(items, collectionName) {
   const batchSize = 400; // stay under Firestore's 500-write batch limit
   let written = 0;
@@ -55,8 +74,7 @@ async function syncCollection(items, collectionName) {
     const chunk = items.slice(i, i + batchSize);
     chunk.forEach(function (item) {
       if (!item.id) throw new Error("An item in " + collectionName + " is missing an id: " + JSON.stringify(item));
-      const data = Object.assign({}, item);
-      delete data.id;
+      const data = toFirestoreShape(item);
       const ref = db.collection(collectionName).doc(item.id);
       batch.set(ref, data);
     });
@@ -64,6 +82,9 @@ async function syncCollection(items, collectionName) {
     written += chunk.length;
   }
   console.log("Synced " + written + " doc(s) to \"" + collectionName + "\"");
+  for (const id of (REMOVED[collectionName] || [])) {
+    await db.collection(collectionName).doc(id).delete();
+  }
 }
 
 async function main() {
