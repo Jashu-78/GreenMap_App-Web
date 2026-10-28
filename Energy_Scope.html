@@ -1637,9 +1637,9 @@ import { getFirestore, collection, query, where, getDocs, doc, setDoc, Timestamp
   /* inputs and search */
   input,select,textarea{transition:border-color .2s ease,box-shadow .25s ease,background-color .2s ease;}
   input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(61,153,102,.22);}
-  .search-wrap{transition:box-shadow .25s ease,transform .25s ease;}
-  .search-wrap:focus-within{box-shadow:0 0 0 3px rgba(120,200,150,.35);transform:translateY(-1px);}
-  .search-wrap:focus-within svg{animation:gmBump .45s ease;}
+  /* box-shadow only: a transform on .search-wrap would trap its dropdown behind the page below */
+  .search-wrap{transition:box-shadow .25s ease;}
+  .search-wrap:focus-within{box-shadow:0 0 0 3px rgba(120,200,150,.35);}
 
   /* headers: bar fades in, buttons spring in, logo breathes */
   .header,.topbar{animation:gmFadeIn .5s ease backwards;}
