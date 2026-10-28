@@ -1067,6 +1067,237 @@
     }
     emberAskRandom(kind);
   }
+  // ---------------------------------------------------------------------------
+  // App-data Q&A: answers questions from the live data in Smart Energy Search
+  // (SEScollection), Govt Schemes (govtSchemes) and EnergyHub (shop products).
+  // Matching is English-first (names, accessory kinds, counts, deadlines, scheme
+  // categories). It returns false when nothing matches, so older routes still run.
+  // ---------------------------------------------------------------------------
+  var AD_STOP = {};
+  ("the and for are you your can new latest coming soon upcoming all any app what which tell about give show list does have there details detail info information how much many when where with from that this best cheap cheapest under below buy price cost rate warranty guarantee efficiency efficient deadline date last apply eligible eligibility benefit subsidy scheme schemes yojana govt government product products item items solar wind panel panels energy rooftop power kit kits capacity watt watts year years need want get has was were will would should could please accessories accessory hub shop store local available sell open closing expire expired expiry tomorrow today").split(" ").forEach(function(w){ AD_STOP[w] = 1; });
+  var AD_KIND_WORDS = {};
+  ("battery batteries cable cables wire wires wiring mc4 connector connectors plug inverter inverters controller controllers mppt charge charging mount mounting structure structures stand box combiner junction dcdb acdb distribution meter meters net lightning surge arrestor arrestors spd earth earthing monitoring wifi dongle logger isolator mcb breaker dump brake tower mast pole anemometer sensor").split(" ").forEach(function(w){ AD_KIND_WORDS[w] = 1; });
+  var AD_KINDS = [
+    ["battery", /batter/], ["cable", /cable|\bwires?\b|wiring/], ["plug", /mc4|connector|\bplug/],
+    ["inverter", /inverter/], ["controller", /controller|mppt|charge/], ["mount", /mounting|\bmount\b|structure|\bstand\b/],
+    ["box", /combiner|junction|dcdb|acdb|distribution box/], ["meter", /\bmeter/],
+    ["arrestor", /lightning|surge|arrestor|\bspd\b/], ["earth", /earth/], ["wifi", /monitor|wifi|wi-fi|dongle|data logger/],
+    ["toggle", /isolator|\bmcb\b|breaker/], ["load", /dump load|brake|resistor/], ["tower", /tower|\bmast\b|\bpole\b/],
+    ["sensor", /anemometer|wind speed|sensor/]
+  ];
+  function adKinds(q){
+    return AD_KINDS.filter(function(k){ return k[1].test(q); }).map(function(k){ return k[0]; });
+  }
+  function adCanon(s){
+    return String(s).toLowerCase().replace(/phase[\s-]*(ii|2|two)\b/g, "phaseii").replace(/\b2\.0\b/g, "v20");
+  }
+  function adTokens(q){
+    var out = [];
+    adCanon(q).replace(/[^a-z0-9.\s]/g, " ").split(/\s+/).forEach(function(t){
+      t = t.replace(/^\.+|\.+$/g, "");
+      var m = /^(\d+)(w|kw|ah|v)$/.exec(t); if (m) t = m[1];
+      if ((t.length < 3 && !/^(ap|pm|sc|st)$/.test(t)) || AD_STOP[t] || AD_KIND_WORDS[t]) return;
+      if (/^\d+$/.test(t) && parseInt(t, 10) >= 2000) return;   // budgets are not names
+      out.push(t);
+    });
+    return out;
+  }
+  function adNorm(s){ return " " + adCanon(s || "").replace(/[^a-z0-9]+/g, " ") + " "; }
+  function adFind(tokens, items, hayFn, titleFn){
+    var best = 0, list = [];
+    items.forEach(function(it){
+      var hay = adNorm(hayFn(it)), sc = 0, ttl = titleFn ? adNorm(titleFn(it)) : "";
+      tokens.forEach(function(t){
+        if (t.length < 3){ if (hay.indexOf(" " + t + " ") !== -1) sc += 2; }
+        else if (hay.indexOf(t) !== -1) sc += t.length;
+        if (ttl && t.length >= 3 && ttl.indexOf(t) !== -1) sc += 1;   // title matches win ties
+      });
+      if (sc > best){ best = sc; list = [it]; } else if (sc === best && sc > 0){ list.push(it); }
+    });
+    return { score: best, list: list };
+  }
+  function adPrice(p){ return (typeof p.price === "number" && p.price > 0) ? "\u20B9" + emberRupees(p.price) : gmT("ad_noinfo"); }
+  function adSpecs(p){
+    return (p.specs || []).map(function(r){ return Array.isArray(r) ? r : [r && r.label, r && r.value]; });
+  }
+  function adDate(iso){
+    var d = new Date(iso + "T00:00:00");
+    return isNaN(d) ? iso : d.toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  }
+  function adDeadlineText(s){
+    if (s.deadline) return adDate(s.deadline);
+    var x = String(s.expiryDate || "");
+    return /no fixed|not announced|original deadline|launched|valid|till|until|closes/i.test(x) ? emberEsc(x) : gmT("ad_nofixed");
+  }
+  function adSchemeExpired(s){ return !!(s.deadline && new Date(s.deadline + "T23:59:59").getTime() < Date.now()); }
+  function adSchemeStatus(s){ return s.comingSoon ? gmT("ad_coming") : (adSchemeExpired(s) ? gmT("ad_closed") : gmT("ad_open")); }
+  function adSchemeLine(s){ return "\u2022 <b>" + emberEsc(s.title) + "</b> - " + emberEsc(String(s.benefit || "").slice(0, 80)); }
+  function adProductLine(p){ return "\u2022 <b>" + emberEsc(p.name) + "</b> - " + adPrice(p); }
+  function adSend(html, links){
+    agentAddMsg(html + emberLinkRow(links), "bot");
+    emberAskRandom("link");
+    return true;
+  }
+
+  function adSchemeDetail(s, q){
+    var html = "<b>" + emberEsc(s.title) + "</b><br>" + gmT("ad_status") + ": " + adSchemeStatus(s) + "<br>";
+    var steps = (s.steps || []).slice(0, 5);
+    if (/apply|register|registration|steps|procedure|how to (get|claim|join)/.test(q) && steps.length){
+      html += gmT("ad_apply") + ":<br>" + steps.map(function(t, i){ return (i + 1) + ". " + emberEsc(t); }).join("<br>");
+    } else if (/eligib|who can|qualif|am i|can i/.test(q)){
+      var el = adSpecs(s).filter(function(r){ return /eligib|applies to|who/i.test(String(r[0])); })[0];
+      html += el ? emberEsc(el[0]) + ": " + emberEsc(el[1]) : emberEsc(String(s.desc || "").slice(0, 180));
+    } else if (/deadline|last date|till when|valid|expir|closing|end date|due/.test(q)){
+      html += gmT("ad_deadline") + ": " + adDeadlineText(s);
+    } else {
+      html += gmT("ad_benefit") + ": " + emberEsc(s.benefit || gmT("ad_noinfo")) + "<br>" +
+              gmT("ad_deadline") + ": " + adDeadlineText(s) + "<br>" +
+              emberEsc(String(s.desc || "").slice(0, 150)) + (String(s.desc || "").length > 150 ? "..." : "");
+    }
+    return adSend(html, ["Govt Schemes"]);
+  }
+  function adProductDetail(p){
+    var html = "<b>" + emberEsc(p.name) + "</b> (" + emberEsc(p.brand || "") + ")<br>" + gmT("ad_price") + ": " + adPrice(p);
+    if (p.capacityLabel && p.capacityLabel !== "\u2014") html += "<br>" + emberEsc(p.capacityLabel);
+    if (p.efficiency > 0) html += "<br>" + gmT("ad_eff") + ": " + p.efficiency + "%";
+    if (p.warranty > 0) html += "<br>" + gmT("ad_warranty") + ": " + p.warranty + " yrs";
+    if (gmLang() === "en" && p.bestFor) html += "<br>Best for: " + emberEsc(p.bestFor) + ".";
+    return adSend(html, ["Smart Energy Search"]);
+  }
+
+  function emberAppData(q){
+    var schemes = window.GM_realSchemes || [], cat = emberCatalog(), shop = window.GM_realProducts || [];
+    var hasSchemeWord = /scheme|subsid|yojana|govt|government/.test(q);
+    var kinds = adKinds(q), accGeneral = /accessor/.test(q);
+    var recWords = /best|cheap|recommend|suggest|which|under|below|within|up to|upto|budget|affordable|lowest|efficien/.test(q);
+
+    // 1) counts / "what is in the app"
+    if ((/how many|number of|total|count/.test(q) && /scheme|product|accessor|item|shop|hub|everything|app/.test(q)) ||
+        /what.*(in|inside|on) (the |this )?app|everything.*(app|have)|what data/.test(q)){
+      var live = schemes.filter(function(s){ return !s.comingSoon && !adSchemeExpired(s); }).length;
+      var accN = cat.filter(function(p){ return p.type === "Accessories"; }).length;
+      return adSend(gmT("ad_counts", { schemes: live, soon: schemes.filter(function(s){ return s.comingSoon; }).length,
+        products: cat.length, acc: accN, shop: shop.length }), ["Smart Energy Search", "Govt Schemes", "EnergyHub"]);
+    }
+
+    // 2) a named scheme / product, or an accessory kind
+    var tokens = adTokens(q);
+    var schemeCue = hasSchemeWord || /eligib|apply|register|deadline|last date|subsid|benefit|who can/.test(q);
+    var sm = (hasSchemeWord || !kinds.length) ? adFind(tokens, schemes, function(s){ return s.title + " " + s.org + " " + s.id + " " + s.domain; }, function(s){ return s.title; }) : { score: 0, list: [] };
+    var pm = adFind(tokens, cat, function(p){ return p.name + " " + p.brand; }, function(p){ return p.name; });
+    if (sm.score >= (schemeCue ? 4 : 5) && (hasSchemeWord || (sm.score >= pm.score && !recWords)) && !kinds.length && !accGeneral){
+      if (sm.list.length === 1) return adSchemeDetail(sm.list[0], q);
+      return adSend(sm.list.slice(0, 3).map(adSchemeLine).join("<br>"), ["Govt Schemes"]);
+    }
+    if (kinds.length || accGeneral){
+      var pool = cat.filter(function(p){
+        if (p.type !== "Accessories") return false;
+        if (accGeneral && !kinds.length) return true;
+        return kinds.some(function(k){
+          var rx = AD_KINDS.filter(function(x){ return x[0] === k; })[0][1];
+          return p.icon ? p.icon === k : rx.test(String(p.name).toLowerCase());
+        });
+      });
+      if (accGeneral && !kinds.length){
+        var windRx = /wind|dump load|tower|anemometer/i;
+        if (/\bwind\b/.test(q) && !/\bsolar\b/.test(q)) pool = pool.filter(function(p){ return windRx.test(p.name); });
+        else if (/\bsolar\b/.test(q) && !/\bwind\b/.test(q)) pool = pool.filter(function(p){ return !/dump load|tower|anemometer/i.test(p.name); });
+      }
+      if (pm.score >= 5){
+        var named = pool.filter(function(p){ return pm.list.indexOf(p) !== -1; });
+        if (named.length) pool = named;
+      }
+      if (pool.length){
+        if (/cheap|lowest|affordable|price/.test(q)){
+          pool = pool.slice().sort(function(a, b){
+            var pa = (typeof a.price === "number" && a.price > 0) ? a.price : Infinity;
+            var pb = (typeof b.price === "number" && b.price > 0) ? b.price : Infinity;
+            return pa === pb ? 0 : (pa < pb ? -1 : 1);
+          });
+        }
+        if (pool.length === 1) return adProductDetail(pool[0]);
+        var more = pool.length > 8 ? "<br>\u2026 +" + (pool.length - 8) : "";
+        return adSend(gmT("ad_acc_head") + "<br>" + pool.slice(0, 8).map(adProductLine).join("<br>") + more, ["Smart Energy Search"]);
+      }
+    }
+    if (pm.score >= 5 && !recWords && !hasSchemeWord){
+      if (pm.list.length === 1) return adProductDetail(pm.list[0]);
+      return adSend(pm.list.slice(0, 4).map(adProductLine).join("<br>"), ["Smart Energy Search"]);
+    }
+
+    // 3) schemes closing soonest
+    if (/deadline|last date|closing|expir|ending|due date|ends/.test(q) && (hasSchemeWord || /closing soon|ending soon|expir/.test(q))){
+      var dated = schemes.filter(function(s){ return s.deadline && !s.comingSoon && !adSchemeExpired(s); })
+        .sort(function(a, b){ return a.deadline < b.deadline ? -1 : 1; }).slice(0, 4);
+      if (dated.length){
+        return adSend(gmT("ad_closing_head") + "<br>" + dated.map(function(s){
+          return "\u2022 <b>" + emberEsc(s.title) + "</b> - " + adDate(s.deadline);
+        }).join("<br>") + "<br><br><i>" + gmT("ad_no_deadline") + "</i>", ["Govt Schemes"]);
+      }
+    }
+
+    // 4) schemes by category (farmer / state / central / wind / solar)
+    if (hasSchemeWord){
+      var catKey = /farm|agricult|pump|kisan/.test(q) ? "farmer" : /other state/.test(q) ? "otherstates" :
+                   /\bap\b|andhra|\bstate\b/.test(q) ? "state" : /central|national|centre|\bindia\b/.test(q) ? "central" :
+                   /\bwind\b/.test(q) ? "wind" : /\bsolar\b/.test(q) ? "solar" : "";
+      if (catKey){
+        var inCat = schemes.filter(function(s){ return (s.cat || []).indexOf(catKey) !== -1 && !adSchemeExpired(s); });
+        var openOnes = inCat.filter(function(s){ return !s.comingSoon; }).slice(0, 5);
+        var soonOnes = inCat.filter(function(s){ return s.comingSoon; });
+        if (openOnes.length || soonOnes.length){
+          var h2 = openOnes.length ? gmT("sch_live_head") + "<br>" + openOnes.map(adSchemeLine).join("<br>") : "";
+          if (soonOnes.length) h2 += (h2 ? "<br><br>" : "") + gmT("sch_soon_head") + "<br>" + soonOnes.map(adSchemeLine).join("<br>");
+          return adSend(h2, ["Govt Schemes"]);
+        }
+      }
+    }
+
+    // 5) EnergyHub shop items
+    if (/energyhub|\bhub\b|shop|store/.test(q) && /list|show|what|which|available|sell|have|items|products|buy|price/.test(q) && shop.length){
+      var stock = shop.filter(function(p){ return !p.outOfStock && typeof p.price === "number"; })
+        .sort(function(a, b){ return a.price - b.price; }).slice(0, 5);
+      if (stock.length){
+        return adSend(gmT("ad_shop_head") + "<br>" + stock.map(function(p){
+          return "\u2022 <b>" + emberEsc(p.name) + "</b> - \u20B9" + emberRupees(p.price);
+        }).join("<br>"), ["EnergyHub"]);
+      }
+    }
+    return false;
+  }
+
+  // Answers scheme questions with the real list from Firestore (not just a link).
+  function emberSchemes(q){
+    var all = window.GM_realSchemes || [];
+    var now = Date.now();
+    var live = all.filter(function(s){
+      if (s.comingSoon) return false;
+      if (s.deadline && new Date(s.deadline + "T23:59:59").getTime() < now) return false;
+      return true;
+    });
+    var soon = all.filter(function(s){ return s.comingSoon; });
+    var wantSoon = /coming|upcoming|soon|propos|planned/.test(q);
+    var wantNew = /\bnew\b|latest|recent|launch/.test(q);
+    var fresh = live.filter(function(s){ return s.isNew; });
+    if (!fresh.length){
+      fresh = live.slice().sort(function(a, b){ return (b.addedOn || "") < (a.addedOn || "") ? -1 : 1; }).slice(0, 3);
+    }
+    var line = function(s){
+      var b = s.benefit ? " - " + emberEsc(String(s.benefit).slice(0, 90)) : "";
+      return "\u2022 " + emberEsc(s.title) + b;
+    };
+    var html;
+    if (wantSoon && soon.length){
+      html = gmT("sch_soon_head") + "<br>" + soon.map(line).join("<br>");
+    } else {
+      var list = (wantNew ? fresh : live).slice(0, 4);
+      html = gmT(wantNew ? "sch_new_head" : "sch_live_head") + "<br>" + list.map(line).join("<br>");
+      if (soon.length) html += "<br><br>" + gmT("sch_soon_head") + "<br>" + soon.map(line).join("<br>");
+    }
+    html += "<br><br><i>" + gmT("sch_note") + "</i>" + emberLinkRow(["Govt Schemes"]);
+    agentAddMsg(html, "bot");
+    emberAskRandom("link");
+  }
   // Returns true if the message was handled here.
   function emberRoute(text){
     var q = text.toLowerCase();
@@ -1075,7 +1306,11 @@
     if (/reduce|lower|cut down|less (power|current|usage)/.test(q) || gmHasAny(q, W("reduce"))){ emberAdvice("reduce"); return true; }
     if (/how.*(save|saving)/.test(q) || gmHasAny(q, W("route_habits"))){ emberAdvice("habits"); return true; }
     if (/saving|want.*sav|save money/.test(q) || gmHasAny(q, W("saving"))){ emberAdvice("overview"); return true; }
+    if (emberAppData(q)) return true;
     if (emberProductIntent(q)){ emberProducts(q); return true; }
+    if ((/scheme|subsid|yojana|govt|government/.test(q) || gmHasAny(q, W("subsidy_scheme"))) && (window.GM_realSchemes || []).length){
+      emberSchemes(q); return true;
+    }
     var links = [];
     if (/smart energy|compare|search/.test(q) || gmHasAny(q, W("link_ses"))) links.push("Smart Energy Search");
     if (/scope|map|wind|potential/.test(q) || gmHasAny(q, W("link_es"))) links.push("EnergyScope");
@@ -1283,6 +1518,8 @@
       ans_day: "{units} units/day ({amt}).",
       ans_bill: "About {amt}/month ({day}/day).",
       ans_default: "I can tell you your cost, solar size, biggest consumer, or savings — what would you like to know?",
+      ad_nofixed: "No fixed deadline", ad_price: "Price", ad_warranty: "Warranty", ad_eff: "Efficiency", ad_benefit: "Benefit", ad_deadline: "Deadline", ad_noinfo: "No Information", ad_status: "Status", ad_apply: "How to apply", ad_coming: "Coming soon", ad_open: "Open now", ad_closed: "Expired", ad_counts: "In this app: {schemes} government schemes ({soon} coming soon), {products} products in Smart Energy Search ({acc} of them accessories) and {shop} items in EnergyHub.", ad_acc_head: "Matching accessories:", ad_shop_head: "In EnergyHub right now:", ad_closing_head: "Closing soonest:", ad_no_deadline: "The other schemes have no fixed deadline.",
+      sch_new_head: "Newest schemes right now:", sch_soon_head: "Coming soon (applications not open yet):", sch_live_head: "Schemes open right now:", sch_note: "Check the Govt Schemes page for eligibility, dates and how to apply.",
       real_schemes_line: "Real schemes available right now: {list}.", real_product_line: "Cheapest matching product in EnergyHub right now: {name} — ₹{price}.",
       cat_lead_best: "My top pick — {kind}{budget}:",
       cat_lead_cheap: "Cheapest option — {kind}{budget}:",
@@ -1369,6 +1606,8 @@
       ans_day: "{units} यूनिट/दिन ({amt})।",
       ans_bill: "लगभग {amt}/माह ({day}/दिन)।",
       ans_default: "मैं आपकी लागत, सोलर साइज़, सबसे ज़्यादा खपत करने वाला उपकरण, या बचत बता सकता हूँ — आप क्या जानना चाहेंगे?",
+      ad_nofixed: "कोई तय अंतिम तिथि नहीं", ad_price: "कीमत", ad_warranty: "वारंटी", ad_eff: "दक्षता", ad_benefit: "लाभ", ad_deadline: "अंतिम तिथि", ad_noinfo: "जानकारी उपलब्ध नहीं", ad_status: "स्थिति", ad_apply: "आवेदन कैसे करें", ad_coming: "जल्द आ रहा है", ad_open: "अभी उपलब्ध", ad_closed: "समाप्त", ad_counts: "इस ऐप में: {schemes} सरकारी योजनाएं ({soon} जल्द आ रही), Smart Energy Search में {products} उत्पाद ({acc} सहायक उपकरण) और EnergyHub में {shop} आइटम।", ad_acc_head: "मिलते-जुलते सहायक उपकरण:", ad_shop_head: "अभी EnergyHub में:", ad_closing_head: "जल्द खत्म होने वाली:", ad_no_deadline: "बाकी योजनाओं की कोई तय अंतिम तिथि नहीं है।",
+      sch_new_head: "अभी की नई योजनाएं:", sch_soon_head: "जल्द आ रही हैं (आवेदन अभी शुरू नहीं):", sch_live_head: "अभी उपलब्ध योजनाएं:", sch_note: "पात्रता, तारीख़ें और आवेदन का तरीका Govt Schemes पेज पर देखें।",
       real_schemes_line: "अभी उपलब्ध वास्तविक योजनाएं: {list}।", real_product_line: "EnergyHub में अभी सबसे सस्ता मिलता-जुलता उत्पाद: {name} — ₹{price}।",
       cat_lead_best: "मेरी टॉप पसंद — {kind}{budget}:",
       cat_lead_cheap: "सबसे सस्ता विकल्प — {kind}{budget}:",
@@ -1454,6 +1693,8 @@
       ans_day: "நாளொன்றுக்கு {units} யூனிட் ({amt}).",
       ans_bill: "மாதத்திற்கு சுமார் {amt} (நாளொன்றுக்கு {day}).",
       ans_default: "உங்கள் செலவு, சோலார் அளவு, அதிகம் பயன்படுத்தும் உபகரணம், அல்லது சேமிப்பு பற்றி சொல்ல முடியும் — நீங்கள் என்ன தெரிந்துகொள்ள விரும்புகிறீர்கள்?",
+      ad_nofixed: "நிலையான கடைசி தேதி இல்லை", ad_price: "விலை", ad_warranty: "உத்தரவாதம்", ad_eff: "திறன்", ad_benefit: "பலன்", ad_deadline: "கடைசி தேதி", ad_noinfo: "தகவல் இல்லை", ad_status: "நிலை", ad_apply: "எப்படி விண்ணப்பிப்பது", ad_coming: "விரைவில்", ad_open: "இப்போது கிடைக்கிறது", ad_closed: "காலாவதியானது", ad_counts: "இந்த ஆப்பில்: {schemes} அரசு திட்டங்கள் ({soon} விரைவில்), Smart Energy Search-ல் {products} பொருட்கள் ({acc} துணைக்கருவிகள்), EnergyHub-ல் {shop} பொருட்கள்.", ad_acc_head: "பொருந்தும் துணைக்கருவிகள்:", ad_shop_head: "இப்போது EnergyHub-ல்:", ad_closing_head: "விரைவில் முடிவடைபவை:", ad_no_deadline: "மற்ற திட்டங்களுக்கு நிலையான கடைசி தேதி இல்லை.",
+      sch_new_head: "இப்போதைய புதிய திட்டங்கள்:", sch_soon_head: "விரைவில் வருபவை (விண்ணப்பம் இன்னும் திறக்கவில்லை):", sch_live_head: "இப்போது கிடைக்கும் திட்டங்கள்:", sch_note: "தகுதி, தேதிகள், விண்ணப்ப முறைக்கு Govt Schemes பக்கத்தைப் பாருங்கள்.",
       real_schemes_line: "இப்போது கிடைக்கும் உண்மையான திட்டங்கள்: {list}.", real_product_line: "EnergyHub இல் இப்போது மலிவான பொருத்தமான பொருள்: {name} — ₹{price}.",
       cat_lead_best: "என் சிறந்த தேர்வு — {kind}{budget}:",
       cat_lead_cheap: "மிகக் குறைந்த விலைத் தேர்வு — {kind}{budget}:",
@@ -1539,6 +1780,8 @@
       ans_day: "ದಿನಕ್ಕೆ {units} ಯೂನಿಟ್ ({amt}).",
       ans_bill: "ತಿಂಗಳಿಗೆ ಸುಮಾರು {amt} (ದಿನಕ್ಕೆ {day}).",
       ans_default: "ನಿಮ್ಮ ವೆಚ್ಚ, ಸೋಲಾರ್ ಗಾತ್ರ, ಅತ್ಯಧಿಕ ಬಳಕೆಯ ಉಪಕರಣ, ಅಥವಾ ಉಳಿತಾಯದ ಬಗ್ಗೆ ಹೇಳಬಲ್ಲೆ — ನಿಮಗೆ ಏನು ತಿಳಿದುಕೊಳ್ಳಬೇಕು?",
+      ad_nofixed: "ನಿಗದಿತ ಕೊನೆಯ ದಿನಾಂಕ ಇಲ್ಲ", ad_price: "ಬೆಲೆ", ad_warranty: "ವಾರಂಟಿ", ad_eff: "ದಕ್ಷತೆ", ad_benefit: "ಪ್ರಯೋಜನ", ad_deadline: "ಕೊನೆಯ ದಿನಾಂಕ", ad_noinfo: "ಮಾಹಿತಿ ಇಲ್ಲ", ad_status: "ಸ್ಥಿತಿ", ad_apply: "ಅರ್ಜಿ ಹೇಗೆ", ad_coming: "ಶೀಘ್ರದಲ್ಲೇ", ad_open: "ಈಗ ಲಭ್ಯ", ad_closed: "ಮುಗಿದಿದೆ", ad_counts: "ಈ ಆ್ಯಪ್‌ನಲ್ಲಿ: {schemes} ಸರ್ಕಾರಿ ಯೋಜನೆಗಳು ({soon} ಶೀಘ್ರದಲ್ಲೇ), Smart Energy Searchನಲ್ಲಿ {products} ಉತ್ಪನ್ನಗಳು ({acc} ಪರಿಕರಗಳು), EnergyHubನಲ್ಲಿ {shop} ವಸ್ತುಗಳು.", ad_acc_head: "ಹೊಂದುವ ಪರಿಕರಗಳು:", ad_shop_head: "ಈಗ EnergyHubನಲ್ಲಿ:", ad_closing_head: "ಶೀಘ್ರದಲ್ಲೇ ಮುಗಿಯುವವು:", ad_no_deadline: "ಉಳಿದ ಯೋಜನೆಗಳಿಗೆ ನಿಗದಿತ ಕೊನೆಯ ದಿನಾಂಕ ಇಲ್ಲ.",
+      sch_new_head: "ಈಗಿನ ಹೊಸ ಯೋಜನೆಗಳು:", sch_soon_head: "ಶೀಘ್ರದಲ್ಲೇ ಬರಲಿರುವವು (ಅರ್ಜಿ ಇನ್ನೂ ತೆರೆದಿಲ್ಲ):", sch_live_head: "ಈಗ ಲಭ್ಯವಿರುವ ಯೋಜನೆಗಳು:", sch_note: "ಅರ್ಹತೆ, ದಿನಾಂಕಗಳು, ಅರ್ಜಿ ವಿಧಾನಕ್ಕೆ Govt Schemes ಪುಟ ನೋಡಿ.",
       real_schemes_line: "ಈಗ ಲಭ್ಯವಿರುವ ನೈಜ ಯೋಜನೆಗಳು: {list}.", real_product_line: "EnergyHub ನಲ್ಲಿ ಈಗ ಅಗ್ಗದ ಹೊಂದಾಣಿಕೆಯ ಉತ್ಪನ್ನ: {name} — ₹{price}.",
       cat_lead_best: "ನನ್ನ ಉತ್ತಮ ಆಯ್ಕೆ — {kind}{budget}:",
       cat_lead_cheap: "ಅತಿ ಅಗ್ಗದ ಆಯ್ಕೆ — {kind}{budget}:",
@@ -1624,6 +1867,8 @@
       ans_day: "రోజుకు {units} యూనిట్లు ({amt}).",
       ans_bill: "నెలకు సుమారు {amt} (రోజుకు {day}).",
       ans_default: "మీ ఖర్చు, సోలార్ సైజు, ఎక్కువ వాడే ఉపకరణం లేదా పొదుపు గురించి చెప్పగలను — మీకు ఏం తెలుసుకోవాలి?",
+      ad_nofixed: "స్థిర చివరి తేదీ లేదు", ad_price: "ధర", ad_warranty: "వారంటీ", ad_eff: "సామర్థ్యం", ad_benefit: "ప్రయోజనం", ad_deadline: "చివరి తేదీ", ad_noinfo: "సమాచారం లేదు", ad_status: "స్థితి", ad_apply: "ఎలా దరఖాస్తు చేయాలి", ad_coming: "త్వరలో", ad_open: "ఇప్పుడు అందుబాటులో", ad_closed: "ముగిసింది", ad_counts: "ఈ యాప్‌లో: {schemes} ప్రభుత్వ పథకాలు ({soon} త్వరలో), Smart Energy Searchలో {products} ఉత్పత్తులు ({acc} ఉపకరణాలు), EnergyHubలో {shop} వస్తువులు.", ad_acc_head: "సరిపోయే ఉపకరణాలు:", ad_shop_head: "ప్రస్తుతం EnergyHubలో:", ad_closing_head: "త్వరలో ముగిసేవి:", ad_no_deadline: "మిగతా పథకాలకు స్థిర చివరి తేదీ లేదు.",
+      sch_new_head: "ప్రస్తుత కొత్త పథకాలు:", sch_soon_head: "త్వరలో రానున్నవి (దరఖాస్తులు ఇంకా తెరవలేదు):", sch_live_head: "ప్రస్తుతం అందుబాటులో ఉన్న పథకాలు:", sch_note: "అర్హత, తేదీలు, దరఖాస్తు విధానం కోసం Govt Schemes పేజీ చూడండి.",
       real_schemes_line: "ఇప్పుడు అందుబాటులో ఉన్న నిజమైన పథకాలు: {list}.", real_product_line: "EnergyHubలో ఇప్పుడు చౌకైన సరిపోలే ఉత్పత్తి: {name} — ₹{price}.",
       cat_lead_best: "నా ఉత్తమ ఎంపిక — {kind}{budget}:",
       cat_lead_cheap: "అత్యంత చౌకైన ఎంపిక — {kind}{budget}:",
