@@ -953,7 +953,7 @@
   // placeholder while data is still in flight.
   function emberRealSchemeLine(){
     var schemes = (window.GM_realSchemes || []).filter(function(s){
-      return s.cat && (s.cat.indexOf("solar") !== -1 || s.cat.indexOf("central") !== -1);
+      return !s.comingSoon && s.cat && (s.cat.indexOf("solar") !== -1 || s.cat.indexOf("central") !== -1);
     });
     if (!schemes.length) return "";
     var names = schemes.slice(0, 2).map(function(s){ return s.title; });
