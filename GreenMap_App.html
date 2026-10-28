@@ -4,6 +4,14 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
 <title>GreenMap AI</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#06431f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GreenMap">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;}
   html,body{height:100%;overflow-x:hidden;width:100%;}
@@ -3634,6 +3642,53 @@ emberMarkActive();
   new MutationObserver(function(muts){
     muts.forEach(function(m){ m.addedNodes.forEach(function(n){ if (n.nodeType === 1) scan(n); }); });
   }).observe(document.body, { childList: true, subtree: true });
+})();
+</script>
+<script id="gmPwaJs">
+/* PWA: registers the service worker so the app installs and opens offline */
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+</script>
+<style id="gmInstallCss">
+  #gmInstallPill{position:fixed;left:12px;bottom:14px;z-index:60;display:none;align-items:center;gap:4px;background:#06431f;color:#fff;border:1.5px solid rgba(242,218,68,.7);border-radius:24px;padding:4px 4px 4px 14px;font:700 13px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;box-shadow:0 6px 18px rgba(0,0,0,.28);}
+  #gmInstallPill.show{display:flex;}
+  #gmInstallPill button{font:inherit;border:none;cursor:pointer;}
+  #gmInstallPill .go{background:#f2da44;color:#06431f;border-radius:18px;padding:7px 14px;}
+  #gmInstallPill .x{background:transparent;color:#fff;width:28px;height:28px;border-radius:50%;font-size:15px;line-height:1;}
+</style>
+<script id="gmInstallJs">
+/* Shows a small "Install app" pill in the browser (never inside the installed app) */
+(function(){
+  var deferred=null, KEY='gm_install_dismissed';
+  function installed(){
+    try{ if(window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true) return true; }catch(e){}
+    return /^android-app:\/\//.test(document.referrer||'');
+  }
+  function pill(){
+    var p=document.getElementById('gmInstallPill');
+    if(p) return p;
+    p=document.createElement('div'); p.id='gmInstallPill';
+    p.innerHTML='<span>Install GreenMap app</span><button class="go" type="button">Install</button><button class="x" type="button" aria-label="Close">&#x2715;</button>';
+    p.querySelector('.go').onclick=function(){
+      if(!deferred) return;
+      deferred.prompt();
+      deferred.userChoice.then(function(){ deferred=null; p.classList.remove('show'); }).catch(function(){});
+    };
+    p.querySelector('.x').onclick=function(){
+      p.classList.remove('show');
+      try{ localStorage.setItem(KEY,'1'); }catch(e){}
+    };
+    document.body.appendChild(p);
+    return p;
+  }
+  window.addEventListener('beforeinstallprompt',function(e){
+    e.preventDefault(); deferred=e;
+    if(installed()) return;
+    try{ if(localStorage.getItem(KEY)) return; }catch(err){}
+    setTimeout(function(){ if(deferred) pill().classList.add('show'); },4000);
+  });
+  window.addEventListener('appinstalled',function(){
+    deferred=null; var p=document.getElementById('gmInstallPill'); if(p) p.classList.remove('show');
+  });
 })();
 </script>
 </body>

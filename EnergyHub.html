@@ -4,6 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EnergyHub Local Market</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#28391a">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="EnergyHub">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <style>
   :root{
@@ -5332,6 +5340,10 @@ import { getFirestore, collection, query, where, getDocs, doc, setDoc, Timestamp
     muts.forEach(function(m){ m.addedNodes.forEach(function(n){ if (n.nodeType === 1) scan(n); }); });
   }).observe(document.body, { childList: true, subtree: true });
 })();
+</script>
+<script id="gmPwaJs">
+/* PWA: registers the service worker so the app installs and opens offline */
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
 </script>
 </body>
 </html>
