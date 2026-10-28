@@ -439,6 +439,11 @@
   .leaflet-marker-icon{animation:gmPinIn .6s ease backwards;}
 }
 </style>
+<meta name="copyright" content="© 2026 GreenMap AI. All rights reserved. Team 13, Annamacharya University.">
+<style id="gmCopyrightCss">
+.gm-copyright{padding:14px 16px 18px;margin-top:10px;border-top:1px solid rgba(0,0,0,.09);font-size:11px;line-height:1.55;color:#6b7d73;text-align:center;}
+.gm-copyright b{color:#4d6358;}
+</style>
 </head>
 <body>
 
@@ -535,6 +540,7 @@
   <button class="menu-item" id="menuTopMarketsBtn" type="button">📈 Top Markets</button>
   <button class="menu-item" id="menuTopProductsBtn" type="button">📈 Top Products</button>
   <button class="menu-item" id="menuTrendingBtn" type="button">🔥 Trending</button>
+<div class="gm-copyright">© 2026 GreenMap AI. All rights reserved.<br>Team 13 · Annamacharya University<br>Product names, brands and logos belong to their respective owners.</div>
 </div>
 
 <div id="mapWrap">
@@ -5100,6 +5106,231 @@ import { getFirestore, collection, query, where, getDocs, doc, setDoc, Timestamp
   document.addEventListener("visibilitychange", function(){ if (document.hidden) stopActive(); });
 
   attach("mainSearchInput", { variant: "flex", color: "var(--textMuted)" });
+})();
+</script>
+<style id="gmMotionCss2">
+/* Motion kit v2: extra micro-animations on every page. Everything sits inside
+   no-preference, so people who turn animations off see none of it. */
+@media (prefers-reduced-motion: no-preference){
+  @keyframes gmGlow{0%,100%{filter:drop-shadow(0 0 0 rgba(90,190,120,0));}50%{filter:drop-shadow(0 0 7px rgba(90,190,120,.6));}}
+  @keyframes gmSoonGlow{0%,100%{box-shadow:0 0 0 0 rgba(224,160,30,.5);}50%{box-shadow:0 0 0 7px rgba(224,160,30,0);}}
+  @keyframes gmSlideL{from{opacity:0;transform:translateX(-22px);}}
+  @keyframes gmGrow{from{transform:scaleX(0);}}
+  @keyframes gmBlink{0%,100%{opacity:1;}50%{opacity:.45;}}
+  @keyframes gmWiggle{0%,100%{transform:rotate(0);}25%{transform:rotate(-9deg);}75%{transform:rotate(9deg);}}
+  @keyframes gmBump{0%{transform:scale(1);}40%{transform:scale(1.16);}100%{transform:scale(1);}}
+  @keyframes gmSpringPop{from{opacity:0;transform:scale(.72);}}
+  @keyframes gmMsgIn{from{opacity:0;transform:translateY(10px) scale(.96);}}
+
+  html{scroll-behavior:smooth;}
+
+  /* tap + hover feedback on buttons, chips and cards */
+  .btn-primary,.btn-compare,.btn-add-cart,.sort-option,.type-toggle,.cat-pill,.district-chip,.recent-chip,.history-chip,.history-chip-ses,.notify-btn,.trust-btn,.reset-btn,.filter-reset-btn,.menu-item,.menu-item-primary,.pay-btn-primary,.pay-btn-secondary,.save-btn,.addr-type-btn,.msa-btn,.layer-toggle-btn,.pc-add-cart,.web-search-link,.live-variant,.serp-variant,.ember-chip,.agent-chip,.agent-icon-btn,.ember-modal-ok,.ember-modal-cancel,.gp-allow,.gp-later,.icon-btn,.menu-btn,.back-btn,.bell-btn,.notif-close,.close-btn,.sheet-close,.detail-close,.sheet-close-btn,.cart-step-btn,.option-card,.settings-item,.pb-continue,.pb-locate,.pb-cancel,.psc-add,.psc-skip,.follow-btn,.write-review-btn,.stock-notify-btn{transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .22s ease,filter .2s ease,background-color .2s ease,color .2s ease,border-color .2s ease;-webkit-tap-highlight-color:transparent;}
+  .btn-primary:active,.btn-compare:active,.btn-add-cart:active,.sort-option:active,.type-toggle:active,.notify-btn:active,.trust-btn:active,.reset-btn:active,.filter-reset-btn:active,.pay-btn-primary:active,.pay-btn-secondary:active,.save-btn:active,.addr-type-btn:active,.msa-btn:active,.layer-toggle-btn:active,.pc-add-cart:active,.web-search-link:active,.live-variant:active,.serp-variant:active,.ember-chip:active,.agent-chip:active,.ember-modal-ok:active,.ember-modal-cancel:active,.gp-allow:active,.gp-later:active,.pb-continue:active,.pb-locate:active,.pb-cancel:active,.psc-add:active,.psc-skip:active,.follow-btn:active,.write-review-btn:active,.stock-notify-btn:active,.option-card:active{transform:scale(.95);filter:brightness(.95);}
+  .icon-btn:active,.menu-btn:active,.back-btn:active,.bell-btn:active,.notif-close:active,.close-btn:active,.sheet-close:active,.detail-close:active,.sheet-close-btn:active,.cart-step-btn:active,.agent-icon-btn:active{transform:scale(.88);}
+  @media (hover:hover){
+    .btn-primary:hover,.pay-btn-primary:hover,.save-btn:hover,.btn-add-cart:hover{filter:brightness(1.08);box-shadow:0 6px 16px rgba(30,100,60,.28);}
+    .cat-pill:hover,.district-chip:hover,.recent-chip:hover,.history-chip:hover,.history-chip-ses:hover,.sort-option:hover{transform:translateY(-2px);}
+    .icon-btn:hover,.menu-btn:hover,.bell-btn:hover,.back-btn:hover{filter:brightness(1.12);}
+  }
+
+  /* inputs and search */
+  input,select,textarea{transition:border-color .2s ease,box-shadow .25s ease,background-color .2s ease;}
+  input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(61,153,102,.22);}
+  .search-wrap{transition:box-shadow .25s ease,transform .25s ease;}
+  .search-wrap:focus-within{box-shadow:0 0 0 3px rgba(120,200,150,.35);transform:translateY(-1px);}
+  .search-wrap:focus-within svg{animation:gmBump .45s ease;}
+
+  /* headers: bar fades in, buttons spring in, logo breathes */
+  .header,.topbar{animation:gmFadeIn .5s ease backwards;}
+  .menu-btn,.back-btn,.profile-group,.avatar{animation:gmSpringPop .55s cubic-bezier(.34,1.56,.64,1) backwards;}
+  .bell-btn{animation:gmSpringPop .55s .12s cubic-bezier(.34,1.56,.64,1) backwards;}
+  .logo-icon-img,.logo-icon-img-sm,.logo-word-img,.logo-word-img-sm,.logo-icon-slot,.about-logo-row{animation:gmGlow 5.5s 1.2s ease-in-out infinite;}
+  .avatar,.menu-avatar,.user-avatar{transition:transform .25s ease;}
+  @media (hover:hover){.avatar:hover,.menu-avatar:hover,.user-avatar:hover{transform:rotate(-6deg) scale(1.06);}}
+
+  /* home screen details */
+  .greeting{animation:gmSlideL .7s .15s cubic-bezier(.2,.8,.2,1) backwards;}
+  .greeting-sub{animation:gmFadeIn .8s .35s ease backwards;}
+  .loc-temp-pill{animation:gmSpringPop .6s .5s cubic-bezier(.34,1.56,.64,1) backwards;}
+  .footer,.credit{animation:gmFadeIn 1s .6s ease backwards;}
+  .option-card:active .option-card-icon{animation:gmWiggle .5s ease;}
+  .settings-item{transition:background-color .2s ease;}
+  .lang-check{animation:gmSpringPop .35s ease;}
+
+  /* side menus: rows slide in one by one when the menu opens */
+  .menu-panel.open .menu-items > *,.side-menu.show .menu-item,.side-menu.show .menu-item-primary,.menu-panel.open .menu-profile{animation:gmSlideL .42s cubic-bezier(.2,.8,.2,1) backwards;}
+  .menu-panel.open .menu-items > *:nth-child(1){animation-delay:0.06s;}
+  .menu-panel.open .menu-items > *:nth-child(2){animation-delay:0.11s;}
+  .menu-panel.open .menu-items > *:nth-child(3){animation-delay:0.16s;}
+  .menu-panel.open .menu-items > *:nth-child(4){animation-delay:0.21s;}
+  .menu-panel.open .menu-items > *:nth-child(5){animation-delay:0.26s;}
+  .menu-panel.open .menu-items > *:nth-child(6){animation-delay:0.31s;}
+  .menu-panel.open .menu-items > *:nth-child(7){animation-delay:0.36s;}
+  .menu-panel.open .menu-items > *:nth-child(8){animation-delay:0.41s;}
+  .side-menu.show .side-menu-head{animation:gmFadeIn .45s ease backwards;}
+
+  /* About panel */
+  .notif-panel.open .about-section-title{animation:gmSlideL .5s cubic-bezier(.2,.8,.2,1) backwards;}
+  .notif-panel.open .about-text{animation:gmFadeIn .7s .15s ease backwards;}
+  .notif-panel.open .about-app-name{animation:gmFloat 4s ease-in-out infinite;}
+  .notif-panel.open .about-dmaic span{animation:gmSpringPop .5s cubic-bezier(.34,1.56,.64,1) backwards;}
+  .notif-panel.open .about-dmaic span:nth-child(1){animation-delay:0.35s;}
+  .notif-panel.open .about-dmaic span:nth-child(2){animation-delay:0.45s;}
+  .notif-panel.open .about-dmaic span:nth-child(3){animation-delay:0.55s;}
+  .notif-panel.open .about-dmaic span:nth-child(4){animation-delay:0.65s;}
+  .notif-panel.open .about-dmaic span:nth-child(5){animation-delay:0.75s;}
+
+  /* filter sidebar, sections, checkboxes */
+  .cb-box{transition:background-color .2s ease,border-color .2s ease,transform .2s ease;}
+  .cb-box.checked{animation:gmSpringPop .35s ease;}
+  .cb-row{transition:background-color .18s ease,transform .18s ease;}
+  .cb-row:active{transform:translateX(3px);}
+  .chev{transition:transform .28s cubic-bezier(.2,.8,.2,1);}
+  .section-body{animation:gmRise .38s cubic-bezier(.2,.8,.2,1) backwards;}
+
+  /* product + scheme cards: icon pops, extra info fades in after the card */
+  .gm-in .card-icon-box,.gm-in .scheme-thumb{animation:gmSpringPop .6s .12s cubic-bezier(.34,1.56,.64,1) backwards;}
+  .gm-in .best-for,.gm-in .proscons,.gm-in .card-actions{animation:gmFadeIn .6s .25s ease backwards;}
+  .gm-in .rating-item svg{animation:gmSpringPop .4s .2s ease backwards;}
+  .card:active .card-icon-box svg,.scheme-card:active .scheme-thumb svg{animation:gmWiggle .5s ease;}
+
+  /* detail sheets: content rises in one block after another */
+  .detail-inner > *:nth-child(-n+8),.detail-body > *:nth-child(-n+8),.sheet-body > *:nth-child(-n+8){animation:gmRise .5s cubic-bezier(.2,.8,.2,1) backwards;}
+  .detail-inner > *:nth-child(2),.detail-body > *:nth-child(2),.sheet-body > *:nth-child(2){animation-delay:0.06s;}
+  .detail-inner > *:nth-child(3),.detail-body > *:nth-child(3),.sheet-body > *:nth-child(3){animation-delay:0.12s;}
+  .detail-inner > *:nth-child(4),.detail-body > *:nth-child(4),.sheet-body > *:nth-child(4){animation-delay:0.18s;}
+  .detail-inner > *:nth-child(5),.detail-body > *:nth-child(5),.sheet-body > *:nth-child(5){animation-delay:0.24s;}
+  .detail-inner > *:nth-child(6),.detail-body > *:nth-child(6),.sheet-body > *:nth-child(6){animation-delay:0.30s;}
+  .detail-inner > *:nth-child(7),.detail-body > *:nth-child(7),.sheet-body > *:nth-child(7){animation-delay:0.36s;}
+  .detail-inner > *:nth-child(8),.detail-body > *:nth-child(8),.sheet-body > *:nth-child(8){animation-delay:0.42s;}
+  .spec-row{animation:gmSlideIn .4s ease backwards;}
+  .spec-row:nth-child(2){animation-delay:0.08s;}
+  .spec-row:nth-child(3){animation-delay:0.13s;}
+  .spec-row:nth-child(4){animation-delay:0.18s;}
+  .spec-row:nth-child(5){animation-delay:0.23s;}
+  .spec-row:nth-child(6){animation-delay:0.28s;}
+  .spec-row:nth-child(7){animation-delay:0.33s;}
+  .spec-row:nth-child(8){animation-delay:0.38s;}
+  .pc-item{animation:gmSlideIn .4s ease backwards;}
+  .pc-item:nth-child(2){animation-delay:0.10s;}
+  .pc-item:nth-child(3){animation-delay:0.17s;}
+  .pc-item:nth-child(4){animation-delay:0.24s;}
+  .pc-item:nth-child(5){animation-delay:0.31s;}
+  .pc-item:nth-child(6){animation-delay:0.38s;}
+  .detail-icon,.detail-thumb,.detail-hero,.detail-price-badge,.pill,.trust-badge{animation:gmSpringPop .55s .15s cubic-bezier(.34,1.56,.64,1) backwards;}
+  .box{animation:gmRise .5s cubic-bezier(.2,.8,.2,1) backwards;}
+
+  /* Coming Soon, NEW and notify details (Govt Schemes) */
+  .countdown-badge.coming-tag{animation:gmSpringPop .5s .25s backwards,gmSoonGlow 2.6s 1s ease-in-out infinite;}
+  .soon-head{animation:gmSlideL .5s cubic-bezier(.2,.8,.2,1) backwards;}
+  .soon-head .count-pill{animation:gmSpringPop .5s .3s cubic-bezier(.34,1.56,.64,1) backwards;}
+  .soon-note{animation:gmFadeIn .6s .15s ease backwards;}
+  .new-tag{animation:gmSpringPop .5s .3s backwards,gmBlink 2.4s 1s ease-in-out infinite;}
+  .expired-section.open{animation:gmRise .35s ease;}
+  .notify-btn.subscribed{animation:gmBump .5s ease;}
+  .cat-pill.active{animation:gmBump .35s ease;}
+
+  /* toasts, banners, empty + loading states (opacity only, so fixed positions are not disturbed) */
+  .cart-toast,.order-toast,.pin-banner,.banner-note{animation:gmFadeIn .45s ease backwards;}
+  .cart-toast-check{animation:gmSpringPop .5s .2s backwards;}
+  .empty-state,.notif-empty,.no-products,.no-orders,.no-reviews,.cart-empty,.my-notify-empty,.empty-panel,.address-empty{animation:gmFadeIn .6s ease backwards;}
+  .empty-state svg,.notif-empty svg,.empty-panel svg,.cart-empty svg{animation:gmFloat 3.6s ease-in-out infinite;}
+  .live-loading,.loading-overlay > *{animation:gmBlink 1.4s ease-in-out infinite;}
+
+  /* maps, stats, shop details */
+  .map-frame{animation:gmRise .7s .1s cubic-bezier(.2,.8,.2,1) backwards;}
+  .map-note,.demo-note,.footer-note,.disclaimer{animation:gmFadeIn .8s .3s ease backwards;}
+  .leaflet-popup-content-wrapper{animation:gmFadeIn .3s ease;}
+  .stat-card .stat-value,.stat-row > *{animation:gmFadeIn .7s .2s ease backwards;}
+  .rank-number,.rank-thumb,.pay-icon,.menu-shop-icon{animation:gmSpringPop .5s .1s cubic-bezier(.34,1.56,.64,1) backwards;}
+  .menu-item-badge{animation:gmBump 2.4s ease-in-out infinite;}
+  .rv-stars{animation:gmFadeIn .6s ease backwards;}
+
+  /* EMBER chat: bubbles pop in, chips spring in, bars grow */
+  .agent-msg{animation:gmMsgIn .38s cubic-bezier(.2,.8,.2,1) backwards;}
+  .agent-msg.user{transform-origin:100% 100%;}
+  .agent-msg.bot{transform-origin:0 100%;}
+  .agent-chip,.ember-chip{animation:gmSpringPop .4s cubic-bezier(.34,1.56,.64,1) backwards;}
+  .agent-chip-row .agent-chip:nth-child(2){animation-delay:0.08s;}
+  .agent-chip-row .agent-chip:nth-child(3){animation-delay:0.14s;}
+  .agent-chip-row .agent-chip:nth-child(4){animation-delay:0.20s;}
+  .agent-chip-row .agent-chip:nth-child(5){animation-delay:0.26s;}
+  .agent-chip-row .agent-chip:nth-child(6){animation-delay:0.32s;}
+  .agent-bar-row{animation:gmSlideL .45s ease backwards;}
+  .agent-bar-fill{transform-origin:0 50%;animation:gmGrow .9s .15s cubic-bezier(.2,.8,.2,1) backwards;}
+  .agent-chart-summary,.agent-chart-note{animation:gmFadeIn .6s .5s ease backwards;}
+
+  /* small-detail reveal (added by the page script) */
+  .gm-rv2{opacity:0;}
+  .gm-rv2.gm-in2{opacity:1;animation:gmSpringPop .5s cubic-bezier(.34,1.56,.64,1) var(--gmd2,0ms) backwards;}
+}
+</style>
+<script id="gmMotionJs2">
+// Motion kit v2 (page script): small items spring in as they scroll into view, and key
+// numbers (scores, prices, stats) count up once when they first appear.
+(function(){
+  if (!("IntersectionObserver" in window) || !("MutationObserver" in window)) return;
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  var REVEAL = ".loc-chip,.addr-type-btn";
+  var COUNT = ".score-badge,.pill,.detail-price,.stat-value,.rank-metric";
+
+  function countUp(el){
+    if (el.children.length) return;
+    var txt = el.textContent || "";
+    if (!txt || /No Information/i.test(txt)) return;
+    var m = /(\d[\d,]*\.?\d*)/.exec(txt); if (!m) return;
+    var raw = m[1], target = parseFloat(raw.replace(/,/g, ""));
+    if (!isFinite(target) || target === 0) return;
+    var dec = (raw.split(".")[1] || "").length, comma = raw.indexOf(",") !== -1;
+    var pre = txt.slice(0, m.index), post = txt.slice(m.index + raw.length);
+    function fmt(v){
+      return comma ? v.toLocaleString("en-IN", { minimumFractionDigits: dec, maximumFractionDigits: dec })
+                   : (dec ? v.toFixed(dec) : String(Math.round(v)));
+    }
+    var t0 = null, dur = 700;
+    function step(ts){
+      if (!el.isConnected) return;
+      if (t0 === null) t0 = ts;
+      var p = Math.min(1, (ts - t0) / dur), ease = 1 - Math.pow(1 - p, 3);
+      if (p < 1){ el.textContent = pre + fmt(target * ease) + post; requestAnimationFrame(step); }
+      else { el.textContent = txt; }
+    }
+    requestAnimationFrame(step);
+  }
+
+  var io = new IntersectionObserver(function(entries){
+    var i = 0;
+    entries.forEach(function(e){
+      if (!e.isIntersecting) return;
+      var el = e.target; io.unobserve(el);
+      if (el.getAttribute("data-gmc") === "1") countUp(el);
+      if (el.classList.contains("gm-rv2")){
+        el.style.setProperty("--gmd2", Math.min(i, 8) * 45 + "ms"); i++;
+        el.classList.add("gm-in2");
+      }
+    });
+  }, { threshold: 0.08 });
+
+  function prep(el, kind){
+    if (el.getAttribute("data-gmm2")) return;
+    el.setAttribute("data-gmm2", "1");
+    if (kind === "count") el.setAttribute("data-gmc", "1");
+    else el.classList.add("gm-rv2");
+    io.observe(el);
+  }
+  function scan(root){
+    try {
+      if (REVEAL && root.matches && root.matches(REVEAL)) prep(root, "reveal");
+      if (REVEAL && root.querySelectorAll) root.querySelectorAll(REVEAL).forEach(function(n){ prep(n, "reveal"); });
+      if (root.matches && root.matches(COUNT)) prep(root, "count");
+      if (root.querySelectorAll) root.querySelectorAll(COUNT).forEach(function(n){ prep(n, "count"); });
+    } catch (e){}
+  }
+  scan(document.body);
+  new MutationObserver(function(muts){
+    muts.forEach(function(m){ m.addedNodes.forEach(function(n){ if (n.nodeType === 1) scan(n); }); });
+  }).observe(document.body, { childList: true, subtree: true });
 })();
 </script>
 </body>
