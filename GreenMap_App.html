@@ -364,6 +364,24 @@
 .gm-copyright{padding:14px 16px 18px;margin-top:10px;border-top:1px solid rgba(0,0,0,.09);font-size:11px;line-height:1.55;color:#6b7d73;text-align:center;}
 .gm-copyright b{color:#4d6358;}
 </style>
+<style id="emberCalcCss">
+  /* EMBER calculator cards: pop-in number, sliding lines, bouncing "thinking" dots */
+  .emc-card{min-width:210px;}
+  .emc-head{font-weight:800;font-size:12px;letter-spacing:.3px;opacity:.8;margin-bottom:4px;}
+  .emc-big{font-size:28px;font-weight:800;line-height:1.1;color:#1e7846;animation:emcPop .5s cubic-bezier(.2,1.2,.3,1) both;}
+  .emc-unit{font-size:13px;font-weight:700;opacity:.75;}
+  .emc-lines{margin-top:6px;border-top:1px dashed rgba(30,120,70,.35);padding-top:6px;}
+  .emc-line{font-size:12.5px;line-height:1.45;margin-bottom:3px;opacity:0;animation:emcSlide .4s ease-out forwards;}
+  .emc-tip{margin-top:6px;font-size:11.5px;line-height:1.4;opacity:.7;}
+  .emc-typing{display:inline-flex;gap:4px;padding:3px 2px;}
+  .emc-typing i{width:7px;height:7px;border-radius:50%;background:#1e7846;opacity:.35;animation:emcDot 1s infinite;}
+  .emc-typing i:nth-child(2){animation-delay:.15s;}
+  .emc-typing i:nth-child(3){animation-delay:.3s;}
+  @keyframes emcPop{0%{transform:scale(.6);opacity:0;}100%{transform:none;opacity:1;}}
+  @keyframes emcSlide{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:none;}}
+  @keyframes emcDot{0%,80%,100%{transform:translateY(0);opacity:.35;}40%{transform:translateY(-5px);opacity:1;}}
+  @media (prefers-reduced-motion:reduce){.emc-big,.emc-line,.emc-typing i{animation:none!important;}.emc-line{opacity:1;}}
+</style>
 </head>
 <body>
 
@@ -682,7 +700,7 @@
       var body = document.getElementById("agentChatBody");
       if (!body) return;
       localStorage.setItem(EMBER_CHAT_KEY, JSON.stringify({
-        html: body.innerHTML, items: agentState.items, ts: Date.now()
+        html: body.innerHTML.replace(/<div class="agent-msg bot emc-typing-msg">[\s\S]*?<\/i><\/span><\/div>/g, ""), items: agentState.items, ts: Date.now()
       }));
     }catch(e){}
   }
@@ -1521,6 +1539,452 @@
     return false;
   }
 
+  // ============= EMBER: maths + energy calculators + extra Q&A (added 2026-10-28) =============
+  // Plain JavaScript that runs on the phone: no network, no eval. Three parts:
+  //   1. emcMath   - a safe calculator for typed sums ("15% of 2400", "(12+8)*3", "sqrt 144")
+  //   2. emcEnergy - energy formulas (consumption, bill, solar size, payback, subsidy, battery, wind...)
+  //   3. EMC_KB    - extra question-and-answer entries. TO TEACH EMBER MORE: add a line to EMC_KB.
+  var EMC_RATE = AGENT_DEFAULT_RATE;            // Rs per unit when the person gives none
+  var EMC_YIELD = AGENT_UNITS_PER_KW_PER_DAY;   // units per kW per day (typical Andhra Pradesh)
+  var EMC_CO2 = 0.82;                           // kg CO2 per kWh, approximate Indian grid average
+
+  function emcFmt(n, dec){
+    if (!isFinite(n)) return String(n);
+    if (dec == null){ var a = Math.abs(n); dec = a >= 1000 ? 0 : a >= 100 ? 1 : a >= 1 ? 2 : 4; }
+    try{ return n.toLocaleString("en-IN", { maximumFractionDigits: dec }); }
+    catch(e){ var k = Math.pow(10, dec); return String(Math.round(n * k) / k); }
+  }
+  function emcRs(n){ return "\u20B9" + emcFmt(n, 0); }
+  function emcMoney(str, mult){
+    var n = parseFloat(str), m = (mult || "").toLowerCase();
+    if (/^(lakhs?|lacs?|l)$/.test(m)) n *= 100000;
+    else if (/^(k|thousand)$/.test(m)) n *= 1000;
+    else if (/^(crores?|cr)$/.test(m)) n *= 10000000;
+    return n;
+  }
+  var EMC_MONEY = "(\\d[\\d.]*)\\s*(lakhs?|lacs?|k|thousand|crores?|cr)?\\b";
+
+  // ---- result card (big number counts up; lines slide in) ----
+  // big = { val, dec, pre, txt }  -> txt is the final text shown
+  function emcCard(head, big, unit, lines, tip){
+    var h = '<div class="emc-card"><div class="emc-head">\uD83E\uDDEE ' + head + '</div>';
+    if (big){
+      h += '<div class="emc-big"><span class="emc-num"' +
+        (big.val != null ? ' data-to="' + big.val + '" data-dec="' + (big.dec || 0) + '" data-pre="' + (big.pre || "") + '"' : "") +
+        '>' + big.txt + '</span><span class="emc-unit"> ' + unit + '</span></div>';
+    }
+    if (lines && lines.length){
+      h += '<div class="emc-lines">' + lines.map(function(l, i){
+        return '<div class="emc-line" style="animation-delay:' + (300 + i * 110) + 'ms">' + l + '</div>';
+      }).join("") + '</div>';
+    }
+    if (tip) h += '<div class="emc-tip">' + tip + '</div>';
+    return h + '</div>';
+  }
+  function emcBigNum(v, pre, dec){
+    if (dec == null) dec = Math.abs(v) >= 1000 ? 0 : Math.abs(v) >= 100 ? 1 : 2;
+    return { val: v, dec: dec, pre: pre || "", txt: (pre || "") + emcFmt(v, dec) };
+  }
+
+  var EMC_EX = ["1500 w for 6 hours", "solar size for bill 3000", "subsidy for 3 kw", "3 kw solar generate", "15% of 2400",
+    "12v 100ah battery 300 w load", "payback cost 180000 subsidy 78000 saving 2000 per month",
+    "wind radius 1.5 m speed 6 m/s", "bill for 200 units", "co2 for 300 units", "how many panels for 3 kw"];
+  function emcChips(list){
+    var pool = list || EMC_EX.slice().sort(function(){ return Math.random() - 0.5; }).slice(0, 3);
+    return '<div class="ember-sug">' + pool.map(function(t){
+      return '<button class="ember-chip" onclick="emberAsk(\'' + t + '\')">' + t + '</button>';
+    }).join("") + '</div>';
+  }
+
+  // ---- 1. maths ----
+  function emcPrep(q){
+    var s = " " + q.toLowerCase() + " ";
+    s = s.replace(/\u20B9/g, " ").replace(/\brs\.?\s*(?=\d)/g, " ");
+    for (var i = 0; i < 3; i++) s = s.replace(/(\d),(\d{3})(?!\d)/g, "$1$2");
+    s = s.replace(/[\u00D7\u2715]/g, "*").replace(/\u00F7/g, "/").replace(/\*\*/g, "^");
+    s = s.replace(/(\d+(?:\.\d+)?)\s*(?:%|percent|per cent)\s*of\s*/g, "($1/100)*");
+    s = s.replace(/square root of\s*/g, "sqrt ").replace(/\bsquared\b/g, "^2").replace(/\bcubed\b/g, "^3");
+    s = s.replace(/\bto the power(?: of)?\b|\braised to\b/g, "^");
+    s = s.replace(/\bmultiplied by\b|\btimes\b|\binto\b/g, "*").replace(/\bdivided by\b|\bover\b/g, "/");
+    s = s.replace(/\bplus\b/g, "+").replace(/\bminus\b/g, "-");
+    for (var j = 0; j < 3; j++) s = s.replace(/(\d)\s*x\s*(\d)/g, "$1*$2");
+    s = s.trim().replace(/^(?:(?:what is|what's|whats|calculate|calc|compute|solve|evaluate|find|tell me|how much is|how much|can you|could you|please|ember|the value of|answer)\s+)+/, "");
+    return s.replace(/[=?.!\s]+$/, "").replace(/^=\s*/, "").trim();
+  }
+  function emcTokens(s){
+    var t = [], rest = s, m;
+    while (rest.length){
+      rest = rest.replace(/^\s+/, "");
+      if (!rest) break;
+      if ((m = /^(\d+(?:\.\d+)?|\.\d+)/.exec(rest))) t.push({ n: parseFloat(m[1]) });
+      else if ((m = /^(sqrt|pi)\b/.exec(rest))) t.push({ f: m[1] });
+      else if ((m = /^[+\-*\/^()%]/.exec(rest))) t.push({ o: m[0] });
+      else return null;
+      rest = rest.slice(m[0].length);
+    }
+    return t;
+  }
+  function emcParse(t){
+    var p = 0;
+    function isOp(c){ return t[p] && t[p].o === c; }
+    function expr(){
+      var v = term();
+      while (isOp("+") || isOp("-")){ var o = t[p++].o; var r = term(); v = o === "+" ? v + r : v - r; }
+      return v;
+    }
+    function term(){
+      var v = power();
+      for (;;){
+        if (isOp("*") || isOp("/")){
+          var o = t[p++].o, r = power();
+          if (o === "/" && r === 0) throw new Error("div0");
+          v = o === "*" ? v * r : v / r;
+        } else if (t[p] && (t[p].f || isOp("("))){ v = v * power(); }
+        else break;
+      }
+      return v;
+    }
+    function power(){ var b = unary(); if (isOp("^")){ p++; return Math.pow(b, power()); } return b; }
+    function unary(){
+      if (isOp("-")){ p++; return -unary(); }
+      if (isOp("+")){ p++; return unary(); }
+      var v = primary();
+      while (isOp("%")){ p++; v = v / 100; }
+      return v;
+    }
+    function primary(){
+      var x = t[p++];
+      if (!x) throw new Error("end");
+      if (x.n !== undefined) return x.n;
+      if (x.f === "pi") return Math.PI;
+      if (x.f === "sqrt"){ var a = unary(); if (a < 0) throw new Error("neg"); return Math.sqrt(a); }
+      if (x.o === "("){ var v = expr(); if (!isOp(")")) throw new Error("paren"); p++; return v; }
+      throw new Error("tok");
+    }
+    var v = expr();
+    if (p !== t.length) throw new Error("trail");
+    return v;
+  }
+  function emcFmtMath(r){
+    if (r === 0) return "0";
+    var a = Math.abs(r);
+    if (a >= 1e15 || a < 1e-6) return r.toExponential(4);
+    var x = parseFloat(r.toPrecision(10));
+    return emcFmt(x, 6);
+  }
+  function emcMath(q, original){
+    if (/^\d{1,2}[-\/]\d{1,2}[-\/]\d{2,4}$/.test(q.trim())) return null;   // a date, not a sum
+    var s = emcPrep(q);
+    if (!s || s.length > 120) return null;
+    var t = emcTokens(s);
+    if (!t || !t.length) return null;
+    var hasOp = t.some(function(x){ return (x.o && x.o !== "(" && x.o !== ")") || x.f === "sqrt"; });
+    var hasVal = t.some(function(x){ return x.n !== undefined || x.f === "pi"; });
+    if (!hasOp || !hasVal) return null;
+    var r;
+    try{ r = emcParse(t); }
+    catch(e){
+      if (e.message === "div0") return { html: emcCard("Maths", null, "", ["You can\u2019t divide by zero. Try another number."]) };
+      return null;
+    }
+    if (!isFinite(r)) return { html: emcCard("Maths", null, "", ["That number is too big for me to show."]) };
+    var txt = emcFmtMath(r), dec = (txt.indexOf("e") === -1 && txt.indexOf(".") !== -1) ? txt.split(".")[1].length : 0;
+    var shown = emberEsc(String(original || q).trim().replace(/[=?\s]+$/, ""));
+    var big = txt.indexOf("e") === -1 ? { val: r, dec: dec, pre: "", txt: txt } : { val: null, txt: txt };
+    return { html: emcCard("Calculated", big, "", [shown + " = <b>" + txt + "</b>"]), skip: true };
+  }
+
+  // ---- 2. energy formulas ----
+  function emcRate(q){
+    var m = /(?:\u20B9|rs\.?|rupees?)\s*(\d+(?:\.\d+)?)\s*(?:\/|per|a)\s*(?:unit|kwh)/.exec(q) ||
+            /(?:rate|tariff|price per unit|unit (?:rate|cost|price))\D{0,8}?(\d+(?:\.\d+)?)/.exec(q) ||
+            /(\d+(?:\.\d+)?)\s*(?:\u20B9|rs\.?|rupees?)?\s*(?:\/|per)\s*(?:unit|kwh)/.exec(q);
+    var r = m ? parseFloat(m[1]) : NaN;
+    return (r >= 0.1 && r <= 100) ? { v: r, custom: true } : { v: EMC_RATE, custom: false };
+  }
+  function emcRateNote(rt){ return rt.custom ? "" : "<br>Used \u20B9" + rt.v + " per unit. Add e.g. \u201Crate 8\u201D to change it."; }
+  function emcCeilHalf(kw){ return Math.max(0.5, Math.ceil(kw * 2) / 2); }
+  function emcNum(re, q){ var m = re.exec(q); return m ? parseFloat(m[1]) : NaN; }
+
+  function emcEnergy(q){
+    var m, rt, kw, lines;
+
+    // payback period
+    if (/payback|pay back|break.?even|return on investment|recover (the )?cost/.test(q) && (/\d/.test(q) || /calculat|compute|calculator/.test(q))){
+      var cm = new RegExp("(?:cost|price|system|investment|invest)\\D{0,15}?" + EMC_MONEY).exec(q);
+      var sm = new RegExp("subsid\\w*\\D{0,12}?" + EMC_MONEY).exec(q);
+      var vm = new RegExp("(?:sav\\w*|bill|income|earn\\w*)\\D{0,20}?" + EMC_MONEY + "\\s*(?:per|a|\\/)?\\s*(month|year|yr|annum)?").exec(q);
+      if (!cm || !vm){
+        return { html: emcCard("Payback period", null, "", ["Tell me the system cost and the yearly or monthly saving, like this:",
+          "<i>payback cost 180000 subsidy 78000 saving 2000 per month</i>"]), chips: emcChips(["payback cost 180000 subsidy 78000 saving 2000 per month"]) };
+      }
+      var cost = emcMoney(cm[1], cm[2]), sub = sm ? emcMoney(sm[1], sm[2]) : 0, sv = emcMoney(vm[1], vm[2]);
+      var perYear = /year|yr|annum/.test(vm[3] || "") ? sv : sv * 12;
+      var net = Math.max(0, cost - sub);
+      if (perYear <= 0) return null;
+      var yrs = net / perYear;
+      lines = [sub ? "System cost " + emcRs(cost) + " \u2212 subsidy " + emcRs(sub) + " = <b>" + emcRs(net) + "</b> to recover" : "To recover: <b>" + emcRs(net) + "</b>",
+               "Saving " + emcRs(perYear) + " per year",
+               emcRs(net) + " \u00F7 " + emcRs(perYear) + " = " + emcFmt(yrs, 1) + " years (about " + Math.round(yrs * 12) + " months)"];
+      return { html: emcCard("Payback period", emcBigNum(yrs, "", 1), "years", lines,
+        "Simple payback. It ignores loan interest, yearly tariff rises and the small yearly drop in panel output.") };
+    }
+
+    // central subsidy for rooftop solar (PM Surya Ghar pattern)
+    if (/subsid/.test(q) && (m = /(\d+(?:\.\d+)?)\s*(?:kw|kilowatt)/.exec(q))){
+      kw = parseFloat(m[1]);
+      var sub2 = kw <= 2 ? 30000 * kw : (kw < 3 ? 60000 + 18000 * (kw - 2) : 78000);
+      lines = ["\u20B930,000 per kW up to 2 kW, \u20B918,000 for the 3rd kW, maximum \u20B978,000",
+               "For " + emcFmt(kw, 2) + " kW: <b>" + emcRs(sub2) + "</b>"];
+      return { html: emcCard("Rooftop solar subsidy", emcBigNum(sub2, "\u20B9", 0), "", lines,
+        "Residential rooftop, central subsidy as announced for PM Surya Ghar. Rules change, so check the Govt Schemes page before you apply.") };
+    }
+
+    // small wind turbine output
+    if (/wind|turbine|blade|rotor/.test(q) && /radius|diameter|\bdia\b|blade length/.test(q) && /m\/s|mps|km\/?h|kmph|kph|speed|velocity/.test(q)){
+      var rad = emcNum(/(?:radius|blade length)\D{0,8}?(\d+(?:\.\d+)?)/, q), dia = emcNum(/(?:diameter|\bdia)\D{0,8}?(\d+(?:\.\d+)?)/, q);
+      var r0 = isNaN(rad) ? dia / 2 : rad;
+      var sp = /(\d+(?:\.\d+)?)\s*(m\/s|mps|km\/?h|kmph|kph)/.exec(q), v;
+      if (sp) v = parseFloat(sp[1]) / (/^m/.test(sp[2]) ? 1 : 3.6);
+      else v = emcNum(/(?:speed|velocity)\D{0,10}?(\d+(?:\.\d+)?)/, q);
+      if (r0 > 0 && v > 0){
+        var area = Math.PI * r0 * r0, pw = 0.5 * 1.225 * area * Math.pow(v, 3), po = pw * 0.35;
+        lines = ["Swept area \u03C0 \u00D7 " + emcFmt(r0, 2) + "\u00B2 = " + emcFmt(area, 2) + " m\u00B2",
+                 "Power in the wind \u00BD \u00D7 1.225 \u00D7 area \u00D7 " + emcFmt(v, 2) + "\u00B3 = " + emcFmt(pw, 0) + " W",
+                 "Turbine output (35% efficiency) = <b>" + emcFmt(po, 0) + " W</b>",
+                 "If the wind stayed like this all day: " + emcFmt(po * 24 / 1000, 2) + " kWh"];
+        return { html: emcCard("Wind turbine output", emcBigNum(po, "", 0), "W", lines,
+          "Double the wind speed gives 8 times the power. Real output is usually lower: wind varies, and turbines start at a cut-in speed.") };
+      }
+    }
+
+    // battery size and backup time
+    var bv = /(\d+(?:\.\d+)?)\s*v(?:olts?)?\b/.exec(q), ba = /(\d+(?:\.\d+)?)\s*ah\b/.exec(q);
+    if (bv && ba){
+      var wh = parseFloat(bv[1]) * parseFloat(ba[1]), kwh = wh / 1000;
+      var lm = /(\d+(?:\.\d+)?)\s*(kw|w|watts?)\b[^\d]{0,20}(?:load|backup|run)/.exec(q) || /(?:load|run|running|backup)\D{0,12}?(\d+(?:\.\d+)?)\s*(kw|w|watts?)\b/.exec(q);
+      lines = [emcFmt(parseFloat(bv[1]), 1) + " V \u00D7 " + emcFmt(parseFloat(ba[1]), 1) + " Ah = " + emcFmt(wh, 0) + " Wh = <b>" + emcFmt(kwh, 2) + " kWh</b>",
+               "Usable: " + emcFmt(kwh * 0.5, 2) + " kWh (lead-acid, 50%) or " + emcFmt(kwh * 0.8, 2) + " kWh (lithium, 80%)"];
+      if (lm){
+        var ld = parseFloat(lm[1]) * (/^k/.test(lm[2]) ? 1000 : 1);
+        if (ld > 0) lines.push("A " + emcFmt(ld, 0) + " W load runs about <b>" + emcFmt(wh * 0.5 / ld, 1) + " h</b> (lead-acid) or <b>" + emcFmt(wh * 0.8 / ld, 1) + " h</b> (lithium)");
+      }
+      return { html: emcCard("Battery energy", emcBigNum(kwh, "", 2), "kWh", lines, "Inverter losses take a further 10 to 15%, so real backup is a little shorter.") };
+    }
+
+    // unit conversion
+    if ((m = /(\d+(?:\.\d+)?)\s*(kwh|wh|kw|mw|w|hp)\s*(?:to|in|into|=)\s*(kwh|wh|kw|mw|w|hp)\b/.exec(q))){
+      var P = { w: 1, kw: 1000, mw: 1e6, hp: 746 }, E = { wh: 1, kwh: 1000 }, a = parseFloat(m[1]), f = m[2], t2 = m[3];
+      var out = null;
+      if (P[f] && P[t2]) out = a * P[f] / P[t2]; else if (E[f] && E[t2]) out = a * E[f] / E[t2];
+      if (out !== null){
+        var UL = { w: "W", kw: "kW", mw: "MW", hp: "hp", wh: "Wh", kwh: "kWh" };
+        return { html: emcCard("Unit converter", emcBigNum(out, "", Math.abs(out) >= 100 ? 1 : 3), UL[t2],
+          [emcFmt(a, 4) + " " + UL[f] + " = " + emcFmt(out, 4) + " " + UL[t2]], (f === "hp" || t2 === "hp") ? "1 hp is taken as 746 W." : "") };
+      }
+    }
+
+    // CO2
+    if (/co2|carbon|emission/.test(q)){
+      var u = emcNum(/(\d+(?:\.\d+)?)\s*(?:units?|kwh)\b/, q);
+      kw = emcNum(/(\d+(?:\.\d+)?)\s*(?:kw|kilowatt)\b/, q);
+      if (!isNaN(u)){
+        return { html: emcCard("CO\u2082 from electricity", emcBigNum(u * EMC_CO2, "", 1), "kg", [emcFmt(u, 1) + " units \u00D7 " + EMC_CO2 + " kg per unit"],
+          "Uses about 0.82 kg of CO\u2082 per unit, an approximate Indian grid average.") };
+      }
+      if (!isNaN(kw)){
+        var yr = kw * EMC_YIELD * 365, co = yr * EMC_CO2;
+        return { html: emcCard("CO\u2082 avoided by solar", emcBigNum(co, "", 0), "kg per year", [emcFmt(kw, 2) + " kW makes about " + emcFmt(yr, 0) + " units a year", emcFmt(yr, 0) + " \u00D7 " + EMC_CO2 + " kg per unit"],
+          "Uses about 0.82 kg of CO\u2082 per unit, an approximate Indian grid average.") };
+      }
+    }
+
+    // how many panels
+    if (/how many panels?|number of panels?|panels? (?:needed|required)|panels? for/.test(q) && (m = /(\d+(?:\.\d+)?)\s*(?:kw|kilowatt)\b/.exec(q))){
+      kw = parseFloat(m[1]);
+      var pwm = /(\d{3})\s*w(?:p|att)?\b/.exec(q), pwv = pwm ? parseInt(pwm[1], 10) : 400;
+      var n = Math.ceil(kw * 1000 / pwv);
+      lines = [emcFmt(kw, 2) + " kW \u00D7 1000 \u00F7 " + pwv + " W = " + emcFmt(kw * 1000 / pwv, 2) + " \u2192 <b>" + n + " panels</b>",
+               "Roof space about " + emcFmt(kw * 9, 0) + " m\u00B2 (" + emcFmt(kw * 97, 0) + " sq ft)"];
+      return { html: emcCard("Number of panels", emcBigNum(n, "", 0), "panels of " + pwv + " W", lines, pwm ? "" : "Used 400 W panels. Add e.g. \u201C540 w panels\u201D to change it.") };
+    }
+
+    // solar size from units or bill
+    if (/solar|panel|system|\bkw\b/.test(q) && /size|capacity|how (?:big|many kw)|what (?:kw|size)|need|required|suit|install|recommend/.test(q)){
+      rt = emcRate(q);
+      var unitsDay = NaN, how = "";
+      var um = /(\d+(?:\.\d+)?)\s*units?\b/.exec(q);
+      var bm = new RegExp("(?:bill|\\u20B9|rs\\.?|rupees?)\\s*(?:is|of|=|:)?\\s*" + EMC_MONEY).exec(q) ||
+               new RegExp(EMC_MONEY + "\\s*(?:\\u20B9|rs|rupees)\\b").exec(q);
+      if (um){
+        var uv = parseFloat(um[1]), perDay = /\bday|daily/.test(q) ? true : (/month/.test(q) ? false : uv < 60);
+        unitsDay = perDay ? uv : uv / 30;
+        how = emcFmt(uv, 1) + " units per " + (perDay ? "day" : "month") + (perDay ? "" : " \u00F7 30 = " + emcFmt(unitsDay, 1) + " per day");
+      } else if (bm){
+        var bill = emcMoney(bm[1], bm[2]);
+        unitsDay = bill / rt.v / 30;
+        how = emcRs(bill) + " \u00F7 \u20B9" + rt.v + " = " + emcFmt(bill / rt.v, 0) + " units per month = " + emcFmt(unitsDay, 1) + " per day";
+      }
+      if (!isNaN(unitsDay) && unitsDay > 0){
+        kw = emcCeilHalf(unitsDay / EMC_YIELD);
+        lines = [how, emcFmt(unitsDay, 1) + " \u00F7 " + EMC_YIELD + " units per kW per day \u2192 round up to <b>" + emcFmt(kw, 1) + " kW</b>",
+                 "About " + Math.ceil(kw * 1000 / 400) + " panels of 400 W, roof space about " + emcFmt(kw * 9, 0) + " m\u00B2",
+                 "Expected: " + emcFmt(kw * EMC_YIELD * 30, 0) + " units a month"];
+        return { html: emcCard("Solar size for you", emcBigNum(kw, "", 1), "kW", lines,
+          "Sized to cover the whole bill. If your daytime use is lower, a smaller system may suit you." + emcRateNote(rt)), chips: emcChips(["subsidy for " + emcFmt(Math.min(kw, 10), 1).replace(/,/g, "") + " kw"]) };
+      }
+    }
+
+    // solar generation
+    if ((m = /(\d+(?:\.\d+)?)\s*(?:kw|kilowatt)\b/.exec(q)) && /generat|produc|output|yield|units? (?:from|per)|earn|make/.test(q) && !/battery|subsid|panels? (?:needed|required)/.test(q)){
+      kw = parseFloat(m[1]); rt = emcRate(q);
+      var day = kw * EMC_YIELD;
+      lines = [emcFmt(kw, 2) + " kW \u00D7 " + EMC_YIELD + " units per kW per day = <b>" + emcFmt(day, 1) + " units a day</b>",
+               emcFmt(day * 30, 0) + " units a month, " + emcFmt(day * 365, 0) + " units a year",
+               "Worth about " + emcRs(day * 30 * rt.v) + " a month at \u20B9" + rt.v + " per unit"];
+      return { html: emcCard("Solar generation", emcBigNum(day, "", 1), "units per day", lines,
+        "Average for Andhra Pradesh. Cloud, dust, shade and season change it." + (rt.custom ? "" : " Add e.g. \u201Crate 8\u201D to change the unit price.")) };
+    }
+
+    // power x hours -> energy and cost
+    m = /(?:(\d+)\s*(?:x|\u00D7|nos|pcs)\s*)?(\d+(?:\.\d+)?)\s*(kw|kilowatts?|watts?|w)\b[^\d]{0,30}?(\d+(?:\.\d+)?)\s*(?:h|hrs?|hours?)\b/.exec(q);
+    if (m){
+      var qty = m[1] ? parseInt(m[1], 10) : 1, pv = parseFloat(m[2]), hrs = parseFloat(m[4]);
+      var kwv = pv * (/^k/.test(m[3]) ? 1 : 0.001) * qty, kd = kwv * hrs;
+      rt = emcRate(q);
+      var dm = /(\d+)\s*days?/.exec(q), days = dm ? parseInt(dm[1], 10) : 0;
+      lines = [(qty > 1 ? qty + " \u00D7 " : "") + emcFmt(pv, 1) + " " + (/^k/.test(m[3]) ? "kW" : "W") + " \u00D7 " + emcFmt(hrs, 1) + " h = <b>" + emcFmt(kd, 2) + " kWh</b> a day",
+               "Cost a day: " + emcRs(kd * rt.v) + ", a month (30 days): " + emcRs(kd * 30 * rt.v)];
+      if (days) lines.push("For " + days + " days: " + emcFmt(kd * days, 2) + " kWh = " + emcRs(kd * days * rt.v));
+      return { html: emcCard("Energy used", emcBigNum(kd, "", 2), "kWh per day", lines, "A unit on your bill is 1 kWh." + emcRateNote(rt)) };
+    }
+
+    // bill from units
+    if ((m = /(\d+(?:\.\d+)?)\s*units?\b/.exec(q)) && /bill|cost|pay|charge|amount|price|how much/.test(q) && !/solar|panel|\bkw\b|size|battery|generat|produc|co2|carbon/.test(q)){
+      rt = emcRate(q);
+      var un = parseFloat(m[1]);
+      return { html: emcCard("Electricity bill", emcBigNum(un * rt.v, "\u20B9", 0), "", [emcFmt(un, 1) + " units \u00D7 \u20B9" + rt.v + " = " + emcRs(un * rt.v)],
+        "Your real bill has slabs, fixed charges and taxes, so it can differ." + emcRateNote(rt)) };
+    }
+    return null;
+  }
+
+  function emcHelp(q){
+    if (!/^(?:what (?:can|do) you (?:calculate|compute)|(?:calculator|calculations?|calc|maths?|math|sums?)(?: help)?|help (?:me )?(?:with )?(?:maths?|calculat\w*)|calculate)\s*[?.!]*$/.test(q)) return null;
+    return { html: emcCard("What I can calculate", null, "", [
+      "Any sum: <i>(12+8)*3</i>, <i>15% of 2400</i>, <i>sqrt 144</i>",
+      "Energy used and its cost, solar size, panels, generation",
+      "Subsidy, payback, battery backup, CO\u2082, wind turbine output",
+      "Tap one to try it:"]), chips: emcChips(EMC_EX.slice(0, 6)) };
+  }
+
+  // ---- 3. extra question-and-answer entries ----
+  // Format: [pattern, answer]. First match wins. HTML allowed (<b>, <br>).
+  var EMC_KB = [
+    [/roof (?:area|space|size)|space (?:needed|required|for).*(?:solar|panel)|how (?:big|much).*roof|shadow.?free/,
+      "<b>Roof space for solar</b><br>Plan about 8 to 10 m\u00B2 (roughly 90 to 110 sq ft) of shadow-free roof for every kW. So 3 kW needs about 25 to 30 m\u00B2. Keep water tanks, trees and nearby buildings from shading it."],
+    [/(?:how long|lifespan|life ?span|how many years).*(?:solar|panel|inverter|batter)/,
+      "<b>How long things last</b><br>Solar panels usually come with a 25 year performance warranty and lose about 0.4 to 0.7% of output each year. An inverter lasts about 8 to 12 years. Lead-acid batteries last about 3 to 5 years, lithium (LiFePO4) about 8 to 10 years or more."],
+    [/(?:clean|wash|dust|maintenance|maintain).*(?:solar|panel)|(?:solar|panel).*(?:clean|wash|dust|maintenance)/,
+      "<b>Cleaning solar panels</b><br>Wipe off dust every 1 to 2 weeks, and after dusty or windy days. Use plain water and a soft cloth, early morning or evening, never cold water on hot panels. Do it from a safe spot: do not climb a wet or sloping roof."],
+    [/(?:power ?cut|outage|blackout|grid (?:fail|down)|load ?shedding).*(?:solar|inverter|work)|solar.*(?:power ?cut|outage|blackout)|why.*(?:solar|inverter).*(?:stop|off|shut)/,
+      "<b>Solar during a power cut</b><br>An on-grid system switches itself off when the grid goes down, to keep line workers safe. To have power in an outage you need a battery with a hybrid inverter, or an off-grid system."],
+    [/(?:cloud|rain|monsoon|winter|fog|night).*(?:solar|panel)|(?:solar|panel).*(?:cloud|rain|monsoon|night|winter)/,
+      "<b>Solar in clouds, rain and at night</b><br>Panels still make some power on cloudy days, but much less. Heavy cloud can cut output by half or more. At night they make nothing. Rain also washes dust off, which helps."],
+    [/(?:tilt|orientation|which direction|facing).*(?:panel|solar)|(?:solar|panel).*(?:tilt|angle|direction|orientation|facing)/,
+      "<b>Panel direction and tilt</b><br>In India, face the panels south. Set the tilt close to your latitude, which is about 12 to 20 degrees across Andhra Pradesh. A few degrees off costs very little."],
+    [/mono.?crystalline|poly.?crystalline|\bmono\b|\bpoly\b/,
+      "<b>Mono vs poly panels</b><br>Monocrystalline panels are more efficient, about 19 to 23%, and most new panels are mono. Polycrystalline panels cost less but need more roof for the same power, and are now rare."],
+    [/\bcuf\b|capacity (?:utili[sz]ation )?factor/,
+      "<b>Capacity factor (CUF)</b><br>It is the energy a plant really makes divided by what it would make running at full power all year. Rooftop solar in India is often about 17 to 20%. Wind depends on the site and is often 20 to 35%."],
+    [/\bbetz\b/,
+      "<b>Betz limit</b><br>No wind turbine can capture more than 59.3% of the power in the wind. Good turbines reach about 35 to 45% in practice."],
+    [/wind (?:power )?(?:formula|equation)|power in (?:the )?wind|how much power.*turbine/,
+      "<b>Wind power formula</b><br>Power = \u00BD \u00D7 air density \u00D7 swept area \u00D7 wind speed\u00B3 \u00D7 efficiency. Speed is cubed, so double the wind gives 8 times the power. Try: <i>wind radius 1.5 m speed 6 m/s</i>"],
+    [/what is (?:a |one |1 )?unit\b|1 unit (?:is|means|equal)|unit (?:means|meaning)/,
+      "<b>What is a unit?</b><br>One unit on your electricity bill is 1 kWh: a 1000 W appliance running for 1 hour, or a 100 W bulb running for 10 hours."],
+    [/star rating|\bbee\b|energy rating/,
+      "<b>Star ratings</b><br>BEE star labels show how efficiently an appliance uses power. More stars means less electricity for the same job, which saves money every month. Check the label\u2019s yearly units figure when you compare."],
+    [/led.*(?:vs|versus|compare)|incandescent|\bcfl\b/,
+      "<b>LED vs older bulbs</b><br>A 9 W LED gives about the light of a 60 W old bulb, so it uses roughly 85% less power. It also lasts many times longer."],
+    [/(?:how (?:big|much|large)|what size).*batter|batter(?:y|ies) (?:size|sizing|capacity).*(?:need|calculate|choose)/,
+      "<b>Sizing a battery</b><br>Battery kWh = load in kW \u00D7 hours of backup \u00F7 usable share (about 50% for lead-acid, 80% for lithium). Try: <i>12v 100ah battery 300 w load</i>"],
+    [/(?:solar|renewable).*(?:co2|carbon|pollution|emission)|(?:co2|carbon).*(?:solar|renewable)/,
+      "<b>Solar and CO\u2082</b><br>Solar makes no CO\u2082 while running. Grid power in India averages roughly 0.8 kg of CO\u2082 per unit, so every unit your panels make avoids about that much. Try: <i>co2 for 300 units</i>"],
+    [/units? per kw|how many units.*(?:1 ?kw|per kw)|1 ?kw.*(?:generate|produce|units)/,
+      "<b>Units from 1 kW of solar</b><br>About 4 to 5 units a day in Andhra Pradesh. The app uses " + EMC_YIELD + ", which is about 1,500 units a year. Try: <i>3 kw solar generate</i>"]
+  ];
+  function emcKb(q){
+    if (!/\?|^(?:how|what|which|why|when|can|could|should|will|is|are|does|do|tell|explain)\b|\b(?:meaning|define|difference|vs|versus)\b/.test(q)) return null;
+    for (var i = 0; i < EMC_KB.length; i++){
+      if (EMC_KB[i][0].test(q)) return { html: EMC_KB[i][1], chips: emcChips() };
+    }
+    return null;
+  }
+
+  // ---- unanswered questions: remembered on this phone so you can teach EMBER later ----
+  var EMC_MISS_KEY = "gm_ember_unanswered_v1";
+  function emcLogMiss(text){
+    try{
+      var list = JSON.parse(localStorage.getItem(EMC_MISS_KEY) || "[]");
+      var t = String(text).trim().slice(0, 140);
+      if (!t || list.indexOf(t) !== -1) return;
+      list.push(t); if (list.length > 30) list.shift();
+      localStorage.setItem(EMC_MISS_KEY, JSON.stringify(list));
+    }catch(e){}
+  }
+  var emcOrigFallback = emberFallback;
+  emberFallback = function(text){ emcLogMiss(text); emcOrigFallback(text); };
+
+  // ---- reply with a short "thinking" animation, then count the number up ----
+  function emcReduced(){ try{ return !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches); }catch(e){ return false; } }
+  function emcCountUp(msg){
+    if (!msg) return;
+    var nums = msg.querySelectorAll(".emc-num[data-to]");
+    Array.prototype.forEach.call(nums, function(el){
+      var to = parseFloat(el.getAttribute("data-to")), dec = parseInt(el.getAttribute("data-dec"), 10) || 0, pre = el.getAttribute("data-pre") || "";
+      var final = el.textContent, start = null, dur = 750;
+      function step(ts){
+        if (start === null) start = ts;
+        var p = Math.min(1, (ts - start) / dur), e = 1 - Math.pow(1 - p, 3);
+        el.textContent = p < 1 ? pre + emcFmt(to * e, dec) : final;
+        if (p < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    });
+  }
+  function emcSay(html, chips){
+    var body = document.getElementById("agentChatBody"), reduce = emcReduced(), t = null;
+    if (!reduce){
+      t = document.createElement("div");
+      t.className = "agent-msg bot emc-typing-msg";
+      t.innerHTML = '<span class="emc-typing"><i></i><i></i><i></i></span>';
+      body.appendChild(t); body.scrollTop = body.scrollHeight;
+    }
+    setTimeout(function(){
+      if (t && t.parentNode) t.parentNode.removeChild(t);
+      agentAddMsg(html + (chips || ""), "bot");
+      var all = body.querySelectorAll(".agent-msg.bot");
+      if (!reduce) emcCountUp(all[all.length - 1]);
+    }, reduce ? 0 : 650);
+  }
+
+  // Called from agentSendText before the older routes. Returns true when EMBER answered.
+  function emberCalcTry(text){
+    var q = text.toLowerCase().trim();
+    if (!q || q.length > 200) return false;
+    if (/^(?:show |list |see )?(?:my )?(?:unanswered|missed|unknown)(?: questions?)?$/.test(q)){
+      var list = []; try{ list = JSON.parse(localStorage.getItem(EMC_MISS_KEY) || "[]"); }catch(e){}
+      emcSay(list.length ? "<b>Questions I could not answer yet</b><br>" + list.map(function(x){ return "\u2022 " + emberEsc(x); }).join("<br>") +
+        "<br><br>Send these to the app team so they can be added." : "I have no unanswered questions saved on this phone.");
+      return true;
+    }
+    var r = emcHelp(q) || emcMath(q, text) || emcEnergy(q) || emcKb(q);
+    if (!r) return false;
+    emcSay(r.html, r.chips !== undefined ? r.chips : emcChips());
+    return true;
+  }
+
   function agentSendText(){
     var input = document.getElementById("agentTextInput");
     var text = input.value.trim();
@@ -1549,6 +2013,7 @@
       return;
     }
 
+    if (emberCalcTry(text)) return;
     if (emberRoute(text)) return;
     var isQuestion = /\?|^(how|what|which|why|when|can|could|should|will|is|are|does|do|tell|show|give|explain)\b|\b(save|saving|cost|bill|reduce|solar|subsid|scheme|most|highest|biggest)\b/.test(text.toLowerCase())
       || gmHasAny(text, ["?"].concat(W("question_markers")));
