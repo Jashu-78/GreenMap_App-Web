@@ -1,0 +1,26 @@
+{
+  "id": "./GreenMap_App.html",
+  "name": "GreenMap AI",
+  "short_name": "GreenMap",
+  "description": "Renewable energy app for Andhra Pradesh: EnergyScope map, Smart Energy Search, EnergyHub marketplace, Govt Schemes and the EMBER energy advisor.",
+  "start_url": "./GreenMap_App.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0B3B24",
+  "theme_color": "#06431f",
+  "lang": "en",
+  "categories": ["utilities", "shopping", "education"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Energy Scope", "short_name": "Scope", "url": "./Energy_Scope.html", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "Smart Energy Search", "short_name": "Search", "url": "./Smart_Energy_Search.html", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "EnergyHub", "short_name": "EnergyHub", "url": "./EnergyHub.html", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] },
+    { "name": "Govt Schemes", "short_name": "Schemes", "url": "./Govt_Schemes.html", "icons": [{ "src": "icon-192.png", "sizes": "192x192" }] }
+  ]
+}
