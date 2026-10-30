@@ -63,7 +63,7 @@ function toFirestoreShape(item) {
 // Items deliberately removed from the HTML lists: delete them from Firestore too.
 const REMOVED = {
   govtSchemes: ["test-expired-demo"],
-  SEScollection: []
+  SEScollection: ["p1", "p2", "p3", "p4", "p5", "p6", "p7", "p8"]   // the removed demo products
 };
 
 async function syncCollection(items, collectionName) {
