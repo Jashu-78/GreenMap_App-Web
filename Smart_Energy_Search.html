@@ -705,7 +705,22 @@ var PRODUCTS = [
     specs:[["System","Hybrid TX 5 kVA inverter + 4 x 550 W solar panels (2.2 kW)"],["Battery","4 x 150 Ah solar batteries"],["Price","No Information. Not shown on the listing, so ask Luminous or a dealer"],["Other details","Not listed on the page; confirm warranty and battery type with the dealer"]],
     pros:["Complete kit from an Indian brand","Panel and battery sizes are named on the listing"],
     cons:["Price is not published, so get a quote","Battery type and warranty need confirming with the dealer"],
-    why:"Listed on Luminous's own website as a hybrid combo. Only the sizes in its title are shown there, so confirm the rest with a dealer." }
+    why:"Listed on Luminous's own website as a hybrid combo. Only the sizes in its title are shown there, so confirm the rest with a dealer." },
+  { id:"p40", url:"https://loomsolar.com/products/loom-solar-panel-shark-550-mono-perc-144-cells-half-cut", type:"Solar Panel", icon:"sun", brand:"Loom Solar", name:"Loom Solar Shark 550 Wp Mono PERC Half-Cut", price:12000, capacityLabel:"550 W", efficiency:0, warranty:25, score:null, userRating:0, userCount:0, expertRating:0, bestFor:"Home rooftops and small systems wanting a low price per watt",
+    specs:[["Cell Type","Mono PERC, 144 half-cut cells"],["Wattage","550 Wp"],["Warranty","25 years (as listed)"],["Dimensions","2284 x 1137 x 35 mm (distributor listing)"],["Price","₹12,000 sale price on Loom Solar's store (regular ₹23,000); dealer prices vary"]],
+    pros:["Low sale price per watt on the maker's own store","Half-cut cells cope better with heat and shade","Works for standalone and on-grid systems"],
+    cons:["Efficiency is not stated on the official page","Large panel, so check your roof layout","Store sale prices change often"],
+    why:"Price and warranty from Loom Solar's own store listing (sale price ₹12,000, regular ₹23,000). Size from a distributor listing." },
+  { id:"p41", url:"https://loomsolar.com/products/shark-bi-facial-solar-panel-590-watt-144-cells-16-bus-bar", type:"Solar Panel", icon:"sun", brand:"Loom Solar", name:"Loom Solar Shark 590 Wp N-Type TOPCon Bifacial 16BB", price:13500, capacityLabel:"590 W", efficiency:0, warranty:30, score:null, userRating:0, userCount:0, expertRating:0, bestFor:"Rooftops and ground mounts wanting a modern N-type bifacial panel",
+    specs:[["Cell Type","N-type TOPCon, bifacial, 16 busbar"],["Wattage","590 Wp"],["Warranty","30 years (as listed)"],["Price","₹13,500 sale price on Loom Solar's store (regular ₹22,000); dealer prices vary"]],
+    pros:["N-type TOPCon bifacial technology at a low listed price","30-year warranty as listed","Bifacial design can add power from the rear side"],
+    cons:["Efficiency is not stated on the official page","Bifacial gain needs a reflective or raised mounting","Store sale prices change often"],
+    why:"Price and warranty from Loom Solar's own store listing (sale price ₹13,500, regular ₹22,000)." },
+  { id:"p42", type:"Accessories", icon:"battery", brand:"Exide", name:"Exide Sola-Tubular 6LMS150 Solar Battery (150 Ah)", price:null, capacityLabel:"150 Ah", efficiency:0, warranty:5, score:null, userRating:0, userCount:0, expertRating:0, bestFor:"Solar and inverter systems wanting a well-known tubular battery",
+    specs:[["Type","Tubular solar battery (SolaTubular series)"],["Capacity","150 Ah"],["Warranty","5 years (as listed)"],["Life","Average 7 to 10 years (as listed)"],["Price","No Information. Dealer and marketplace prices differ widely, so ask for a quote"]],
+    pros:["Well-known Indian battery brand","5-year warranty as listed","Made for solar, inverter and UPS use"],
+    cons:["Heavier and shorter-lived than lithium","Needs water topping-up and a ventilated space","Price differs a lot between sellers"],
+    why:"Details from a government e-marketplace (GeM) listing. Prices differ widely between sellers, so the price shows No Information." }
 ];
 
 var BRANDS = Array.from(new Set(PRODUCTS.map(function(p){ return p.brand; })));
