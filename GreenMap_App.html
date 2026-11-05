@@ -432,7 +432,7 @@
     <div class="greeting-row">
       <div>
         <div class="greeting serif" id="greetingText">Good day</div>
-        <div class="greeting-sub" data-i18n="greeting_sub">Here's how your home is doing today</div>
+        <div class="greeting-sub" id="greetingSub" data-i18n="greeting_sub">Your day, powered by clean energy</div>
       </div>
       <div class="loc-temp-pill" id="locTempPill">📍 Locating… <span class="sep">|</span> 🌡️ --°C</div>
     </div>
@@ -1426,6 +1426,24 @@
     if (p.cons && p.cons[0]) html += "<br>" + gmT("ex_watch") + ": " + emberEsc(p.cons[0]);
     return adSend(html, ["Smart Energy Search"]);
   }
+  // "Will it rain today?" / "how is the weather" / "is it a good day for solar": answered from
+  // window.GM_weather (loaded on the home screen). English only for now.
+  function emberWeather(q){
+    if (!/\b(?:weather|forecast|temperature|will it rain|is it (?:going to )?rain|raining|rain today|rain tomorrow|how (?:hot|cold|humid)|humidity|windy today|wind speed today|cloudy today|sunny today|foggy|storm today|climate today|solar (?:output|generation|production) (?:today|now)|good day for solar|will solar work today|is it sunny|is it cloudy|is it windy)\b/.test(q)) return false;
+    if (/wind (?:energy|power|turbine)|rain ?water|panel|price|cost|district/.test(q)) return false;
+    var w = window.GM_weather;
+    if (!w) return adSend("I do not have your weather yet. Allow location on the home screen, then ask again.", ["EnergyScope"]);
+    var words = { "storm": "thunderstorm", "snow": "snow", "heavy-rain": "heavy rain", "rain": "rain", "drizzle": "drizzle", "fog": "fog", "windy": "windy", "sunny": "sunny", "clear-night": "clear night", "partly": "partly cloudy", "cloudy": "cloudy" };
+    var html = "<b>Weather in " + emberEsc(w.place || "your area") + "</b><br>" + w.emoji + " " + Math.round(w.now.temp) + "\u00B0C" +
+      (typeof w.now.feels === "number" ? " (feels " + Math.round(w.now.feels) + "\u00B0C)" : "") + ", " + (words[w.kind] || w.kind) +
+      "<br>Wind " + Math.round(w.now.wind) + " km/h (gusts " + Math.round(w.gustMax) + "), humidity " + Math.round(w.now.humidity) + "%";
+    w.alerts.forEach(function(a){ html += "<br>" + gmT(a.key, gmWeatherVars(a.vars)); });
+    if (!w.alerts.length) html += "<br>No rain, storm or strong wind expected in the next 12 hours.";
+    var rate = w.perKw >= 4.2 ? "good" : (w.perKw >= 3 ? "fair" : "low");
+    html += "<br>Solar today: about " + w.perKw + " units per kW (" + rate + "). High " + Math.round(w.tmax) + "\u00B0C, low " + Math.round(w.tmin) + "\u00B0C.";
+    return adSend(html, ["EnergyScope"]);
+  }
+
   function emberKnowledge(q){
     if (/price|cost|how much|cheap|buy|warranty|\u20B9|\brs\.?\s?\d/.test(q) && !/performance warranty|product warranty|warranty (types|difference)|types of warranty/.test(q)) return false;
     var qn = q.replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
@@ -1702,6 +1720,7 @@
     if (/reduce|lower|cut down|less (power|current|usage)/.test(q) || gmHasAny(q, W("reduce"))){ emberAdvice("reduce"); return true; }
     if (/how.*(save|saving)/.test(q) || gmHasAny(q, W("route_habits"))){ emberAdvice("habits"); return true; }
     if (/saving|want.*sav|save money/.test(q) || gmHasAny(q, W("saving"))){ emberAdvice("overview"); return true; }
+    if (emberWeather(q)) return true;
     if (emberKnowledge(q)) return true;
     if (emberAppData(q)) return true;
     if (emberProductIntent(q)){ emberProducts(q); return true; }
@@ -2327,7 +2346,7 @@
     en: {
       greeting_morning: "Good morning", greeting_afternoon: "Good afternoon", greeting_evening: "Good evening",
       greeting_night: "Good night, take some rest",
-      greeting_sub: "Here's how your home is doing today",
+      today_order: "📦 {n} order update(s) waiting. Tap the bell.", today_rain: "🌧️ Rain likely around {t}. Plan ahead.", today_heavy: "⛈️ Heavy rain expected around {t}. Stay safe.", today_storm: "⛈️ Thunderstorm possible around {t}. Unplug sensitive devices.", today_wind: "💨 Strong winds up to {n} km/h today.", today_heat: "🌡️ Very hot today, up to {n}°C. Stay hydrated.", today_fog: "🌫️ Foggy this morning. Drive carefully.", today_cold: "🧊 Cool today, low {n}°C.", today_snow: "❄️ Snow expected today.", today_sunny: "☀️ Sunny day: good for solar today.", today_night: "🌙 Clear night. Batteries take over from solar.", today_partly: "⛅ Partly cloudy: solar will still do fine.", today_cloudy: "☁️ Cloudy: solar output will be lower today.", weather_note: "Forecast from Open-Meteo for {p}. Not an official warning.", greeting_sub: "Your day, powered by clean energy",
       card_ses: "Find, compare, and choose renewable energy products",
       card_es: "Explore solar & wind potential across Andhra Pradesh",
       card_hub: "Find and buy from local solar & wind energy shops near you",
@@ -2419,7 +2438,7 @@
     hi: {
       greeting_morning: "सुप्रभात", greeting_afternoon: "शुभ दोपहर", greeting_evening: "शुभ संध्या",
       greeting_night: "शुभ रात्रि, थोड़ा आराम करें",
-      greeting_sub: "आज आपका घर कैसा कर रहा है, यहाँ देखें",
+      today_order: "📦 {n} ऑर्डर अपडेट इंतज़ार में हैं। घंटी दबाएं।", today_rain: "🌧️ {t} के आसपास बारिश हो सकती है। पहले से तैयारी करें।", today_heavy: "⛈️ {t} के आसपास भारी बारिश की संभावना है। सुरक्षित रहें।", today_storm: "⛈️ {t} के आसपास आंधी-बिजली संभव है। संवेदनशील उपकरण प्लग से निकाल दें।", today_wind: "💨 आज {n} किमी/घंटा तक तेज़ हवाएं।", today_heat: "🌡️ आज बहुत गर्मी, {n}°C तक। खूब पानी पिएं।", today_fog: "🌫️ आज सुबह कोहरा है। सावधानी से चलाएं।", today_cold: "🧊 आज ठंडक रहेगी, न्यूनतम {n}°C।", today_snow: "❄️ आज बर्फबारी की संभावना है।", today_sunny: "☀️ धूप वाला दिन: आज सोलर के लिए अच्छा है।", today_night: "🌙 साफ़ रात। सोलर की जगह बैटरी काम करेगी।", today_partly: "⛅ आंशिक बादल: सोलर फिर भी ठीक चलेगा।", today_cloudy: "☁️ बादल: आज सोलर उत्पादन कम रहेगा।", weather_note: "{p} के लिए Open-Meteo का पूर्वानुमान। यह आधिकारिक चेतावनी नहीं है।", greeting_sub: "स्वच्छ ऊर्जा के साथ आपका दिन",
       card_ses: "नवीकरणीय ऊर्जा उत्पाद खोजें, तुलना करें और चुनें",
       card_es: "आंध्र प्रदेश में सौर और पवन ऊर्जा की संभावनाएं जानें",
       card_hub: "अपने पास की स्थानीय सौर और पवन ऊर्जा दुकानों से खरीदें",
@@ -2510,7 +2529,7 @@
     ta: {
       greeting_morning: "காலை வணக்கம்", greeting_afternoon: "மதிய வணக்கம்", greeting_evening: "மாலை வணக்கம்",
       greeting_night: "இனிய இரவு, சிறிது ஓய்வு எடுங்கள்",
-      greeting_sub: "இன்று உங்கள் வீடு எப்படி செயல்படுகிறது என்பதை இங்கே பாருங்கள்",
+      today_order: "📦 {n} ஆர்டர் புதுப்பிப்பு(கள்) காத்திருக்கின்றன. மணியைத் தட்டுங்கள்.", today_rain: "🌧️ {t} அளவில் மழை பெய்ய வாய்ப்பு உள்ளது. முன்கூட்டியே திட்டமிடுங்கள்.", today_heavy: "⛈️ {t} அளவில் கனமழை எதிர்பார்க்கப்படுகிறது. பாதுகாப்பாக இருங்கள்.", today_storm: "⛈️ {t} அளவில் இடியுடன் கூடிய மழை சாத்தியம். உணர்திறன் சாதனங்களை பிளக்கிலிருந்து எடுங்கள்.", today_wind: "💨 இன்று மணிக்கு {n} கி.மீ. வரை பலத்த காற்று.", today_heat: "🌡️ இன்று மிகவும் வெப்பம், {n}°C வரை. நிறைய தண்ணீர் குடியுங்கள்.", today_fog: "🌫️ இன்று காலை மூடுபனி. கவனமாக ஓட்டுங்கள்.", today_cold: "🧊 இன்று குளிர்ச்சியாக இருக்கும், குறைந்தபட்சம் {n}°C.", today_snow: "❄️ இன்று பனிப்பொழிவு எதிர்பார்க்கப்படுகிறது.", today_sunny: "☀️ வெயில் நாள்: இன்று சோலாருக்கு நல்லது.", today_night: "🌙 தெளிவான இரவு. சோலாருக்குப் பதிலாக பேட்டரிகள் வேலை செய்யும்.", today_partly: "⛅ பகுதி மேகமூட்டம்: சோலார் நன்றாகவே செயல்படும்.", today_cloudy: "☁️ மேகமூட்டம்: இன்று சோலார் உற்பத்தி குறைவாக இருக்கும்.", weather_note: "{p}க்கான Open-Meteo முன்னறிவிப்பு. இது அதிகாரப்பூர்வ எச்சரிக்கை அல்ல.", greeting_sub: "தூய்மையான ஆற்றலுடன் உங்கள் நாள்",
       card_ses: "புதுப்பிக்கத்தக்க ஆற்றல் பொருட்களைத் தேடி, ஒப்பிட்டு, தேர்வு செய்யுங்கள்",
       card_es: "ஆந்திரப் பிரதேசத்தில் சூரிய மற்றும் காற்று ஆற்றல் வாய்ப்புகளை அறியுங்கள்",
       card_hub: "உங்கள் அருகிலுள்ள சூரிய மற்றும் காற்று ஆற்றல் கடைகளில் இருந்து வாங்குங்கள்",
@@ -2601,7 +2620,7 @@
     kn: {
       greeting_morning: "ಶುಭೋದಯ", greeting_afternoon: "ಶುಭ ಮಧ್ಯಾಹ್ನ", greeting_evening: "ಶುಭ ಸಂಜೆ",
       greeting_night: "ಶುಭ ರಾತ್ರಿ, ಸ್ವಲ್ಪ ವಿಶ್ರಾಂತಿ ಪಡೆಯಿರಿ",
-      greeting_sub: "ಇಂದು ನಿಮ್ಮ ಮನೆ ಹೇಗೆ ಕಾರ್ಯನಿರ್ವಹಿಸುತ್ತಿದೆ ಎಂದು ಇಲ್ಲಿ ನೋಡಿ",
+      today_order: "📦 {n} ಆರ್ಡರ್ ಅಪ್‌ಡೇಟ್(ಗಳು) ಕಾಯುತ್ತಿವೆ. ಗಂಟೆಯನ್ನು ಒತ್ತಿ.", today_rain: "🌧️ {t} ಸುಮಾರಿಗೆ ಮಳೆ ಬರುವ ಸಾಧ್ಯತೆ ಇದೆ. ಮುಂಚಿತವಾಗಿ ಸಿದ್ಧರಾಗಿ.", today_heavy: "⛈️ {t} ಸುಮಾರಿಗೆ ಭಾರಿ ಮಳೆ ನಿರೀಕ್ಷೆ. ಸುರಕ್ಷಿತವಾಗಿರಿ.", today_storm: "⛈️ {t} ಸುಮಾರಿಗೆ ಗುಡುಗು ಸಹಿತ ಮಳೆ ಸಾಧ್ಯ. ಸೂಕ್ಷ್ಮ ಸಾಧನಗಳನ್ನು ಪ್ಲಗ್‌ನಿಂದ ತೆಗೆಯಿರಿ.", today_wind: "💨 ಇಂದು ಗಂಟೆಗೆ {n} ಕಿ.ಮೀ. ವರೆಗೆ ಬಲವಾದ ಗಾಳಿ.", today_heat: "🌡️ ಇಂದು ತುಂಬಾ ಬಿಸಿ, {n}°C ವರೆಗೆ. ಹೆಚ್ಚು ನೀರು ಕುಡಿಯಿರಿ.", today_fog: "🌫️ ಈ ಬೆಳಿಗ್ಗೆ ಮಂಜು. ಎಚ್ಚರಿಕೆಯಿಂದ ಚಲಾಯಿಸಿ.", today_cold: "🧊 ಇಂದು ತಂಪಾಗಿರುತ್ತದೆ, ಕನಿಷ್ಠ {n}°C.", today_snow: "❄️ ಇಂದು ಹಿಮಪಾತ ನಿರೀಕ್ಷೆ.", today_sunny: "☀️ ಬಿಸಿಲಿನ ದಿನ: ಇಂದು ಸೋಲಾರ್‌ಗೆ ಒಳ್ಳೆಯದು.", today_night: "🌙 ಸ್ಪಷ್ಟ ರಾತ್ರಿ. ಸೋಲಾರ್ ಬದಲು ಬ್ಯಾಟರಿಗಳು ಕೆಲಸ ಮಾಡುತ್ತವೆ.", today_partly: "⛅ ಭಾಗಶಃ ಮೋಡ: ಸೋಲಾರ್ ಚೆನ್ನಾಗಿಯೇ ಕೆಲಸ ಮಾಡುತ್ತದೆ.", today_cloudy: "☁️ ಮೋಡ ಕವಿದಿದೆ: ಇಂದು ಸೋಲಾರ್ ಉತ್ಪಾದನೆ ಕಡಿಮೆ ಇರುತ್ತದೆ.", weather_note: "{p}ಗಾಗಿ Open-Meteo ಮುನ್ಸೂಚನೆ. ಇದು ಅಧಿಕೃತ ಎಚ್ಚರಿಕೆ ಅಲ್ಲ.", greeting_sub: "ಸ್ವಚ್ಛ ಶಕ್ತಿಯೊಂದಿಗೆ ನಿಮ್ಮ ದಿನ",
       card_ses: "ನವೀಕರಿಸಬಹುದಾದ ಇಂಧನ ಉತ್ಪನ್ನಗಳನ್ನು ಹುಡುಕಿ, ಹೋಲಿಸಿ ಮತ್ತು ಆಯ್ಕೆಮಾಡಿ",
       card_es: "ಆಂಧ್ರಪ್ರದೇಶದಾದ್ಯಂತ ಸೌರ ಮತ್ತು ಪವನ ಶಕ್ತಿಯ ಅವಕಾಶಗಳನ್ನು ಅನ್ವೇಷಿಸಿ",
       card_hub: "ನಿಮ್ಮ ಹತ್ತಿರದ ಸೌರ ಮತ್ತು ಪವನ ಇಂಧನ ಅಂಗಡಿಗಳಿಂದ ಹುಡುಕಿ ಮತ್ತು ಖರೀದಿಸಿ",
@@ -2692,7 +2711,7 @@
     te: {
       greeting_morning: "శుభోదయం", greeting_afternoon: "శుభ మధ్యాహ్నం", greeting_evening: "శుభ సాయంత్రం",
       greeting_night: "శుభ రాత్రి, కొంచెం విశ్రాంతి తీసుకోండి",
-      greeting_sub: "ఈ రోజు మీ ఇల్లు ఎలా ఉందో ఇక్కడ చూడండి",
+      today_order: "📦 {n} ఆర్డర్ అప్‌డేట్(లు) ఉన్నాయి. బెల్‌ను నొక్కండి.", today_rain: "🌧️ {t} సమయంలో వర్షం పడే అవకాశం ఉంది. ముందే ప్లాన్ చేసుకోండి.", today_heavy: "⛈️ {t} సమయంలో భారీ వర్షం రావచ్చు. జాగ్రత్తగా ఉండండి.", today_storm: "⛈️ {t} సమయంలో ఉరుములతో వర్షం రావచ్చు. సున్నితమైన పరికరాలను ప్లగ్ నుండి తీసేయండి.", today_wind: "💨 ఈ రోజు గంటకు {n} కి.మీ. వరకు బలమైన గాలులు.", today_heat: "🌡️ ఈ రోజు చాలా వేడి, {n}°C వరకు. నీళ్లు ఎక్కువగా తాగండి.", today_fog: "🌫️ ఈ ఉదయం పొగమంచు. జాగ్రత్తగా నడపండి.", today_cold: "🧊 ఈ రోజు చల్లగా ఉంటుంది, కనిష్టం {n}°C.", today_snow: "❄️ ఈ రోజు మంచు కురిసే అవకాశం.", today_sunny: "☀️ ఎండగా ఉంది: ఈ రోజు సోలార్‌కు మంచిది.", today_night: "🌙 నిర్మలమైన రాత్రి. సోలార్ స్థానంలో బ్యాటరీలు పనిచేస్తాయి.", today_partly: "⛅ కొంత మేఘావృతం: సోలార్ బాగానే పనిచేస్తుంది.", today_cloudy: "☁️ మేఘావృతం: ఈ రోజు సోలార్ ఉత్పత్తి తక్కువగా ఉంటుంది.", weather_note: "{p} కోసం Open-Meteo అంచనా. ఇది అధికారిక హెచ్చరిక కాదు.", greeting_sub: "స్వచ్ఛమైన శక్తితో మీ రోజు",
       card_ses: "పునరుత్పాదక ఇంధన ఉత్పత్తులను వెతకండి, పోల్చండి, ఎంచుకోండి",
       card_es: "ఆంధ్రప్రదేశ్‌లో సౌర, పవన శక్తి అవకాశాలను తెలుసుకోండి",
       card_hub: "మీ దగ్గరి సౌర & పవన ఇంధన దుకాణాల నుండి కొనండి",
@@ -3190,6 +3209,155 @@ loadEmberRealData();
 // Location + live weather for the top pill (GPS + Open-Meteo, both free,
 // no API key — same services already used on EnergyScope AP)
 // ---------------------------------------------------------------------------
+// ===========================================================================
+// Living weather, step 1: real forecast data, a "Today" line under the greeting,
+// weather alerts in the bell, and a weather object (window.GM_weather) that EMBER
+// and the coming scene (sky, clouds, rain, sun, moon, land) read from.
+// Data: Open-Meteo (free, no key). Alerts are forecasts, not official warnings.
+// ===========================================================================
+var GM_WEATHER_CACHE_KEY = "gm_weather_v1";
+var GM_WALERTS_KEY = "gm_weather_alerts_v1";
+var GM_WEATHER_EMOJI = { "storm": "\u26C8\uFE0F", "snow": "\u2744\uFE0F", "heavy-rain": "\uD83C\uDF27\uFE0F", "rain": "\uD83C\uDF27\uFE0F", "drizzle": "\uD83C\uDF26\uFE0F", "fog": "\uD83C\uDF2B\uFE0F", "windy": "\uD83D\uDCA8", "sunny": "\u2600\uFE0F", "clear-night": "\uD83C\uDF19", "partly": "\u26C5", "cloudy": "\u2601\uFE0F" };
+
+function gmHourText(ms){
+  var loc = { en: "en-IN", te: "te-IN", hi: "hi-IN", ta: "ta-IN", kn: "kn-IN" }[gmLang()] || "en-IN";
+  try { return new Date(ms).toLocaleTimeString(loc, { hour: "numeric", hour12: true }); } catch (e) { return String(new Date(ms).getHours()) + ":00"; }
+}
+function gmWeatherVars(v){
+  var o = {}; Object.keys(v || {}).forEach(function(k){ o[k] = v[k]; });
+  if (o.tms) o.t = gmHourText(o.tms);
+  return o;
+}
+
+// Turns an Open-Meteo response into one plain object the rest of the app can use.
+function gmWeatherAnalyse(j, place){
+  var c = j && j.current, h = j && j.hourly, d = j && j.daily;
+  if (!c || !h || !h.time || !d || !d.time) return null;
+  var nowHour = String(c.time).slice(0, 13), i0 = 0, i;
+  for (i = 0; i < h.time.length; i++){ if (String(h.time[i]).slice(0, 13) >= nowHour){ i0 = i; break; } }
+  var N = Math.min(h.time.length, i0 + 12);
+  var code = c.weather_code, cloud = c.cloud_cover, temp = c.temperature_2m, wind = c.wind_speed_10m, gust = c.wind_gusts_10m || 0;
+  var isDay = c.is_day === 1;
+  var rainAt = null, heavyAt = null, stormAt = null, snowAt = null, fogAt = null, maxGust = gust, maxPop = 0, maxMm = 0;
+  for (var k = i0; k < N; k++){
+    var cd = h.weather_code[k], mm = h.precipitation[k] || 0, pop = h.precipitation_probability ? (h.precipitation_probability[k] || 0) : 0;
+    var when = new Date(h.time[k]).getTime();
+    if (cd >= 95 && !stormAt) stormAt = when;
+    if (((pop >= 60 && mm >= 0.3) || mm >= 1 || (cd >= 61 && cd <= 67) || (cd >= 80 && cd <= 82)) && !rainAt) rainAt = when;
+    if ((mm >= 7 || cd === 65 || cd === 82) && !heavyAt) heavyAt = when;
+    if (((cd >= 71 && cd <= 77) || cd === 85 || cd === 86) && !snowAt) snowAt = when;
+    if ((cd === 45 || cd === 48) && k < i0 + 7 && !fogAt) fogAt = when;
+    if ((h.wind_gusts_10m[k] || 0) > maxGust) maxGust = h.wind_gusts_10m[k];
+    if (pop > maxPop) maxPop = pop;
+    if (mm > maxMm) maxMm = mm;
+  }
+  var sky = cloud < 20 ? "clear" : cloud < 50 ? "partly" : cloud < 85 ? "cloudy" : "overcast";
+  var kind;
+  if (code >= 95) kind = "storm";
+  else if ((code >= 71 && code <= 77) || code === 85 || code === 86) kind = "snow";
+  else if (code === 65 || code === 82 || code === 67) kind = "heavy-rain";
+  else if ((code >= 61 && code <= 66) || code === 80 || code === 81) kind = "rain";
+  else if (code >= 51 && code <= 57) kind = "drizzle";
+  else if (code === 45 || code === 48) kind = "fog";
+  else if (gust >= 45 || wind >= 30) kind = "windy";
+  else kind = sky === "clear" ? (isDay ? "sunny" : "clear-night") : (sky === "partly" ? "partly" : "cloudy");
+  var date0 = String(c.time).slice(0, 10), tmax = d.temperature_2m_max[0], tmin = d.temperature_2m_min[0];
+  var alerts = [];
+  if (stormAt) alerts.push({ id: "storm_" + date0 + "_" + new Date(stormAt).getHours(), key: "today_storm", vars: { tms: stormAt }, icon: "\u26C8\uFE0F", sev: 2, kind: "storm" });
+  else if (heavyAt) alerts.push({ id: "heavy_" + date0 + "_" + new Date(heavyAt).getHours(), key: "today_heavy", vars: { tms: heavyAt }, icon: "\u26C8\uFE0F", sev: 2, kind: "heavy-rain" });
+  else if (rainAt) alerts.push({ id: "rain_" + date0 + "_" + new Date(rainAt).getHours(), key: "today_rain", vars: { tms: rainAt }, icon: "\uD83C\uDF27\uFE0F", sev: 1, kind: "rain" });
+  if (snowAt) alerts.push({ id: "snow_" + date0, key: "today_snow", vars: {}, icon: "\u2744\uFE0F", sev: 2, kind: "snow" });
+  if (maxGust >= 50) alerts.push({ id: "wind_" + date0, key: "today_wind", vars: { n: Math.round(maxGust) }, icon: "\uD83D\uDCA8", sev: 1, kind: "windy" });
+  if (tmax >= 38) alerts.push({ id: "heat_" + date0, key: "today_heat", vars: { n: Math.round(tmax) }, icon: "\uD83C\uDF21\uFE0F", sev: 1, kind: "hot" });
+  if (fogAt) alerts.push({ id: "fog_" + date0, key: "today_fog", vars: {}, icon: "\uD83C\uDF2B\uFE0F", sev: 1, kind: "fog" });
+  if (tmin <= 15) alerts.push({ id: "cold_" + date0, key: "today_cold", vars: { n: Math.round(tmin) }, icon: "\uD83E\uDDCA", sev: 0, kind: "cold" });
+  var psh = (d.shortwave_radiation_sum && d.shortwave_radiation_sum[0] ? d.shortwave_radiation_sum[0] : 0) / 3.6;   // MJ/m2 -> kWh/m2
+  return {
+    place: place || "", at: Date.now(), kind: kind, sky: sky, isDay: isDay,
+    emoji: GM_WEATHER_EMOJI[kind] || "\u2600\uFE0F",
+    now: { temp: temp, feels: c.apparent_temperature, humidity: c.relative_humidity_2m, code: code, cloud: cloud, wind: wind, gust: gust, dir: c.wind_direction_10m, precip: c.precipitation || 0 },
+    tmax: tmax, tmin: tmin, sunrise: d.sunrise ? d.sunrise[0] : null, sunset: d.sunset ? d.sunset[0] : null, uv: d.uv_index_max ? d.uv_index_max[0] : null,
+    popMax: maxPop, mmMax: maxMm, gustMax: maxGust, alerts: alerts,
+    psh: Math.round(psh * 10) / 10, perKw: Math.round(psh * 0.8 * 10) / 10
+  };
+}
+
+// Which sentence goes under the greeting: danger first, then your orders, then the weather.
+function gmWeatherPickLine(w, orders){
+  var sev = w && w.alerts.filter(function(a){ return a.sev >= 2; })[0];
+  if (sev) return { key: sev.key, vars: sev.vars };
+  if (orders > 0) return { key: "today_order", vars: { n: orders } };
+  if (w){
+    if (w.alerts[0]) return { key: w.alerts[0].key, vars: w.alerts[0].vars };
+    var map = { "sunny": "today_sunny", "clear-night": "today_night", "partly": "today_partly", "cloudy": "today_cloudy" };
+    return { key: map[w.kind] || "today_cloudy", vars: {} };
+  }
+  return null;
+}
+
+function gmUpdateTodayLine(){
+  var el = document.getElementById("greetingSub");
+  if (!el) return;
+  var pick = gmWeatherPickLine(window.GM_weather, window.GM_unreadOrders || 0);
+  el.textContent = pick ? gmT(pick.key, gmWeatherVars(pick.vars)) : gmT("greeting_sub");
+}
+
+// Each alert is saved once on this phone, so it shows in the bell once and counts as unread once.
+function gmWeatherLogAlerts(w){
+  try {
+    var now = Date.now();
+    var log = JSON.parse(localStorage.getItem(GM_WALERTS_KEY) || "[]").filter(function(x){ return now - x.time < 36 * 3600 * 1000; });
+    w.alerts.forEach(function(a){
+      if (!log.some(function(x){ return x.id === a.id; })) log.push({ id: a.id, key: a.key, vars: a.vars, icon: a.icon, time: now, place: w.place });
+    });
+    localStorage.setItem(GM_WALERTS_KEY, JSON.stringify(log.slice(-12)));
+  } catch (e) {}
+}
+function getWeatherLocalNotifs(){
+  try {
+    return JSON.parse(localStorage.getItem(GM_WALERTS_KEY) || "[]").map(function(x){
+      return { id: "weather_" + x.id, type: "weather", icon: x.icon, title: gmT(x.key, gmWeatherVars(x.vars)), message: gmT("weather_note", { p: x.place || "" }), link: "", time: x.time };
+    });
+  } catch (e) { return []; }
+}
+
+async function gmWeatherLoad(lat, lng, place){
+  var raw = null, age = Infinity;
+  try {
+    var cached = JSON.parse(localStorage.getItem(GM_WEATHER_CACHE_KEY) || "null");
+    if (cached && Math.abs(cached.lat - lat) < 0.05 && Math.abs(cached.lng - lng) < 0.05){ raw = cached.j; age = Date.now() - cached.ts; }
+  } catch (e) {}
+  if (!raw || age > 20 * 60 * 1000){
+    try {
+      var url = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lng +
+        "&current=temperature_2m,apparent_temperature,relative_humidity_2m,is_day,precipitation,weather_code,cloud_cover,wind_speed_10m,wind_direction_10m,wind_gusts_10m" +
+        "&hourly=precipitation_probability,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,temperature_2m,visibility" +
+        "&daily=sunrise,sunset,uv_index_max,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_gusts_10m_max,shortwave_radiation_sum" +
+        "&timezone=auto&forecast_days=2&wind_speed_unit=kmh";
+      var res = await fetch(url);
+      if (res.ok){
+        var j = await res.json();
+        if (j && j.current){ raw = j; localStorage.setItem(GM_WEATHER_CACHE_KEY, JSON.stringify({ lat: lat, lng: lng, ts: Date.now(), j: j })); }
+      }
+    } catch (e) { console.warn("Weather fetch failed:", e); }
+  }
+  if (!raw) return null;
+  var w = gmWeatherAnalyse(raw, place);
+  if (!w) return null;
+  w.lat = lat; w.lng = lng;
+  window.GM_weather = w;
+  gmWeatherLogAlerts(w);
+  try { window.dispatchEvent(new CustomEvent("gm-weather", { detail: w })); } catch (e) {}
+  gmUpdateTodayLine();
+  if (typeof updateBellBadge === "function") updateBellBadge();
+  return w;
+}
+setInterval(function(){ var w = window.GM_weather; if (w && w.lat != null) gmWeatherLoad(w.lat, w.lng, w.place); }, 20 * 60 * 1000);
+(function(){
+  var prev = window.GM_onLangChange;
+  window.GM_onLangChange = function(){ if (typeof prev === "function") prev(); gmUpdateTodayLine(); };
+})();
+
 async function loadLocationAndWeather(){
   var pill = document.getElementById("locTempPill");
   if (!navigator.geolocation){
@@ -3212,18 +3380,23 @@ async function loadLocationAndWeather(){
       console.warn("Reverse geocoding failed:", err);
     }
 
-    try {
-      var wUrl = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lng + "&current=temperature_2m";
-      var wRes = await fetch(wUrl);
-      var wData = await wRes.json();
-      if (wData && wData.current && typeof wData.current.temperature_2m === "number"){
-        tempText = Math.round(wData.current.temperature_2m) + "°C";
+    var w = await gmWeatherLoad(lat, lng, placeName);
+    if (w){
+      tempText = Math.round(w.now.temp) + "\u00B0C";
+    } else {
+      try {
+        var wUrl = "https://api.open-meteo.com/v1/forecast?latitude=" + lat + "&longitude=" + lng + "&current=temperature_2m";
+        var wRes = await fetch(wUrl);
+        var wData = await wRes.json();
+        if (wData && wData.current && typeof wData.current.temperature_2m === "number"){
+          tempText = Math.round(wData.current.temperature_2m) + "\u00B0C";
+        }
+      } catch (err){
+        console.warn("Weather fetch failed:", err);
       }
-    } catch (err){
-      console.warn("Weather fetch failed:", err);
     }
 
-    pill.innerHTML = "📍 " + placeName + ' <span class="sep">|</span> 🌡️ ' + tempText;
+    pill.innerHTML = "\uD83D\uDCCD " + placeName + ' <span class="sep">|</span> ' + (w ? w.emoji : "\uD83C\uDF21\uFE0F") + " " + tempText;
   }, function(err){
     pill.textContent = "📍 Location permission needed";
   }, { enableHighAccuracy: true, timeout: 10000 });
@@ -3466,7 +3639,7 @@ async function fetchNotifications(){
   var localItems = getGovtSchemesLocalNotifs().filter(function(n){
     return !n.time || n.time > clearedBefore;
   });
-  items = items.concat(localItems);
+  items = items.concat(localItems).concat(getWeatherLocalNotifs().filter(function(n){ return !n.time || n.time > clearedBefore; }));
   items.sort(function(a, b){ return b.time - a.time; });
 
   return items;
@@ -3479,6 +3652,8 @@ async function updateBellBadge(){
     var items = await fetchNotifications();
     var lastSeen = getLastSeenTime();
     var unread = items.filter(function(n){ return n.time > lastSeen; }).length;
+    window.GM_unreadOrders = items.filter(function(n){ return n.type === "order" && n.time > lastSeen; }).length;
+    gmUpdateTodayLine();
     if (unread > 0){
       badge.textContent = unread > 9 ? "9+" : String(unread);
       badge.classList.add("show");
@@ -3510,7 +3685,7 @@ async function renderNotificationList(){
         var row = document.createElement("div");
         row.className = "notif-item";
         row.innerHTML =
-          '<div class="notif-icon">' + notifIconFor(n.type) + '</div>' +
+          '<div class="notif-icon">' + (n.icon || notifIconFor(n.type)) + '</div>' +
           '<div class="notif-text">' +
             '<div class="notif-title"></div>' +
             '<div class="notif-sub"></div>' +
