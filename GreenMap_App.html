@@ -382,6 +382,17 @@
   @keyframes emcDot{0%,80%,100%{transform:translateY(0);opacity:.35;}40%{transform:translateY(-5px);opacity:1;}}
   @media (prefers-reduced-motion:reduce){.emc-big,.emc-line,.emc-typing i{animation:none!important;}.emc-line{opacity:1;}}
 </style>
+<style id="gmSceneCss">
+/* Living scene behind the Home screen (see gmSceneJs). Cards stay frosted glass on top of it. */
+#homeScreen{isolation:isolate;}
+#gmScene{position:fixed;left:0;top:0;width:100%;height:100%;z-index:-1;pointer-events:none;display:block;}
+#homeScreen.gm-scene-on{background:transparent;}
+#homeScreen.gm-scene-on .white-section{background:transparent !important;}
+#homeScreen.gm-scene-on .option-card{-webkit-backdrop-filter:blur(9px) saturate(150%);backdrop-filter:blur(9px) saturate(150%);}
+#homeScreen.gm-dark-sky .greeting{color:#f2f7ff;text-shadow:0 1px 8px rgba(0,0,0,.4);}
+#homeScreen.gm-dark-sky .greeting-sub{color:#d4def0;text-shadow:0 1px 6px rgba(0,0,0,.4);}
+#homeScreen.gm-dark-sky .option-card{background:rgba(255,255,255,.62);}
+</style>
 </head>
 <body>
 
@@ -4516,6 +4527,450 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
   window.addEventListener('appinstalled',function(){
     deferred=null; var p=document.getElementById('gmInstallPill'); if(p) p.classList.remove('show');
   });
+})();
+</script>
+<script id="gmSceneJs">
+// GreenMap living scene (step 2): real sun and moon, clouds, mountains, land and a river.
+// Pure drawing code: works on any Canvas 2D context (and on the preview recorder).
+var GMScene = (function(){
+  var PI = Math.PI, RAD = PI / 180;
+  function clamp(x, a, b){ return x < a ? a : x > b ? b : x; }
+  function lerp(a, b, t){ return a + (b - a) * t; }
+  function smooth(a, b, x){ var t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); }
+  function hex(c){ c = c.replace("#", ""); return [parseInt(c.substr(0, 2), 16), parseInt(c.substr(2, 2), 16), parseInt(c.substr(4, 2), 16)]; }
+  function mix(a, b, t){ return [lerp(a[0], b[0], t), lerp(a[1], b[1], t), lerp(a[2], b[2], t)]; }
+  function rgba(c, a){ return "rgba(" + Math.round(c[0]) + "," + Math.round(c[1]) + "," + Math.round(c[2]) + "," + (a == null ? 1 : Math.round(a * 1000) / 1000) + ")"; }
+  function rng(seed){ return function(){ seed |= 0; seed = seed + 0x6D2B79F5 | 0; var t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function wrapDeg(d){ d = (d + 540) % 360 - 180; return d; }
+
+  // ---------------- astronomy (sun and moon position, moon phase) ----------------
+  var DAY_MS = 86400000, J1970 = 2440588, J2000 = 2451545, OBL = RAD * 23.4397;
+  function toDays(date){ return date.valueOf() / DAY_MS - 0.5 + J1970 - J2000; }
+  function rightAscension(l, b){ return Math.atan2(Math.sin(l) * Math.cos(OBL) - Math.tan(b) * Math.sin(OBL), Math.cos(l)); }
+  function declination(l, b){ return Math.asin(Math.sin(b) * Math.cos(OBL) + Math.cos(b) * Math.sin(OBL) * Math.sin(l)); }
+  function azimuthOf(H, phi, dec){ return Math.atan2(Math.sin(H), Math.cos(H) * Math.sin(phi) - Math.tan(dec) * Math.cos(phi)); }
+  function altitudeOf(H, phi, dec){ return Math.asin(Math.sin(phi) * Math.sin(dec) + Math.cos(phi) * Math.cos(dec) * Math.cos(H)); }
+  function siderealTime(d, lw){ return RAD * (280.16 + 360.9856235 * d) - lw; }
+  function sunCoords(d){
+    var M = RAD * (357.5291 + 0.98560028 * d);
+    var C = RAD * (1.9148 * Math.sin(M) + 0.02 * Math.sin(2 * M) + 0.0003 * Math.sin(3 * M));
+    var L = M + C + RAD * 102.9372 + PI;
+    return { dec: declination(L, 0), ra: rightAscension(L, 0) };
+  }
+  function moonCoords(d){
+    var L = RAD * (218.316 + 13.176396 * d), M = RAD * (134.963 + 13.064993 * d), F = RAD * (93.272 + 13.229350 * d);
+    var l = L + RAD * 6.289 * Math.sin(M), b = RAD * 5.128 * Math.sin(F), dt = 385001 - 20905 * Math.cos(M);
+    return { ra: rightAscension(l, b), dec: declination(l, b), dist: dt };
+  }
+  // compass bearing (0 = north, 90 = east) and altitude in degrees
+  function sunPos(date, lat, lng){
+    var lw = RAD * -lng, phi = RAD * lat, d = toDays(date), c = sunCoords(d), H = siderealTime(d, lw) - c.ra;
+    return { az: (azimuthOf(H, phi, c.dec) / RAD + 180 + 360) % 360, alt: altitudeOf(H, phi, c.dec) / RAD };
+  }
+  function moonPos(date, lat, lng){
+    var lw = RAD * -lng, phi = RAD * lat, d = toDays(date), c = moonCoords(d), H = siderealTime(d, lw) - c.ra;
+    var s = sunCoords(d), sdist = 149598000;
+    var ph = Math.acos(Math.sin(s.dec) * Math.sin(c.dec) + Math.cos(s.dec) * Math.cos(c.dec) * Math.cos(s.ra - c.ra));
+    var inc = Math.atan2(sdist * Math.sin(ph), c.dist - sdist * Math.cos(ph));
+    var angle = Math.atan2(Math.cos(s.dec) * Math.sin(s.ra - c.ra), Math.sin(s.dec) * Math.cos(c.dec) - Math.cos(s.dec) * Math.sin(c.dec) * Math.cos(s.ra - c.ra));
+    return { az: (azimuthOf(H, phi, c.dec) / RAD + 180 + 360) % 360, alt: altitudeOf(H, phi, c.dec) / RAD,
+             frac: (1 + Math.cos(inc)) / 2, phase: 0.5 + 0.5 * inc * (angle < 0 ? -1 : 1) / PI };
+  }
+
+  // ---------------- scene state from the weather object ----------------
+  var SKY_STOPS = [
+    [-18, "#050a1e", "#0f1836"], [-9, "#16244f", "#3a3d72"], [-3, "#34487f", "#e0764f"],
+    [2, "#4670b4", "#f5a86a"], [9, "#4b8cd2", "#b9d8ee"], [35, "#3a82d4", "#bfe4f8"]
+  ];
+  function skyColors(alt){
+    var i = 0;
+    while (i < SKY_STOPS.length - 2 && alt > SKY_STOPS[i + 1][0]) i++;
+    var a = SKY_STOPS[i], b = SKY_STOPS[i + 1], t = clamp((alt - a[0]) / (b[0] - a[0]), 0, 1);
+    return { top: mix(hex(a[1]), hex(b[1]), t), bottom: mix(hex(a[2]), hex(b[2]), t) };
+  }
+  function makeState(w, now, lat, lng){
+    lat = lat == null ? 14.2 : lat; lng = lng == null ? 79.1 : lng;
+    var sun = sunPos(now, lat, lng), moon = moonPos(now, lat, lng);
+    var kind = w ? w.kind : "sunny", cloud = w ? w.now.cloud : 12, wind = w ? w.now.wind : 8, hum = w ? (w.now.humidity || 60) : 55;
+    var wet = (kind === "rain" || kind === "heavy-rain" || kind === "storm" || kind === "drizzle");
+    var oc = clamp((cloud - 25) / 75, 0, 1) * 0.85 + (wet ? 0.15 : 0) + (kind === "storm" ? 0.1 : 0);
+    oc = clamp(oc, 0, 1);
+    var sky = skyColors(sun.alt);
+    var day = smooth(-6, 10, sun.alt), night = 1 - smooth(-12, -3, sun.alt), dusk = clamp(1 - Math.abs(sun.alt - 1) / 9, 0, 1) * (1 - oc * 0.6);
+    var grayTop = mix([22, 28, 40], kind === "storm" ? [70, 78, 90] : [128, 140, 152], day);
+    var grayBot = mix([34, 42, 58], kind === "storm" ? [118, 126, 136] : [196, 205, 212], day);
+    var gk = 0.45 + 0.55 * day;
+    var top = mix(sky.top, grayTop, oc * 0.9 * gk), bottom = mix(sky.bottom, grayBot, oc * 0.85 * gk);
+    var fog = kind === "fog" ? 0.75 : (wet ? 0.18 : clamp((hum - 70) / 60, 0, 0.2));
+    if (fog > 0.5){ top = mix(top, [190, 198, 204], 0.5); bottom = mix(bottom, [205, 212, 217], 0.7); }
+    var lum = (0.299 * top[0] + 0.587 * top[1] + 0.114 * top[2]) / 255;
+    return { sun: sun, moon: moon, lat: lat, lng: lng, kind: kind, cloud: cloud, wind: wind, oc: oc, fog: fog, wet: wet,
+             day: day, night: night, dusk: dusk, top: top, bottom: bottom, dark: lum < 0.42,
+             heading: 180, fov: 200, alt0: 75 };
+  }
+
+  // ---------------- geometry helpers ----------------
+  function horizon(H){ return H * 0.745; }
+  function project(S, W, H, az, alt){
+    var hy = horizon(H);
+    var x = W / 2 + wrapDeg(az - S.heading) / S.fov * W;
+    var y = hy - clamp(alt, -12, 90) / S.alt0 * (hy * 0.86);
+    return { x: x, y: y };
+  }
+  // grade a base colour for the time of day and weather
+  function grade(c, S, k){
+    k = k == null ? 1 : k;
+    var out = c;
+    out = mix(out, [8, 14, 38], S.night * 0.8 * k);
+    out = mix(out, [238, 134, 84], S.dusk * 0.2 * k);
+    var lum = 0.299 * out[0] + 0.587 * out[1] + 0.114 * out[2];
+    out = mix(out, [lum, lum, lum], S.oc * 0.45 * k);
+    out = mix(out, [out[0] * 0.86, out[1] * 0.86, out[2] * 0.88], S.oc * 0.5 * k);
+    return out;
+  }
+  function hazeColor(S){ return mix(mix(S.bottom, [235, 240, 244], 0.45), [10, 16, 36], S.night * 0.7); }
+
+  // ---------------- layers ----------------
+  function drawSky(ctx, W, H, S){
+    var hy = horizon(H), g = ctx.createLinearGradient(0, 0, 0, hy);
+    g.addColorStop(0, rgba(S.top, 1)); g.addColorStop(1, rgba(S.bottom, 1));
+    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  }
+  function starList(W, H, n){
+    var r = rng(77), out = [], hy = horizon(H);
+    for (var i = 0; i < n; i++) out.push({ x: r() * W, y: r() * hy * 0.92, s: 0.5 + r() * 1.1, p: r() * 6.28, f: 0.6 + r() * 1.8 });
+    return out;
+  }
+  function drawStars(ctx, W, H, S, t, stars){
+    var a0 = S.night * (1 - S.oc) * (1 - S.fog * 0.8);
+    if (a0 < 0.03) return;
+    for (var i = 0; i < stars.length; i++){
+      var s = stars[i], tw = 0.55 + 0.45 * Math.sin(t * s.f + s.p);
+      ctx.fillStyle = "rgba(255,255,245," + (a0 * tw).toFixed(3) + ")";
+      ctx.fillRect(s.x, s.y, s.s, s.s);
+    }
+  }
+  function drawSun(ctx, W, H, S){
+    var p = project(S, W, H, S.sun.az, S.sun.alt);
+    if (S.sun.alt < -5) return;
+    var vis = smooth(-5, 1.5, S.sun.alt) * (1 - S.oc * 0.78) * (1 - S.fog * 0.7), low = 1 - smooth(2, 22, S.sun.alt);
+    var glowC = mix([255, 246, 214], [255, 150, 70], low), discC = mix([255, 250, 232], [255, 176, 96], low);
+    var gr = W * (0.42 + low * 0.18);
+    var g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, gr);
+    g.addColorStop(0, rgba(glowC, 0.75 * vis)); g.addColorStop(0.18, rgba(glowC, 0.34 * vis)); g.addColorStop(1, rgba(glowC, 0));
+    ctx.fillStyle = g; ctx.fillRect(p.x - gr, p.y - gr, gr * 2, gr * 2);
+    var r = W * (0.05 + low * 0.012);
+    ctx.fillStyle = rgba(discC, clamp(vis * 1.15, 0, 1) * (1 - smooth(0.5, 0.85, S.oc)) * (1 - smooth(0.4, 0.7, S.fog)));
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, PI * 2); ctx.fill();
+  }
+  function drawMoon(ctx, W, H, S){
+    var m = S.moon, p = project(S, W, H, m.az, m.alt);
+    if (m.alt < -4) return;
+    var vis = clamp((0.35 + 0.65 * S.night) * (1 - S.oc * 0.75) * smooth(-4, 3, m.alt), 0, 1);
+    if (vis < 0.04) return;
+    var r = W * 0.046;
+    var g = ctx.createRadialGradient(p.x, p.y, r * 0.6, p.x, p.y, r * 5);
+    g.addColorStop(0, "rgba(205,220,255," + (0.30 * vis * (0.3 + 0.7 * m.frac)).toFixed(3) + ")"); g.addColorStop(1, "rgba(205,220,255,0)");
+    ctx.fillStyle = g; ctx.fillRect(p.x - r * 5, p.y - r * 5, r * 10, r * 10);
+    // dark side
+    ctx.fillStyle = "rgba(70,84,120," + (0.55 * vis * S.night).toFixed(3) + ")";
+    ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, PI * 2); ctx.fill();
+    // lit part: waxing = right side lit (northern sky), waning = left side lit
+    var waxing = m.phase <= 0.5, ang = (waxing ? m.phase : 1 - m.phase) * 2 * PI, sgn = waxing ? 1 : -1;
+    ctx.fillStyle = "rgba(240,243,250," + (vis * (0.5 + 0.5 * S.night)).toFixed(3) + ")";
+    ctx.beginPath();
+    ctx.save(); ctx.translate(p.x, p.y); ctx.scale(sgn, 1);
+    ctx.arc(0, 0, r, -PI / 2, PI / 2, false);
+    ctx.save(); ctx.scale(Math.cos(ang), 1); ctx.arc(0, 0, r, PI / 2, -PI / 2, true); ctx.restore();
+    ctx.restore();
+    ctx.closePath(); ctx.fill();
+  }
+
+  // clouds ---------------------------------------------------------------
+  var PUFFS = [[-1.15, 0.12, 0.52], [-0.6, -0.12, 0.74], [0.05, -0.3, 0.96], [0.72, -0.08, 0.8], [1.25, 0.14, 0.56], [0.0, 0.16, 0.92], [-0.55, 0.2, 0.62], [0.62, 0.2, 0.62]];
+  function cloudPalette(S){
+    var body = mix(mix([255, 255, 255], [196, 204, 214], S.oc * 0.9), [80, 92, 126], S.night * 0.78);
+    var shade = mix(mix([158, 176, 200], [96, 106, 120], S.oc * 0.9), [28, 36, 66], S.night * 0.85);
+    if (S.kind === "storm"){ body = mix(body, [92, 100, 112], 0.6); shade = mix(shade, [48, 54, 66], 0.6); }
+    body = mix(body, [255, 190, 150], S.dusk * 0.35); shade = mix(shade, [190, 100, 90], S.dusk * 0.3);
+    return { body: body, shade: shade };
+  }
+  function drawCloud(ctx, x, y, s, pal, alpha){
+    var R0 = 24 * s, i, p;
+    for (i = 0; i < PUFFS.length; i++){ // soft shadow underside
+      p = PUFFS[i]; var cx = x + p[0] * R0, cy = y + p[1] * R0 + R0 * 0.22, r = p[2] * R0;
+      var g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+      g.addColorStop(0, rgba(pal.shade, 0.55 * alpha)); g.addColorStop(1, rgba(pal.shade, 0));
+      ctx.fillStyle = g; ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    }
+    for (i = 0; i < PUFFS.length; i++){ // lit body
+      p = PUFFS[i]; var bx = x + p[0] * R0, by = y + p[1] * R0, br = p[2] * R0;
+      var g2 = ctx.createRadialGradient(bx - br * 0.2, by - br * 0.28, 0, bx, by, br);
+      g2.addColorStop(0, rgba(pal.body, 0.95 * alpha)); g2.addColorStop(0.62, rgba(pal.body, 0.72 * alpha)); g2.addColorStop(1, rgba(pal.body, 0));
+      ctx.fillStyle = g2; ctx.fillRect(bx - br, by - br, br * 2, br * 2);
+    }
+  }
+  function cloudList(W, H, S){
+    var n = Math.round(2 + S.cloud / 100 * 7), r = rng(2026), out = [], hy = horizon(H);
+    for (var i = 0; i < n; i++){
+      var sc = 0.65 + r() * 0.95;
+      out.push({ x0: r() * (W + 240), y: hy * (0.1 + r() * 0.52), s: sc, sp: (5 + S.wind * 0.7) * (0.45 + 0.55 * sc / 1.6) });
+    }
+    out.sort(function(a, b){ return a.y - b.y; });
+    return out;
+  }
+  function cloudX(c, W, t){ var span = W + 260; return ((c.x0 + t * c.sp) % span) - 130; }
+
+  // mountains and land -----------------------------------------------------
+  function ridge(x01, seed, amp, rough){
+    var v = 0.55 * Math.sin(x01 * 5.1 + seed) + 0.28 * Math.sin(x01 * 11.7 + seed * 2.3) + 0.14 * Math.sin(x01 * 23.9 + seed * 3.7) * rough + 0.07 * Math.sin(x01 * 47 + seed * 5.1) * rough;
+    return (v * 0.5 + 0.5) * amp;
+  }
+  function drawMountains(ctx, W, H, S){
+    var hy = horizon(H), i, x, y;
+    var far = grade(hex("#8caec9"), S, 1), near = grade(hex("#5f8c92"), S, 1), haze = hazeColor(S);
+    function range(seed, amp, rough, col, hazeMix, base){
+      ctx.beginPath(); ctx.moveTo(0, base);
+      for (x = 0; x <= W + 4; x += 4){ y = base - ridge(x / W, seed, amp, rough); ctx.lineTo(x, y); }
+      ctx.lineTo(W, base + 40); ctx.lineTo(0, base + 40); ctx.closePath();
+      var g = ctx.createLinearGradient(0, base - amp, 0, base);
+      g.addColorStop(0, rgba(mix(col, haze, hazeMix * 0.35), 1)); g.addColorStop(1, rgba(mix(col, haze, hazeMix), 1));
+      ctx.fillStyle = g; ctx.fill();
+    }
+    range(1.3, H * 0.17, 0.5, far, 0.42 + S.fog * 0.4, hy + 2);
+    range(4.1, H * 0.1, 1, near, 0.22 + S.fog * 0.5, hy + 2);
+    var g2 = ctx.createLinearGradient(0, hy - H * 0.05, 0, hy + 4);   // low haze
+    g2.addColorStop(0, rgba(haze, 0)); g2.addColorStop(1, rgba(haze, 0.35 + S.fog * 0.4));
+    ctx.fillStyle = g2; ctx.fillRect(0, hy - H * 0.05, W, H * 0.05 + 6);
+  }
+  function riverPt(W, H, v){
+    var hy = horizon(H);
+    return { x: W * (0.56 - 0.26 * Math.pow(v, 1.1)) + Math.sin(v * 5 + 0.4) * W * 0.045 * (0.25 + v),
+             y: hy + (H - hy) * Math.pow(v, 1.5), w: 2 + W * 0.30 * Math.pow(v, 1.35) };
+  }
+  function landTop(W, H, x){ var hy = horizon(H); return hy + H * 0.008 * Math.sin(x / W * 9 + 0.5) + H * 0.006 * Math.sin(x / W * 23 + 1.2); }
+  function drawPalm(ctx, x, y, s, S){
+    var trunk = grade(hex("#6b4a2d"), S, 1), leaf = grade(hex("#2f6a34"), S, 1), leaf2 = grade(hex("#4a8a3c"), S, 1);
+    var h = 70 * s;
+    ctx.strokeStyle = rgba(trunk, 1); ctx.lineWidth = 4.2 * s; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 10 * s, y - h * 0.5, x + 4 * s, y - h); ctx.stroke();
+    var tx = x + 4 * s, ty = y - h;
+    for (var i = 0; i < 8; i++){
+      var a = (i / 8) * PI * 2 + 0.3, len = 34 * s * (0.8 + 0.2 * Math.sin(i * 2.1));
+      var ex = tx + Math.cos(a) * len, ey = ty + Math.sin(a) * len * 0.45 + len * 0.28;
+      ctx.fillStyle = rgba(i % 2 ? leaf : leaf2, 1);
+      ctx.beginPath(); ctx.moveTo(tx, ty);
+      ctx.quadraticCurveTo(tx + Math.cos(a) * len * 0.55, ty + Math.sin(a) * len * 0.55 - 9 * s, ex, ey);
+      ctx.quadraticCurveTo(tx + Math.cos(a) * len * 0.5, ty + Math.sin(a) * len * 0.5 + 2 * s, tx, ty); ctx.fill();
+    }
+    ctx.fillStyle = rgba(trunk, 1); ctx.beginPath(); ctx.arc(tx, ty + 2 * s, 2.4 * s, 0, PI * 2); ctx.fill();
+  }
+  function drawPanels(ctx, W, H, S){
+    var hy = horizon(H), frame = grade(hex("#c9d2d8"), S, 1), cell = grade(hex("#1f3c6e"), S, 1), cell2 = grade(hex("#2d57a0"), S, 1);
+    var base = hy + (H - hy) * 0.30;
+    for (var i = 0; i < 3; i++){
+      var x = W * (0.66 + i * 0.105), s = 1 - i * 0.04, y = base + i * 4;
+      var pw = W * 0.092 * s, ph = H * 0.034 * s;
+      ctx.strokeStyle = rgba(frame, 1); ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x + pw * 0.2, y + ph); ctx.lineTo(x + pw * 0.16, y + ph + H * 0.02); ctx.moveTo(x + pw * 0.8, y + ph); ctx.lineTo(x + pw * 0.84, y + ph + H * 0.02); ctx.stroke();
+      var g = ctx.createLinearGradient(x, y, x + pw, y + ph);
+      g.addColorStop(0, rgba(cell2, 1)); g.addColorStop(1, rgba(cell, 1));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x + pw * 0.08, y); ctx.lineTo(x + pw, y); ctx.lineTo(x + pw * 0.92, y + ph); ctx.lineTo(x, y + ph); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = rgba(frame, 0.9); ctx.lineWidth = 1; ctx.stroke();
+    }
+  }
+  function turbineBase(W, H){ var hy = horizon(H); return { x: W * 0.2, y: hy + H * 0.052, h: H * 0.2 }; }
+  function drawTurbineTower(ctx, W, H, S){
+    var b = turbineBase(W, H), c = grade(hex("#eef1f4"), S, 1), c2 = grade(hex("#b9c2cb"), S, 1);
+    var g = ctx.createLinearGradient(b.x - 4, 0, b.x + 4, 0); g.addColorStop(0, rgba(c, 1)); g.addColorStop(1, rgba(c2, 1));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(b.x - 3.4, b.y); ctx.lineTo(b.x + 3.4, b.y); ctx.lineTo(b.x + 1.2, b.y - b.h); ctx.lineTo(b.x - 1.2, b.y - b.h); ctx.closePath(); ctx.fill();
+  }
+  function drawTurbineBlades(ctx, W, H, S, t){
+    var b = turbineBase(W, H), c = grade(hex("#f6f8fa"), S, 1), hubx = b.x, huby = b.y - b.h, L = H * 0.082;
+    var ang = (t * (0.35 + S.wind * 0.11)) % (PI * 2);
+    ctx.fillStyle = rgba(c, 1);
+    for (var i = 0; i < 3; i++){
+      var a = ang + i * PI * 2 / 3, ca = Math.cos(a), sa = Math.sin(a), nx = -sa, ny = ca;
+      ctx.beginPath(); ctx.moveTo(hubx + nx * 2.4, huby + ny * 2.4);
+      ctx.lineTo(hubx + ca * L * 0.97 + nx * 0.9, huby + sa * L * 0.97 + ny * 0.9);
+      ctx.lineTo(hubx + ca * L - nx * 0.2, huby + sa * L - ny * 0.2);
+      ctx.lineTo(hubx - nx * 2.0, huby - ny * 2.0); ctx.closePath(); ctx.fill();
+    }
+    ctx.fillStyle = rgba(grade(hex("#dfe4e9"), S, 1), 1); ctx.beginPath(); ctx.arc(hubx, huby, 2.6, 0, PI * 2); ctx.fill();
+  }
+  function drawLand(ctx, W, H, S){
+    var hy = horizon(H), x, i, v, p;
+    var haze = hazeColor(S);
+    // ground
+    var gTop = grade(hex("#86bd68"), S, 1), gMid = grade(hex("#5fa04e"), S, 1), gBot = grade(hex("#2f6a36"), S, 1);
+    var g = ctx.createLinearGradient(0, hy - 8, 0, H);
+    g.addColorStop(0, rgba(mix(gTop, haze, 0.35 + S.fog * 0.3), 1)); g.addColorStop(0.35, rgba(gMid, 1)); g.addColorStop(1, rgba(gBot, 1));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(0, H);
+    for (x = 0; x <= W + 4; x += 4) ctx.lineTo(x, landTop(W, H, x));
+    ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
+    // paddy-field stripes on the right bank, converging on the horizon
+    var vpx = W * 0.6, cols = [grade(hex("#b5d36b"), S, 1), grade(hex("#8cc05a"), S, 1), grade(hex("#c9d98a"), S, 1), grade(hex("#74b04f"), S, 1)];
+    for (i = 0; i < 8; i++){
+      var xa = W * (0.50 + i * 0.12), xb = W * (0.50 + (i + 1) * 0.12);
+      ctx.fillStyle = rgba(mix(cols[i % 4], haze, 0.22 + S.fog * 0.2), 0.92);
+      ctx.beginPath(); ctx.moveTo(vpx + (xa - vpx) * 0.02, hy + H * 0.012); ctx.lineTo(vpx + (xb - vpx) * 0.02, hy + H * 0.012); ctx.lineTo(xb, H); ctx.lineTo(xa, H); ctx.closePath(); ctx.fill();
+    }
+    // river
+    var N = 36, left = [], right = [];
+    for (i = 0; i <= N; i++){ v = i / N; p = riverPt(W, H, v); left.push({ x: p.x - p.w / 2, y: p.y }); right.push({ x: p.x + p.w / 2, y: p.y }); }
+    var waterTop = mix(mix(S.bottom, [150, 190, 215], 0.4), [14, 22, 50], S.night * 0.7);
+    var waterBot = mix(mix([40, 120, 160], S.bottom, 0.25), [10, 24, 54], S.night * 0.75);
+    waterTop = mix(waterTop, [120, 134, 146], S.oc * 0.5); waterBot = mix(waterBot, [74, 96, 112], S.oc * 0.55);
+    var wg = ctx.createLinearGradient(0, hy, 0, H); wg.addColorStop(0, rgba(waterTop, 1)); wg.addColorStop(1, rgba(waterBot, 1));
+    ctx.fillStyle = wg; ctx.beginPath(); ctx.moveTo(left[0].x, left[0].y);
+    for (i = 1; i <= N; i++) ctx.lineTo(left[i].x, left[i].y);
+    for (i = N; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = rgba(grade(hex("#e9efd9"), S, 1), 0.55); ctx.lineWidth = 1.3;     // banks
+    ctx.beginPath(); ctx.moveTo(left[0].x, left[0].y); for (i = 1; i <= N; i++) ctx.lineTo(left[i].x, left[i].y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(right[0].x, right[0].y); for (i = 1; i <= N; i++) ctx.lineTo(right[i].x, right[i].y); ctx.stroke();
+    // reflections of the sky colour near the horizon
+    var rg = ctx.createLinearGradient(0, hy, 0, hy + (H - hy) * 0.5); rg.addColorStop(0, rgba(mix(S.bottom, [255, 255, 255], 0.25), 0.55)); rg.addColorStop(1, rgba(S.bottom, 0));
+    ctx.fillStyle = rg; ctx.beginPath(); ctx.moveTo(left[0].x, left[0].y);
+    for (i = 1; i <= 18; i++) ctx.lineTo(left[i].x, left[i].y);
+    for (i = 18; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
+    ctx.closePath(); ctx.fill();
+    // foreground things
+    drawTurbineTower(ctx, W, H, S);
+    drawPanels(ctx, W, H, S);
+    drawPalm(ctx, W * 0.07, H * 0.965, 1.15, S);
+    drawPalm(ctx, W * 0.025, H * 0.9, 0.85, S);
+    drawPalm(ctx, W * 0.93, H * 0.935, 1.0, S);
+    var bush = grade(hex("#2a5e30"), S, 1);
+    ctx.fillStyle = rgba(bush, 1);
+    [[0.14, 0.915, 14], [0.17, 0.925, 11], [0.86, 0.9, 12], [0.8, 0.915, 9]].forEach(function(b){ ctx.beginPath(); ctx.arc(W * b[0], H * b[1], b[2], 0, PI * 2); ctx.fill(); });
+  }
+  function drawFog(ctx, W, H, S){
+    if (S.fog < 0.25) return;
+    var hy = horizon(H), c = hazeColor(S), g = ctx.createLinearGradient(0, hy - H * 0.2, 0, H);
+    g.addColorStop(0, rgba(c, 0)); g.addColorStop(0.3, rgba(c, S.fog * 0.62)); g.addColorStop(0.55, rgba(c, S.fog * 0.45)); g.addColorStop(1, rgba(c, S.fog * 0.12));
+    ctx.fillStyle = g; ctx.fillRect(0, hy - H * 0.2, W, H - (hy - H * 0.2));
+  }
+  function drawRiverFlow(ctx, W, H, S, t){
+    var lightA = (0.16 + 0.34 * S.day) * (1 - S.oc * 0.6) + S.night * 0.07, n = 26;
+    for (var i = 0; i < n; i++){
+      var v = ((i / n) + t * 0.035 * (0.5 + 0.5 * ((i * 37) % 10) / 10)) % 1;
+      var p = riverPt(W, H, v), off = (((i * 53) % 17) / 17 - 0.5) * 0.7 * p.w;
+      var rx = 1.5 + 11 * v, ry = 0.4 + 1.2 * v;
+      ctx.fillStyle = "rgba(255,255,255," + (lightA * (0.3 + 0.7 * v)).toFixed(3) + ")";
+      ctx.beginPath(); ctx.moveTo(p.x + off - rx, p.y); ctx.quadraticCurveTo(p.x + off, p.y - ry * 2, p.x + off + rx, p.y); ctx.quadraticCurveTo(p.x + off, p.y + ry * 0.4, p.x + off - rx, p.y); ctx.fill();
+    }
+  }
+
+  // draw the whole scene directly (used by the preview; the app caches the static layers)
+  function renderAll(ctx, W, H, S, t){
+    drawSky(ctx, W, H, S);
+    drawStars(ctx, W, H, S, t, starList(W, H, 110));
+    drawSun(ctx, W, H, S); drawMoon(ctx, W, H, S);
+    var pal = cloudPalette(S), cl = cloudList(W, H, S), vis = 1;
+    for (var i = 0; i < cl.length; i++) drawCloud(ctx, cloudX(cl[i], W, t), cl[i].y, cl[i].s, pal, vis);
+    drawMountains(ctx, W, H, S);
+    drawLand(ctx, W, H, S);
+    drawFog(ctx, W, H, S);
+    drawRiverFlow(ctx, W, H, S, t);
+    drawTurbineBlades(ctx, W, H, S, t);
+  }
+  return { makeState: makeState, sunPos: sunPos, moonPos: moonPos, horizon: horizon, project: project, grade: grade,
+    drawSky: drawSky, starList: starList, drawStars: drawStars, drawSun: drawSun, drawMoon: drawMoon, drawCloud: drawCloud,
+    cloudPalette: cloudPalette, cloudList: cloudList, cloudX: cloudX, drawMountains: drawMountains, drawLand: drawLand, drawFog: drawFog,
+    drawRiverFlow: drawRiverFlow, drawTurbineBlades: drawTurbineBlades, renderAll: renderAll };
+})();
+
+// ---------------------------------------------------------------------------
+// Runtime: puts the scene behind the Home screen. Static layers (sky, mountains, land)
+// are painted once per change, clouds are cached sprites, only the moving parts redraw.
+// 30 fps cap, pauses when the tab is hidden or Home is not showing, one still frame
+// when the phone asks for reduced motion.
+// ---------------------------------------------------------------------------
+(function(){
+  var home = document.getElementById("homeScreen");
+  if (!home || !window.GMScene) return;
+  var canvas = document.createElement("canvas");
+  canvas.id = "gmScene"; canvas.setAttribute("aria-hidden", "true");
+  home.insertBefore(canvas, home.firstChild);
+  var ctx = canvas.getContext("2d", { alpha: false });
+  if (!ctx) return;
+  var W = 0, H = 0, dpr = 1, S = null, key = "", skyL = null, landL = null, stars = [], clouds = [], sprites = [];
+  var running = false, lastFrame = 0, t0 = performance.now(), stateAt = 0;
+  var reduce = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+
+  function layer(){
+    var c = document.createElement("canvas"); c.width = canvas.width; c.height = canvas.height;
+    var x = c.getContext("2d"); x.setTransform(dpr, 0, 0, dpr, 0, 0); return { c: c, x: x };
+  }
+  function resize(){
+    var w = Math.max(320, window.innerWidth), h = Math.max(480, window.innerHeight), d = Math.min(window.devicePixelRatio || 1, 1.5);
+    if (w === W && h === H && d === dpr) return;
+    W = w; H = h; dpr = d;
+    canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0); key = "";
+  }
+  function stateKey(s){
+    return [Math.round(s.night * 25), Math.round(s.dusk * 25), Math.round(s.oc * 20), Math.round(s.fog * 20), Math.round(s.day * 25), s.kind, Math.round(s.cloud / 10)].join("|");
+  }
+  function refresh(force){
+    var now = Date.now();
+    if (!force && now - stateAt < 20000) return;
+    stateAt = now;
+    var w = window.GM_weather;
+    S = GMScene.makeState(w, new Date(now), w && w.lat != null ? w.lat : null, w && w.lng != null ? w.lng : null);
+    home.classList.toggle("gm-dark-sky", !!S.dark);
+    var k = stateKey(S) + "|" + W + "x" + H;
+    if (k === key) return;
+    key = k;
+    skyL = layer(); GMScene.drawSky(skyL.x, W, H, S);
+    landL = layer(); GMScene.drawMountains(landL.x, W, H, S); GMScene.drawLand(landL.x, W, H, S); GMScene.drawFog(landL.x, W, H, S);
+    stars = GMScene.starList(W, H, 110);
+    var pal = GMScene.cloudPalette(S);
+    clouds = GMScene.cloudList(W, H, S);
+    sprites = clouds.map(function(c){
+      var R0 = 24 * c.s, w2 = Math.ceil(R0 * 4.8), h2 = Math.ceil(R0 * 3.2);
+      var cv = document.createElement("canvas"); cv.width = Math.ceil(w2 * dpr); cv.height = Math.ceil(h2 * dpr);
+      var cx = cv.getContext("2d"); cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      GMScene.drawCloud(cx, w2 / 2, h2 * 0.62, c.s, pal, 1);
+      return { cv: cv, w: w2, h: h2 };
+    });
+  }
+  function draw(t){
+    if (!S || !skyL || !landL) return;
+    ctx.drawImage(skyL.c, 0, 0, W, H);
+    GMScene.drawStars(ctx, W, H, S, t, stars);
+    GMScene.drawSun(ctx, W, H, S); GMScene.drawMoon(ctx, W, H, S);
+    for (var i = 0; i < clouds.length; i++){
+      var c = clouds[i], sp = sprites[i];
+      ctx.drawImage(sp.cv, GMScene.cloudX(c, W, t) - sp.w / 2, c.y - sp.h * 0.62, sp.w, sp.h);
+    }
+    ctx.drawImage(landL.c, 0, 0, W, H);
+    GMScene.drawRiverFlow(ctx, W, H, S, t); GMScene.drawTurbineBlades(ctx, W, H, S, t);
+  }
+  function shouldRun(){ return !document.hidden && home.offsetParent !== null; }
+  function frame(now){
+    if (!shouldRun()){ running = false; return; }
+    requestAnimationFrame(frame);
+    if (now - lastFrame < 33) return;
+    lastFrame = now;
+    refresh(false); draw((now - t0) / 1000);
+  }
+  function start(){
+    if (!shouldRun()) return;
+    resize(); refresh(true);
+    home.classList.add("gm-scene-on");
+    if (reduce){ draw(0); return; }
+    if (running) return;
+    running = true; requestAnimationFrame(frame);
+  }
+  function check(){ if (shouldRun()){ if (reduce){ resize(); refresh(false); draw(0); } else if (!running) start(); } }
+  window.addEventListener("resize", function(){ resize(); if (reduce) { refresh(true); draw(0); } });
+  window.addEventListener("orientationchange", function(){ setTimeout(function(){ resize(); }, 200); });
+  document.addEventListener("visibilitychange", check);
+  window.addEventListener("gm-weather", function(){ stateAt = 0; refresh(true); if (reduce) draw(0); });
+  try { new MutationObserver(check).observe(home, { attributes: true, attributeFilter: ["style", "class"] }); } catch (e) {}
+  setInterval(check, 1500);
+  check();
 })();
 </script>
 </body>
