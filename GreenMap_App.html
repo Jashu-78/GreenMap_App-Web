@@ -383,15 +383,14 @@
   @media (prefers-reduced-motion:reduce){.emc-big,.emc-line,.emc-typing i{animation:none!important;}.emc-line{opacity:1;}}
 </style>
 <style id="gmSceneCss">
-/* Living scene behind the Home screen (see gmSceneJs). Cards stay frosted glass on top of it. */
-#homeScreen{isolation:isolate;}
-#gmScene{position:fixed;left:0;top:0;width:100%;height:100%;z-index:-1;pointer-events:none;display:block;}
-#homeScreen.gm-scene-on{background:transparent;}
-#homeScreen.gm-scene-on .white-section{background:transparent !important;}
+/* Weather scene behind the Home screen (see gmSceneJs). It shows only for important weather; normal days keep the normal background. */
+#homeScreen .white-section{isolation:isolate;position:relative;}
+#gmScene{position:fixed;left:0;top:0;width:100%;height:100%;z-index:-1;pointer-events:none;display:block;opacity:0;transition:opacity .9s ease;}
+#homeScreen.gm-scene-on #gmScene{opacity:1;}
 #homeScreen.gm-scene-on .option-card{-webkit-backdrop-filter:blur(9px) saturate(150%);backdrop-filter:blur(9px) saturate(150%);}
-#homeScreen.gm-dark-sky .greeting{color:#f2f7ff;text-shadow:0 1px 8px rgba(0,0,0,.4);}
-#homeScreen.gm-dark-sky .greeting-sub{color:#d4def0;text-shadow:0 1px 6px rgba(0,0,0,.4);}
-#homeScreen.gm-dark-sky .option-card{background:rgba(255,255,255,.62);}
+#homeScreen.gm-scene-on.gm-dark-sky .greeting{color:#f2f7ff;text-shadow:0 1px 8px rgba(0,0,0,.4);}
+#homeScreen.gm-scene-on.gm-dark-sky .greeting-sub{color:#d4def0;text-shadow:0 1px 6px rgba(0,0,0,.4);}
+#homeScreen.gm-scene-on.gm-dark-sky .option-card{background:rgba(255,255,255,.62);}
 </style>
 </head>
 <body>
@@ -979,6 +978,10 @@
       function(){ return "<b>Where EnergyScope gets its location and data</b><br>\u2022 <b>Location:</b> the phone\u2019s GPS (when you allow location), a place you search (OpenStreetMap Nominatim and Open-Meteo place search), or one of the 26 AP districts you pick.<br>\u2022 <b>Live data:</b> temperature, solar radiation and wind speed for that spot come from Open-Meteo\u2019s free weather data.<br>\u2022 <b>District ratings:</b> the solar and wind ratings are reference values stored in the app, and the notes are illustrative, not live sensor readings.<br>The map is drawn with Leaflet."; }, ["EnergyScope"]],
     [/(?:what|which) (?:technolog(?:y|ies)|tools|software|tech|programming languages?|frameworks?|platforms?)[^.]*(?:you|your|used in (?:the|this) (?:app|project)|(?:this|the) (?:app|project|website)|greenmap)|(?:technolog(?:y|ies)|tools) (?:you|have you) (?:used|use)|tech(?:nology)? stack|which (?:database|backend|hosting) (?:do you|are you|is used)|what database|how is (?:the )?data stored|where is (?:the )?data stored/,
       function(){ return "<b>Technologies used, and why</b><br>\u2022 <b>HTML, CSS, JavaScript</b> (no framework): five static pages that are simple to host and edit from a phone.<br>\u2022 <b>GitHub Pages:</b> free hosting.<br>\u2022 <b>Firebase Firestore and Authentication:</b> the database and Google sign-in for shops, orders, schemes, products and notifications, with no server to manage.<br>\u2022 <b>Leaflet, Open-Meteo, OpenStreetMap:</b> free map and weather data for EnergyScope.<br>\u2022 <b>Web Speech API:</b> voice search.<br>\u2022 <b>PWA (manifest and service worker):</b> installs like an app and opens offline.<br>\u2022 <b>GitHub Actions:</b> syncs product and scheme data to Firestore automatically.<br>EMBER is rule-based JavaScript in the browser, with no AI model connected yet."; }, ["Smart Energy Search"]],
+    [/data ?base|project (?:details?|overview|summary|description|report)|(?:explain|describe|tell me about|about) (?:your|the|this) project/,
+      function(){
+        var nP = emberCatalog().length, nS = (window.GM_realSchemes || []).length;
+        return "<b>GreenMap AI: project details</b><br>\u2022 <b>Purpose:</b> one app for people in Andhra Pradesh to choose solar and wind power.<br>\u2022 <b>Modules:</b> EnergyScope AP (where it works), Smart Energy Search (what to buy), Govt Schemes (subsidies), EnergyHub (where to buy locally) and EMBER (advice and answers).<br>\u2022 <b>Database:</b> Firebase Firestore. Collections include SEScollection (" + nP + " products), govtSchemes (" + nS + " schemes), shops, products and orders (EnergyHub), reviews, notifications, users and addresses. Google sign-in; security rules decide who can read or write.<br>\u2022 <b>How data gets in:</b> the product and scheme lists live in the app\u2019s pages on GitHub, and a GitHub Action copies them to Firestore.<br>\u2022 <b>Other data:</b> Open-Meteo for weather, OpenStreetMap for maps.<br>\u2022 <b>Team:</b> Team 13, Annamacharya University, with guidance from Dr. B Venkatesh sir and T Mani Mohan sir."; }, ["Smart Energy Search"]],
     [/(?:how|what) (?:does|do|is|are|did) (?:ember|you|the app|it)[^.]*(?:calculat|compute|work out|estimate)|how (?:is|are) (?:the )?(?:electricity|usage|units|bill|cost|solar size|solar sizing)[^.]*(?:calculat|compute|work out|estimat|found)|(?:formula|calculation) (?:for|of|used)|what formula|calculation method/,
       function(){ return "<b>How EMBER calculates</b><br>\u2022 Each appliance has a typical wattage and daily hours (for example a ceiling fan: 75 W for 10 hours).<br>\u2022 <b>Units per day</b> = watts \u00D7 quantity \u00D7 hours \u00F7 1000 (kWh).<br>\u2022 <b>Cost</b> = units \u00D7 \u20B97 per unit (a default average rate), and \u00D7 30 for a month.<br>\u2022 <b>Solar size</b> = daily units \u00F7 4.3 (typical units per kW per day), rounded up to the next 0.5 kW.<br>These are estimates: your real tariff, slabs and sunshine will differ."; }, ["Smart Energy Search"]],
     [/(?:how|what).*(?:apply|applying|applied|use|using|test|testing|improve|improving|check)[^.]*(?:tqm|six ?sigma|quality)|(?:tqm|six ?sigma|quality)[^.]*(?:test|testing|improv|appl|evidence|results?)|how (?:do|did|are|is|will) (?:you|we|the project|this app|the app) (?:test|tested|testing|improve|improved|improving|verify|verified)|testing (?:done|process|method|results?)|test results?/,
@@ -1272,6 +1275,15 @@
       var nd = dsNearest(window.GM_userPos);
       return dsSend(gmT("ds_here") + "<br>" + dsRow(nd, true));
     }
+    var qn0 = q.replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+    if (/^(?:best|top|highest|strongest) (?:solar|wind)(?: (?:energy|power))?$/.test(qn0)){
+      var isWind = /wind/.test(qn0), cat0 = emberCatalog().filter(function(p){ return p.type === (isWind ? "Wind Turbine" : "Solar Panel"); });
+      if (!isWind) cat0 = cat0.slice().sort(function(a, b){ return (b.score == null ? -1 : b.score) - (a.score == null ? -1 : a.score) || (b.efficiency || 0) - (a.efficiency || 0); });
+      var dl = GM_DISTRICTS.slice().sort(function(a, b){ return isWind ? parseFloat(b.wind) - parseFloat(a.wind) : parseFloat(b.sun) - parseFloat(a.sun); }).slice(0, 3);
+      return adSend(gmT(isWind ? "ds_wind_head" : "ds_sun_head") + "<br>" + dl.map(function(d){ return dsRow(d, false); }).join("<br>") +
+        "<br><br><b>" + (isWind ? "Wind turbines in the app" : "Top solar panels in the app") + "</b><br>" + cat0.slice(0, 3).map(adProductLine).join("<br>") +
+        "<br><br><i>" + gmT("ds_src") + "</i>", ["EnergyScope", "Smart Energy Search"]);
+    }
     var rank = /\b(best|top|highest|strongest|most|better|good|rank)\b|which (district|place|area)|where/.test(q);
     if (rank && (wantSun || wantWind || /district|place|area/.test(q)) && (!productish || /district|place|area|where/.test(q))){
       var n = parseInt((/top (\d+)/.exec(q) || [])[1], 10) || 3; n = Math.max(1, Math.min(n, 6));
@@ -1437,22 +1449,50 @@
     if (p.cons && p.cons[0]) html += "<br>" + gmT("ex_watch") + ": " + emberEsc(p.cons[0]);
     return adSend(html, ["Smart Energy Search"]);
   }
-  // "Will it rain today?" / "how is the weather" / "is it a good day for solar": answered from
-  // window.GM_weather (loaded on the home screen). English only for now.
+  // Weather answers come from window.GM_weather (loaded on the home screen). English wording for now;
+  // the alert lines themselves are in the app's language (window.gmAlertText).
+  function wxSkyWord(k){
+    return { "storm": "thunderstorm", "snow": "snow", "heavy-rain": "heavy rain", "rain": "rain", "drizzle": "drizzle", "fog": "fog", "windy": "windy", "sunny": "sunny", "clear-night": "clear night", "partly": "partly cloudy", "cloudy": "cloudy" }[k] || k;
+  }
+  function wxSnippet(w){
+    var top = w.alerts.filter(function(a){ return a.sev >= 1; })[0];
+    return w.emoji + " " + Math.round(w.now.temp) + "\u00B0C, " + wxSkyWord(w.kind) + (top && window.gmAlertText ? ". " + window.gmAlertText(top) : ".");
+  }
+  function emberDayTalk(text){
+    var q = String(text).toLowerCase().trim();
+    if (!/(?:^|\b)(?:how (?:is|was|'s) (?:the |your |my )?(?:day|today)(?: going| been)?|how(?:'s| is) it going|how are you|how do you do|what'?s up|whats up|how'?s your day)\b/.test(q)) return false;
+    var w = window.GM_weather;
+    return "I\u2019m doing great, thank you for asking! " + (w ? "Here is your day in " + emberEsc(w.place || "your area") + ": " + wxSnippet(w) + " " : "") +
+           "Ask me about solar, wind, schemes, the weather or your energy use.";
+  }
   function emberWeather(q){
-    if (!/\b(?:weather|forecast|temperature|will it rain|is it (?:going to )?rain|raining|rain today|rain tomorrow|how (?:hot|cold|humid)|humidity|windy today|wind speed today|cloudy today|sunny today|foggy|storm today|climate today|solar (?:output|generation|production) (?:today|now)|good day for solar|will solar work today|is it sunny|is it cloudy|is it windy)\b/.test(q)) return false;
-    if (/wind (?:energy|power|turbine)|rain ?water|panel|price|cost|district/.test(q)) return false;
+    if (!/\b(?:weather|forecast|temperature|will it rain|is it (?:going to )?rain|raining|rain (?:today|tomorrow)|how (?:hot|cold|humid)|humidity|windy|wind speed (?:today|now)|cloudy|sunny today|foggy|storm|thunder|climate today|solar (?:output|generation|production) (?:today|now)|good day for solar|will solar work today|is it sunny|any (?:alert|alerts|warning|warnings)|heavy rain|tomorrow.?s weather)\b/.test(q)) return false;
+    if (/wind (?:energy|power|turbine)|rain ?water|panel|price|cost|district|\bscheme/.test(q)) return false;
     var w = window.GM_weather;
     if (!w) return adSend("I do not have your weather yet. Allow location on the home screen, then ask again.", ["EnergyScope"]);
-    var words = { "storm": "thunderstorm", "snow": "snow", "heavy-rain": "heavy rain", "rain": "rain", "drizzle": "drizzle", "fog": "fog", "windy": "windy", "sunny": "sunny", "clear-night": "clear night", "partly": "partly cloudy", "cloudy": "cloudy" };
+    var tomorrow = /tomorrow/.test(q), fmt = window.gmAlertText || function(){ return ""; };
+    var list = w.alerts.filter(function(a){ return a.sev >= 1 || a.kind === "light"; });
+    if (tomorrow) list = list.filter(function(a){ return a.day === "tomorrow"; });
     var html = "<b>Weather in " + emberEsc(w.place || "your area") + "</b><br>" + w.emoji + " " + Math.round(w.now.temp) + "\u00B0C" +
-      (typeof w.now.feels === "number" ? " (feels " + Math.round(w.now.feels) + "\u00B0C)" : "") + ", " + (words[w.kind] || w.kind) +
+      (typeof w.now.feels === "number" ? " (feels " + Math.round(w.now.feels) + "\u00B0C)" : "") + ", " + wxSkyWord(w.kind) +
       "<br>Wind " + Math.round(w.now.wind) + " km/h (gusts " + Math.round(w.gustMax) + "), humidity " + Math.round(w.now.humidity) + "%";
-    w.alerts.forEach(function(a){ html += "<br>" + gmT(a.key, gmWeatherVars(a.vars)); });
-    if (!w.alerts.length) html += "<br>No rain, storm or strong wind expected in the next 12 hours.";
+    list.forEach(function(a){ html += "<br>" + fmt(a); });
+    if (!list.length) html += "<br>No rain, storm or strong wind expected " + (tomorrow ? "tomorrow." : "in the next 36 hours.");
     var rate = w.perKw >= 4.2 ? "good" : (w.perKw >= 3 ? "fair" : "low");
     html += "<br>Solar today: about " + w.perKw + " units per kW (" + rate + "). High " + Math.round(w.tmax) + "\u00B0C, low " + Math.round(w.tmin) + "\u00B0C.";
+    html += "<br><i>Forecast for the next 36 hours (Open-Meteo), not an official warning.</i>";
     return adSend(html, ["EnergyScope"]);
+  }
+  // "show the weather scene always / hide it / auto"
+  function emberSceneMode(q){
+    var mode = null;
+    if (/\b(?:auto|automatic|normal)(?: mode)? (?:weather )?(?:scene|world|background)\b|(?:scene|world|background) (?:only )?(?:when|for) (?:it.?s )?(?:important|alerts?)/.test(q)) mode = "auto";
+    else if (/\b(?:hide|turn off|disable|stop|remove)(?: the)? (?:weather )?(?:scene|world|background|animation)\b/.test(q)) mode = "off";
+    else if (/\b(?:show|turn on|enable|keep)(?: the)? (?:weather )?(?:scene|world|background|animation)(?: always| all the time)?\b/.test(q)) mode = "always";
+    if (!mode) return false;
+    try { localStorage.setItem("gm_scene_mode", mode); } catch (e) {}
+    try { window.dispatchEvent(new CustomEvent("gm-scene-mode")); } catch (e) {}
+    return adSend({ always: "Done. The weather scene will always be on the home screen.", off: "Done. The weather scene is off, so you will see the normal background.", auto: "Done. The weather scene will appear only when the weather is important, like heavy rain or a storm." }[mode], []);
   }
 
   function emberKnowledge(q){
@@ -1488,7 +1528,7 @@
   // categories). It returns false when nothing matches, so older routes still run.
   // ---------------------------------------------------------------------------
   var AD_STOP = {};
-  ("the and for are you your can new latest coming soon upcoming all any app what which tell about give show list does have there details detail info information how much many when where with from that this best cheap cheapest under below buy price cost rate warranty guarantee efficiency efficient deadline date last apply eligible eligibility benefit subsidy scheme schemes yojana govt government product products item items solar wind panel panels energy rooftop power kit kits capacity watt watts year years need want get has was were will would should could please accessories accessory hub shop store local available sell open closing expire expired expiry tomorrow today hybrid speed work works working used uses full form between meaning definition mean explain").split(" ").forEach(function(w){ AD_STOP[w] = 1; });
+  ("the and for are you your can new latest coming soon upcoming all any app what which tell about give show list does have there details detail info information how much many when where with from that this best cheap cheapest under below buy price cost rate warranty guarantee efficiency efficient deadline date last apply eligible eligibility benefit subsidy scheme schemes yojana govt government product products item items solar wind panel panels energy rooftop power kit kits capacity watt watts year years need want get has was were will would should could please accessories accessory hub shop store local available sell open closing expire expired expiry tomorrow today hybrid data project base database details explain speed work works working used uses full form between meaning definition mean explain").split(" ").forEach(function(w){ AD_STOP[w] = 1; });
   var AD_KIND_WORDS = {};
   ("battery batteries cable cables wire wires wiring mc4 connector connectors plug inverter inverters controller controllers mppt charge charging mount mounting structure structures stand box combiner junction dcdb acdb distribution meter meters net lightning surge arrestor arrestors spd earth earthing monitoring wifi dongle logger isolator mcb breaker dump brake load loads tower mast pole anemometer sensor").split(" ").forEach(function(w){ AD_KIND_WORDS[w] = 1; });
   var AD_KINDS = [
@@ -1731,6 +1771,7 @@
     if (/reduce|lower|cut down|less (power|current|usage)/.test(q) || gmHasAny(q, W("reduce"))){ emberAdvice("reduce"); return true; }
     if (/how.*(save|saving)/.test(q) || gmHasAny(q, W("route_habits"))){ emberAdvice("habits"); return true; }
     if (/saving|want.*sav|save money/.test(q) || gmHasAny(q, W("saving"))){ emberAdvice("overview"); return true; }
+    if (emberSceneMode(q)) return true;
     if (emberWeather(q)) return true;
     if (emberKnowledge(q)) return true;
     if (emberAppData(q)) return true;
@@ -2212,8 +2253,10 @@
     input.value = "";
     if (emberPendingReply(text)) return;
 
-    var isGreeting = /^(hi+|hai+|hello+|hey+|hlo+|helo+|namaste|namaskaram|good\s?(morning|afternoon|evening|night))\b/i.test(text.trim())
-      || gmHasAny(text, W("greeting"));
+    var dayTalk = emberDayTalk(text);
+    if (dayTalk){ agentAddMsg(dayTalk, "bot"); return; }
+    var isGreeting = (/^(hi+|hai+|hello+|hey+|hlo+|helo+|namaste|namaskaram|good\s?(morning|afternoon|evening|night))\b/i.test(text.trim())
+      || gmHasAny(text, W("greeting"))) && text.trim().split(/\s+/).length <= 3;
     if (isGreeting){
       emberMenu(gmT("ember_hello"));
       return;
@@ -2357,7 +2400,7 @@
     en: {
       greeting_morning: "Good morning", greeting_afternoon: "Good afternoon", greeting_evening: "Good evening",
       greeting_night: "Good night, take some rest",
-      today_order: "📦 {n} order update(s) waiting. Tap the bell.", today_rain: "🌧️ Rain likely around {t}. Plan ahead.", today_heavy: "⛈️ Heavy rain expected around {t}. Stay safe.", today_storm: "⛈️ Thunderstorm possible around {t}. Unplug sensitive devices.", today_wind: "💨 Strong winds up to {n} km/h today.", today_heat: "🌡️ Very hot today, up to {n}°C. Stay hydrated.", today_fog: "🌫️ Foggy this morning. Drive carefully.", today_cold: "🧊 Cool today, low {n}°C.", today_snow: "❄️ Snow expected today.", today_sunny: "☀️ Sunny day: good for solar today.", today_night: "🌙 Clear night. Batteries take over from solar.", today_partly: "⛅ Partly cloudy: solar will still do fine.", today_cloudy: "☁️ Cloudy: solar output will be lower today.", weather_note: "Forecast from Open-Meteo for {p}. Not an official warning.", greeting_sub: "Your day, powered by clean energy",
+      wx_today: "Today", wx_tomorrow: "Tomorrow", wx_now: "now", wx_k_storm: "thunderstorm", wx_k_heavy: "heavy rain", wx_k_rain: "rain", wx_k_light: "light rain", wx_k_wind: "strong winds", wx_k_heat: "very hot", wx_k_fog: "fog", wx_k_snow: "snow", wx_k_cold: "cold", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "Chance {pop}%, about {mm} mm of rain.", wx_d_wind: "Gusts up to {n} km/h.", today_order: "📦 {n} order update(s) waiting. Tap the bell.", today_rain: "🌧️ Rain likely around {t}. Plan ahead.", today_heavy: "⛈️ Heavy rain expected around {t}. Stay safe.", today_storm: "⛈️ Thunderstorm possible around {t}. Unplug sensitive devices.", today_wind: "💨 Strong winds up to {n} km/h today.", today_heat: "🌡️ Very hot today, up to {n}°C. Stay hydrated.", today_fog: "🌫️ Foggy this morning. Drive carefully.", today_cold: "🧊 Cool today, low {n}°C.", today_snow: "❄️ Snow expected today.", today_sunny: "☀️ Sunny day: good for solar today.", today_night: "🌙 Clear night. Batteries take over from solar.", today_partly: "⛅ Partly cloudy: solar will still do fine.", today_cloudy: "☁️ Cloudy: solar output will be lower today.", weather_note: "Forecast from Open-Meteo for {p}. Not an official warning.", greeting_sub: "Your day, powered by clean energy",
       card_ses: "Find, compare, and choose renewable energy products",
       card_es: "Explore solar & wind potential across Andhra Pradesh",
       card_hub: "Find and buy from local solar & wind energy shops near you",
@@ -2449,7 +2492,7 @@
     hi: {
       greeting_morning: "सुप्रभात", greeting_afternoon: "शुभ दोपहर", greeting_evening: "शुभ संध्या",
       greeting_night: "शुभ रात्रि, थोड़ा आराम करें",
-      today_order: "📦 {n} ऑर्डर अपडेट इंतज़ार में हैं। घंटी दबाएं।", today_rain: "🌧️ {t} के आसपास बारिश हो सकती है। पहले से तैयारी करें।", today_heavy: "⛈️ {t} के आसपास भारी बारिश की संभावना है। सुरक्षित रहें।", today_storm: "⛈️ {t} के आसपास आंधी-बिजली संभव है। संवेदनशील उपकरण प्लग से निकाल दें।", today_wind: "💨 आज {n} किमी/घंटा तक तेज़ हवाएं।", today_heat: "🌡️ आज बहुत गर्मी, {n}°C तक। खूब पानी पिएं।", today_fog: "🌫️ आज सुबह कोहरा है। सावधानी से चलाएं।", today_cold: "🧊 आज ठंडक रहेगी, न्यूनतम {n}°C।", today_snow: "❄️ आज बर्फबारी की संभावना है।", today_sunny: "☀️ धूप वाला दिन: आज सोलर के लिए अच्छा है।", today_night: "🌙 साफ़ रात। सोलर की जगह बैटरी काम करेगी।", today_partly: "⛅ आंशिक बादल: सोलर फिर भी ठीक चलेगा।", today_cloudy: "☁️ बादल: आज सोलर उत्पादन कम रहेगा।", weather_note: "{p} के लिए Open-Meteo का पूर्वानुमान। यह आधिकारिक चेतावनी नहीं है।", greeting_sub: "स्वच्छ ऊर्जा के साथ आपका दिन",
+      wx_today: "आज", wx_tomorrow: "कल", wx_now: "अभी", wx_k_storm: "आंधी-बिजली", wx_k_heavy: "भारी बारिश", wx_k_rain: "बारिश", wx_k_light: "हल्की बारिश", wx_k_wind: "तेज़ हवाएं", wx_k_heat: "भीषण गर्मी", wx_k_fog: "कोहरा", wx_k_snow: "बर्फबारी", wx_k_cold: "ठंड", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "बारिश की संभावना {pop}%, लगभग {mm} मिमी।", wx_d_wind: "झोंके {n} किमी/घंटा तक।", today_order: "📦 {n} ऑर्डर अपडेट इंतज़ार में हैं। घंटी दबाएं।", today_rain: "🌧️ {t} के आसपास बारिश हो सकती है। पहले से तैयारी करें।", today_heavy: "⛈️ {t} के आसपास भारी बारिश की संभावना है। सुरक्षित रहें।", today_storm: "⛈️ {t} के आसपास आंधी-बिजली संभव है। संवेदनशील उपकरण प्लग से निकाल दें।", today_wind: "💨 आज {n} किमी/घंटा तक तेज़ हवाएं।", today_heat: "🌡️ आज बहुत गर्मी, {n}°C तक। खूब पानी पिएं।", today_fog: "🌫️ आज सुबह कोहरा है। सावधानी से चलाएं।", today_cold: "🧊 आज ठंडक रहेगी, न्यूनतम {n}°C।", today_snow: "❄️ आज बर्फबारी की संभावना है।", today_sunny: "☀️ धूप वाला दिन: आज सोलर के लिए अच्छा है।", today_night: "🌙 साफ़ रात। सोलर की जगह बैटरी काम करेगी।", today_partly: "⛅ आंशिक बादल: सोलर फिर भी ठीक चलेगा।", today_cloudy: "☁️ बादल: आज सोलर उत्पादन कम रहेगा।", weather_note: "{p} के लिए Open-Meteo का पूर्वानुमान। यह आधिकारिक चेतावनी नहीं है।", greeting_sub: "स्वच्छ ऊर्जा के साथ आपका दिन",
       card_ses: "नवीकरणीय ऊर्जा उत्पाद खोजें, तुलना करें और चुनें",
       card_es: "आंध्र प्रदेश में सौर और पवन ऊर्जा की संभावनाएं जानें",
       card_hub: "अपने पास की स्थानीय सौर और पवन ऊर्जा दुकानों से खरीदें",
@@ -2540,7 +2583,7 @@
     ta: {
       greeting_morning: "காலை வணக்கம்", greeting_afternoon: "மதிய வணக்கம்", greeting_evening: "மாலை வணக்கம்",
       greeting_night: "இனிய இரவு, சிறிது ஓய்வு எடுங்கள்",
-      today_order: "📦 {n} ஆர்டர் புதுப்பிப்பு(கள்) காத்திருக்கின்றன. மணியைத் தட்டுங்கள்.", today_rain: "🌧️ {t} அளவில் மழை பெய்ய வாய்ப்பு உள்ளது. முன்கூட்டியே திட்டமிடுங்கள்.", today_heavy: "⛈️ {t} அளவில் கனமழை எதிர்பார்க்கப்படுகிறது. பாதுகாப்பாக இருங்கள்.", today_storm: "⛈️ {t} அளவில் இடியுடன் கூடிய மழை சாத்தியம். உணர்திறன் சாதனங்களை பிளக்கிலிருந்து எடுங்கள்.", today_wind: "💨 இன்று மணிக்கு {n} கி.மீ. வரை பலத்த காற்று.", today_heat: "🌡️ இன்று மிகவும் வெப்பம், {n}°C வரை. நிறைய தண்ணீர் குடியுங்கள்.", today_fog: "🌫️ இன்று காலை மூடுபனி. கவனமாக ஓட்டுங்கள்.", today_cold: "🧊 இன்று குளிர்ச்சியாக இருக்கும், குறைந்தபட்சம் {n}°C.", today_snow: "❄️ இன்று பனிப்பொழிவு எதிர்பார்க்கப்படுகிறது.", today_sunny: "☀️ வெயில் நாள்: இன்று சோலாருக்கு நல்லது.", today_night: "🌙 தெளிவான இரவு. சோலாருக்குப் பதிலாக பேட்டரிகள் வேலை செய்யும்.", today_partly: "⛅ பகுதி மேகமூட்டம்: சோலார் நன்றாகவே செயல்படும்.", today_cloudy: "☁️ மேகமூட்டம்: இன்று சோலார் உற்பத்தி குறைவாக இருக்கும்.", weather_note: "{p}க்கான Open-Meteo முன்னறிவிப்பு. இது அதிகாரப்பூர்வ எச்சரிக்கை அல்ல.", greeting_sub: "தூய்மையான ஆற்றலுடன் உங்கள் நாள்",
+      wx_today: "இன்று", wx_tomorrow: "நாளை", wx_now: "இப்போது", wx_k_storm: "இடியுடன் மழை", wx_k_heavy: "கனமழை", wx_k_rain: "மழை", wx_k_light: "லேசான மழை", wx_k_wind: "பலத்த காற்று", wx_k_heat: "கடும் வெப்பம்", wx_k_fog: "மூடுபனி", wx_k_snow: "பனிப்பொழிவு", wx_k_cold: "குளிர்", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "மழை வாய்ப்பு {pop}%, சுமார் {mm} மி.மீ.", wx_d_wind: "காற்று வேகம் {n} கி.மீ./மணி வரை.", today_order: "📦 {n} ஆர்டர் புதுப்பிப்பு(கள்) காத்திருக்கின்றன. மணியைத் தட்டுங்கள்.", today_rain: "🌧️ {t} அளவில் மழை பெய்ய வாய்ப்பு உள்ளது. முன்கூட்டியே திட்டமிடுங்கள்.", today_heavy: "⛈️ {t} அளவில் கனமழை எதிர்பார்க்கப்படுகிறது. பாதுகாப்பாக இருங்கள்.", today_storm: "⛈️ {t} அளவில் இடியுடன் கூடிய மழை சாத்தியம். உணர்திறன் சாதனங்களை பிளக்கிலிருந்து எடுங்கள்.", today_wind: "💨 இன்று மணிக்கு {n} கி.மீ. வரை பலத்த காற்று.", today_heat: "🌡️ இன்று மிகவும் வெப்பம், {n}°C வரை. நிறைய தண்ணீர் குடியுங்கள்.", today_fog: "🌫️ இன்று காலை மூடுபனி. கவனமாக ஓட்டுங்கள்.", today_cold: "🧊 இன்று குளிர்ச்சியாக இருக்கும், குறைந்தபட்சம் {n}°C.", today_snow: "❄️ இன்று பனிப்பொழிவு எதிர்பார்க்கப்படுகிறது.", today_sunny: "☀️ வெயில் நாள்: இன்று சோலாருக்கு நல்லது.", today_night: "🌙 தெளிவான இரவு. சோலாருக்குப் பதிலாக பேட்டரிகள் வேலை செய்யும்.", today_partly: "⛅ பகுதி மேகமூட்டம்: சோலார் நன்றாகவே செயல்படும்.", today_cloudy: "☁️ மேகமூட்டம்: இன்று சோலார் உற்பத்தி குறைவாக இருக்கும்.", weather_note: "{p}க்கான Open-Meteo முன்னறிவிப்பு. இது அதிகாரப்பூர்வ எச்சரிக்கை அல்ல.", greeting_sub: "தூய்மையான ஆற்றலுடன் உங்கள் நாள்",
       card_ses: "புதுப்பிக்கத்தக்க ஆற்றல் பொருட்களைத் தேடி, ஒப்பிட்டு, தேர்வு செய்யுங்கள்",
       card_es: "ஆந்திரப் பிரதேசத்தில் சூரிய மற்றும் காற்று ஆற்றல் வாய்ப்புகளை அறியுங்கள்",
       card_hub: "உங்கள் அருகிலுள்ள சூரிய மற்றும் காற்று ஆற்றல் கடைகளில் இருந்து வாங்குங்கள்",
@@ -2631,7 +2674,7 @@
     kn: {
       greeting_morning: "ಶುಭೋದಯ", greeting_afternoon: "ಶುಭ ಮಧ್ಯಾಹ್ನ", greeting_evening: "ಶುಭ ಸಂಜೆ",
       greeting_night: "ಶುಭ ರಾತ್ರಿ, ಸ್ವಲ್ಪ ವಿಶ್ರಾಂತಿ ಪಡೆಯಿರಿ",
-      today_order: "📦 {n} ಆರ್ಡರ್ ಅಪ್‌ಡೇಟ್(ಗಳು) ಕಾಯುತ್ತಿವೆ. ಗಂಟೆಯನ್ನು ಒತ್ತಿ.", today_rain: "🌧️ {t} ಸುಮಾರಿಗೆ ಮಳೆ ಬರುವ ಸಾಧ್ಯತೆ ಇದೆ. ಮುಂಚಿತವಾಗಿ ಸಿದ್ಧರಾಗಿ.", today_heavy: "⛈️ {t} ಸುಮಾರಿಗೆ ಭಾರಿ ಮಳೆ ನಿರೀಕ್ಷೆ. ಸುರಕ್ಷಿತವಾಗಿರಿ.", today_storm: "⛈️ {t} ಸುಮಾರಿಗೆ ಗುಡುಗು ಸಹಿತ ಮಳೆ ಸಾಧ್ಯ. ಸೂಕ್ಷ್ಮ ಸಾಧನಗಳನ್ನು ಪ್ಲಗ್‌ನಿಂದ ತೆಗೆಯಿರಿ.", today_wind: "💨 ಇಂದು ಗಂಟೆಗೆ {n} ಕಿ.ಮೀ. ವರೆಗೆ ಬಲವಾದ ಗಾಳಿ.", today_heat: "🌡️ ಇಂದು ತುಂಬಾ ಬಿಸಿ, {n}°C ವರೆಗೆ. ಹೆಚ್ಚು ನೀರು ಕುಡಿಯಿರಿ.", today_fog: "🌫️ ಈ ಬೆಳಿಗ್ಗೆ ಮಂಜು. ಎಚ್ಚರಿಕೆಯಿಂದ ಚಲಾಯಿಸಿ.", today_cold: "🧊 ಇಂದು ತಂಪಾಗಿರುತ್ತದೆ, ಕನಿಷ್ಠ {n}°C.", today_snow: "❄️ ಇಂದು ಹಿಮಪಾತ ನಿರೀಕ್ಷೆ.", today_sunny: "☀️ ಬಿಸಿಲಿನ ದಿನ: ಇಂದು ಸೋಲಾರ್‌ಗೆ ಒಳ್ಳೆಯದು.", today_night: "🌙 ಸ್ಪಷ್ಟ ರಾತ್ರಿ. ಸೋಲಾರ್ ಬದಲು ಬ್ಯಾಟರಿಗಳು ಕೆಲಸ ಮಾಡುತ್ತವೆ.", today_partly: "⛅ ಭಾಗಶಃ ಮೋಡ: ಸೋಲಾರ್ ಚೆನ್ನಾಗಿಯೇ ಕೆಲಸ ಮಾಡುತ್ತದೆ.", today_cloudy: "☁️ ಮೋಡ ಕವಿದಿದೆ: ಇಂದು ಸೋಲಾರ್ ಉತ್ಪಾದನೆ ಕಡಿಮೆ ಇರುತ್ತದೆ.", weather_note: "{p}ಗಾಗಿ Open-Meteo ಮುನ್ಸೂಚನೆ. ಇದು ಅಧಿಕೃತ ಎಚ್ಚರಿಕೆ ಅಲ್ಲ.", greeting_sub: "ಸ್ವಚ್ಛ ಶಕ್ತಿಯೊಂದಿಗೆ ನಿಮ್ಮ ದಿನ",
+      wx_today: "ಇಂದು", wx_tomorrow: "ನಾಳೆ", wx_now: "ಈಗ", wx_k_storm: "ಗುಡುಗು ಸಹಿತ ಮಳೆ", wx_k_heavy: "ಭಾರಿ ಮಳೆ", wx_k_rain: "ಮಳೆ", wx_k_light: "ಹಗುರ ಮಳೆ", wx_k_wind: "ಬಲವಾದ ಗಾಳಿ", wx_k_heat: "ತೀವ್ರ ಬಿಸಿ", wx_k_fog: "ಮಂಜು", wx_k_snow: "ಹಿಮಪಾತ", wx_k_cold: "ಚಳಿ", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "ಮಳೆ ಸಾಧ್ಯತೆ {pop}%, ಸುಮಾರು {mm} ಮಿ.ಮೀ.", wx_d_wind: "ಗಾಳಿ ಬೀಸು {n} ಕಿ.ಮೀ./ಗಂಟೆ ವರೆಗೆ.", today_order: "📦 {n} ಆರ್ಡರ್ ಅಪ್‌ಡೇಟ್(ಗಳು) ಕಾಯುತ್ತಿವೆ. ಗಂಟೆಯನ್ನು ಒತ್ತಿ.", today_rain: "🌧️ {t} ಸುಮಾರಿಗೆ ಮಳೆ ಬರುವ ಸಾಧ್ಯತೆ ಇದೆ. ಮುಂಚಿತವಾಗಿ ಸಿದ್ಧರಾಗಿ.", today_heavy: "⛈️ {t} ಸುಮಾರಿಗೆ ಭಾರಿ ಮಳೆ ನಿರೀಕ್ಷೆ. ಸುರಕ್ಷಿತವಾಗಿರಿ.", today_storm: "⛈️ {t} ಸುಮಾರಿಗೆ ಗುಡುಗು ಸಹಿತ ಮಳೆ ಸಾಧ್ಯ. ಸೂಕ್ಷ್ಮ ಸಾಧನಗಳನ್ನು ಪ್ಲಗ್‌ನಿಂದ ತೆಗೆಯಿರಿ.", today_wind: "💨 ಇಂದು ಗಂಟೆಗೆ {n} ಕಿ.ಮೀ. ವರೆಗೆ ಬಲವಾದ ಗಾಳಿ.", today_heat: "🌡️ ಇಂದು ತುಂಬಾ ಬಿಸಿ, {n}°C ವರೆಗೆ. ಹೆಚ್ಚು ನೀರು ಕುಡಿಯಿರಿ.", today_fog: "🌫️ ಈ ಬೆಳಿಗ್ಗೆ ಮಂಜು. ಎಚ್ಚರಿಕೆಯಿಂದ ಚಲಾಯಿಸಿ.", today_cold: "🧊 ಇಂದು ತಂಪಾಗಿರುತ್ತದೆ, ಕನಿಷ್ಠ {n}°C.", today_snow: "❄️ ಇಂದು ಹಿಮಪಾತ ನಿರೀಕ್ಷೆ.", today_sunny: "☀️ ಬಿಸಿಲಿನ ದಿನ: ಇಂದು ಸೋಲಾರ್‌ಗೆ ಒಳ್ಳೆಯದು.", today_night: "🌙 ಸ್ಪಷ್ಟ ರಾತ್ರಿ. ಸೋಲಾರ್ ಬದಲು ಬ್ಯಾಟರಿಗಳು ಕೆಲಸ ಮಾಡುತ್ತವೆ.", today_partly: "⛅ ಭಾಗಶಃ ಮೋಡ: ಸೋಲಾರ್ ಚೆನ್ನಾಗಿಯೇ ಕೆಲಸ ಮಾಡುತ್ತದೆ.", today_cloudy: "☁️ ಮೋಡ ಕವಿದಿದೆ: ಇಂದು ಸೋಲಾರ್ ಉತ್ಪಾದನೆ ಕಡಿಮೆ ಇರುತ್ತದೆ.", weather_note: "{p}ಗಾಗಿ Open-Meteo ಮುನ್ಸೂಚನೆ. ಇದು ಅಧಿಕೃತ ಎಚ್ಚರಿಕೆ ಅಲ್ಲ.", greeting_sub: "ಸ್ವಚ್ಛ ಶಕ್ತಿಯೊಂದಿಗೆ ನಿಮ್ಮ ದಿನ",
       card_ses: "ನವೀಕರಿಸಬಹುದಾದ ಇಂಧನ ಉತ್ಪನ್ನಗಳನ್ನು ಹುಡುಕಿ, ಹೋಲಿಸಿ ಮತ್ತು ಆಯ್ಕೆಮಾಡಿ",
       card_es: "ಆಂಧ್ರಪ್ರದೇಶದಾದ್ಯಂತ ಸೌರ ಮತ್ತು ಪವನ ಶಕ್ತಿಯ ಅವಕಾಶಗಳನ್ನು ಅನ್ವೇಷಿಸಿ",
       card_hub: "ನಿಮ್ಮ ಹತ್ತಿರದ ಸೌರ ಮತ್ತು ಪವನ ಇಂಧನ ಅಂಗಡಿಗಳಿಂದ ಹುಡುಕಿ ಮತ್ತು ಖರೀದಿಸಿ",
@@ -2722,7 +2765,7 @@
     te: {
       greeting_morning: "శుభోదయం", greeting_afternoon: "శుభ మధ్యాహ్నం", greeting_evening: "శుభ సాయంత్రం",
       greeting_night: "శుభ రాత్రి, కొంచెం విశ్రాంతి తీసుకోండి",
-      today_order: "📦 {n} ఆర్డర్ అప్‌డేట్(లు) ఉన్నాయి. బెల్‌ను నొక్కండి.", today_rain: "🌧️ {t} సమయంలో వర్షం పడే అవకాశం ఉంది. ముందే ప్లాన్ చేసుకోండి.", today_heavy: "⛈️ {t} సమయంలో భారీ వర్షం రావచ్చు. జాగ్రత్తగా ఉండండి.", today_storm: "⛈️ {t} సమయంలో ఉరుములతో వర్షం రావచ్చు. సున్నితమైన పరికరాలను ప్లగ్ నుండి తీసేయండి.", today_wind: "💨 ఈ రోజు గంటకు {n} కి.మీ. వరకు బలమైన గాలులు.", today_heat: "🌡️ ఈ రోజు చాలా వేడి, {n}°C వరకు. నీళ్లు ఎక్కువగా తాగండి.", today_fog: "🌫️ ఈ ఉదయం పొగమంచు. జాగ్రత్తగా నడపండి.", today_cold: "🧊 ఈ రోజు చల్లగా ఉంటుంది, కనిష్టం {n}°C.", today_snow: "❄️ ఈ రోజు మంచు కురిసే అవకాశం.", today_sunny: "☀️ ఎండగా ఉంది: ఈ రోజు సోలార్‌కు మంచిది.", today_night: "🌙 నిర్మలమైన రాత్రి. సోలార్ స్థానంలో బ్యాటరీలు పనిచేస్తాయి.", today_partly: "⛅ కొంత మేఘావృతం: సోలార్ బాగానే పనిచేస్తుంది.", today_cloudy: "☁️ మేఘావృతం: ఈ రోజు సోలార్ ఉత్పత్తి తక్కువగా ఉంటుంది.", weather_note: "{p} కోసం Open-Meteo అంచనా. ఇది అధికారిక హెచ్చరిక కాదు.", greeting_sub: "స్వచ్ఛమైన శక్తితో మీ రోజు",
+      wx_today: "ఈ రోజు", wx_tomorrow: "రేపు", wx_now: "ఇప్పుడు", wx_k_storm: "ఉరుములతో వర్షం", wx_k_heavy: "భారీ వర్షం", wx_k_rain: "వర్షం", wx_k_light: "తేలికపాటి వర్షం", wx_k_wind: "బలమైన గాలులు", wx_k_heat: "తీవ్రమైన వేడి", wx_k_fog: "పొగమంచు", wx_k_snow: "మంచు", wx_k_cold: "చలి", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "వర్షం అవకాశం {pop}%, సుమారు {mm} మి.మీ.", wx_d_wind: "గాలి వేగం {n} కి.మీ./గం వరకు.", today_order: "📦 {n} ఆర్డర్ అప్‌డేట్(లు) ఉన్నాయి. బెల్‌ను నొక్కండి.", today_rain: "🌧️ {t} సమయంలో వర్షం పడే అవకాశం ఉంది. ముందే ప్లాన్ చేసుకోండి.", today_heavy: "⛈️ {t} సమయంలో భారీ వర్షం రావచ్చు. జాగ్రత్తగా ఉండండి.", today_storm: "⛈️ {t} సమయంలో ఉరుములతో వర్షం రావచ్చు. సున్నితమైన పరికరాలను ప్లగ్ నుండి తీసేయండి.", today_wind: "💨 ఈ రోజు గంటకు {n} కి.మీ. వరకు బలమైన గాలులు.", today_heat: "🌡️ ఈ రోజు చాలా వేడి, {n}°C వరకు. నీళ్లు ఎక్కువగా తాగండి.", today_fog: "🌫️ ఈ ఉదయం పొగమంచు. జాగ్రత్తగా నడపండి.", today_cold: "🧊 ఈ రోజు చల్లగా ఉంటుంది, కనిష్టం {n}°C.", today_snow: "❄️ ఈ రోజు మంచు కురిసే అవకాశం.", today_sunny: "☀️ ఎండగా ఉంది: ఈ రోజు సోలార్‌కు మంచిది.", today_night: "🌙 నిర్మలమైన రాత్రి. సోలార్ స్థానంలో బ్యాటరీలు పనిచేస్తాయి.", today_partly: "⛅ కొంత మేఘావృతం: సోలార్ బాగానే పనిచేస్తుంది.", today_cloudy: "☁️ మేఘావృతం: ఈ రోజు సోలార్ ఉత్పత్తి తక్కువగా ఉంటుంది.", weather_note: "{p} కోసం Open-Meteo అంచనా. ఇది అధికారిక హెచ్చరిక కాదు.", greeting_sub: "స్వచ్ఛమైన శక్తితో మీ రోజు",
       card_ses: "పునరుత్పాదక ఇంధన ఉత్పత్తులను వెతకండి, పోల్చండి, ఎంచుకోండి",
       card_es: "ఆంధ్రప్రదేశ్‌లో సౌర, పవన శక్తి అవకాశాలను తెలుసుకోండి",
       card_hub: "మీ దగ్గరి సౌర & పవన ఇంధన దుకాణాల నుండి కొనండి",
@@ -3240,30 +3283,81 @@ function gmWeatherVars(v){
   return o;
 }
 
+var GM_KIND_ICON = { storm: "\u26C8\uFE0F", heavy: "\uD83C\uDF27\uFE0F", rain: "\uD83C\uDF26\uFE0F", light: "\uD83C\uDF26\uFE0F", wind: "\uD83D\uDCA8", heat: "\uD83C\uDF21\uFE0F", fog: "\uD83C\uDF2B\uFE0F", snow: "\u2744\uFE0F", cold: "\uD83E\uDDCA" };
+
+// groups flagged hours into windows; one unflagged hour in between does not split a window
+function gmWindows(flags, i0, N){
+  var out = [], cur = null, gap = 0, k;
+  for (k = i0; k < N; k++){
+    if (flags[k]){ if (!cur) cur = { a: k, b: k }; else cur.b = k; gap = 0; }
+    else if (cur){ gap++; if (gap > 1){ out.push(cur); cur = null; gap = 0; } }
+  }
+  if (cur) out.push(cur);
+  return out;
+}
+function gmDayOf(ms, nowMs){
+  var a = new Date(ms), b = new Date(nowMs);
+  var d = Math.round((new Date(a.getFullYear(), a.getMonth(), a.getDate()) - new Date(b.getFullYear(), b.getMonth(), b.getDate())) / 86400000);
+  return d <= 0 ? "today" : d === 1 ? "tomorrow" : "later";
+}
+
 // Turns an Open-Meteo response into one plain object the rest of the app can use.
+// Alerts are time windows (start to end, today or tomorrow) found in the next 36 hours of hourly data.
 function gmWeatherAnalyse(j, place){
   var c = j && j.current, h = j && j.hourly, d = j && j.daily;
   if (!c || !h || !h.time || !d || !d.time) return null;
-  var nowHour = String(c.time).slice(0, 13), i0 = 0, i;
-  for (i = 0; i < h.time.length; i++){ if (String(h.time[i]).slice(0, 13) >= nowHour){ i0 = i; break; } }
-  var N = Math.min(h.time.length, i0 + 12);
-  var code = c.weather_code, cloud = c.cloud_cover, temp = c.temperature_2m, wind = c.wind_speed_10m, gust = c.wind_gusts_10m || 0;
-  var isDay = c.is_day === 1;
-  var rainAt = null, heavyAt = null, stormAt = null, snowAt = null, fogAt = null, maxGust = gust, maxPop = 0, maxMm = 0;
-  for (var k = i0; k < N; k++){
-    var cd = h.weather_code[k], mm = h.precipitation[k] || 0, pop = h.precipitation_probability ? (h.precipitation_probability[k] || 0) : 0;
-    var when = new Date(h.time[k]).getTime();
-    if (cd >= 95 && !stormAt) stormAt = when;
-    if (((pop >= 60 && mm >= 0.3) || mm >= 1 || (cd >= 61 && cd <= 67) || (cd >= 80 && cd <= 82)) && !rainAt) rainAt = when;
-    if ((mm >= 7 || cd === 65 || cd === 82) && !heavyAt) heavyAt = when;
-    if (((cd >= 71 && cd <= 77) || cd === 85 || cd === 86) && !snowAt) snowAt = when;
-    if ((cd === 45 || cd === 48) && k < i0 + 7 && !fogAt) fogAt = when;
-    if ((h.wind_gusts_10m[k] || 0) > maxGust) maxGust = h.wind_gusts_10m[k];
-    if (pop > maxPop) maxPop = pop;
-    if (mm > maxMm) maxMm = mm;
+  var HR = 3600000, nowMs = new Date(c.time).getTime();
+  var T = h.time.map(function(x){ return new Date(x).getTime(); }), n = T.length, i0 = 0, i, k;
+  for (i = 0; i < n; i++){ if (T[i] >= nowMs - HR / 2){ i0 = i; break; } }
+  var N = Math.min(n, i0 + 36);
+  var mmA = h.precipitation || [], popA = h.precipitation_probability || [], cdA = h.weather_code || [], gsA = h.wind_gusts_10m || [], tmA = h.temperature_2m || [], visA = h.visibility || [];
+  var rainF = [], stormF = [], windF = [], heatF = [], fogF = [], snowF = [];
+  for (k = i0; k < N; k++){
+    var mm = mmA[k] || 0, pop = popA[k] || 0, cd = cdA[k], hr = new Date(T[k]).getHours();
+    rainF[k] = (mm >= 0.5 && pop >= 40) || mm >= 2 || (((cd >= 61 && cd <= 67) || (cd >= 80 && cd <= 82)) && mm >= 0.2);
+    stormF[k] = cd >= 95;
+    windF[k] = (gsA[k] || 0) >= 50;
+    heatF[k] = (tmA[k] || 0) >= 40;
+    fogF[k] = (cd === 45 || cd === 48 || (visA[k] != null && visA[k] < 1000)) && hr >= 3 && hr <= 11;
+    snowF[k] = (cd >= 71 && cd <= 77) || cd === 85 || cd === 86;
   }
-  var sky = cloud < 20 ? "clear" : cloud < 50 ? "partly" : cloud < 85 ? "cloudy" : "overcast";
-  var kind;
+  function stats(a, b){
+    var s = { mm: 0, max: 0, pop: 0, gust: 0, tmax: -99 };
+    for (var q = a; q <= b; q++){
+      var m = mmA[q] || 0; s.mm += m; if (m > s.max) s.max = m;
+      if ((popA[q] || 0) > s.pop) s.pop = popA[q] || 0;
+      if ((gsA[q] || 0) > s.gust) s.gust = gsA[q] || 0;
+      if (tmA[q] != null && tmA[q] > s.tmax) s.tmax = tmA[q];
+    }
+    return s;
+  }
+  var wins = [];
+  function add(kind, sev, s, e, st){
+    if (e <= nowMs + 300000) return;
+    var day = gmDayOf(Math.max(s, nowMs), nowMs);
+    if (day === "later") return;
+    wins.push({ id: kind + "_" + new Date(s).toDateString().replace(/\s/g, "") + "_" + Math.floor(new Date(s).getHours() / 4), kind: kind, sev: sev, startMs: s, endMs: e, ongoing: s <= nowMs, day: day,
+      mm: Math.round(st.mm), pop: Math.round(st.pop), gust: Math.round(st.gust), tmax: Math.round(st.tmax), icon: GM_KIND_ICON[kind] });
+  }
+  var stormW = gmWindows(stormF, i0, N).map(function(w){ return { s: T[w.a], e: T[w.b] + HR, a: w.a, b: w.b }; });
+  stormW.forEach(function(w){ add("storm", 2, w.s, w.e, stats(w.a, w.b)); });
+  gmWindows(rainF, i0, N).forEach(function(w){
+    var s = T[w.a] - HR, e = T[w.b], st = stats(w.a, w.b);
+    if (stormW.some(function(x){ return s < x.e && x.s < e; })) return;        // already covered by the thunderstorm
+    if (st.mm < 2.5) return;                                                     // a few drops: not worth an alert
+    var kind = (st.mm >= 35 || st.max >= 10) ? "heavy" : st.mm >= 10 ? "rain" : "light";
+    add(kind, kind === "heavy" ? 2 : kind === "rain" ? 1 : 0, s, e, st);
+  });
+  gmWindows(windF, i0, N).forEach(function(w){ var st = stats(w.a, w.b); add("wind", st.gust >= 65 ? 2 : 1, T[w.a], T[w.b] + HR, st); });
+  gmWindows(heatF, i0, N).forEach(function(w){ add("heat", 1, T[w.a], T[w.b] + HR, stats(w.a, w.b)); });
+  gmWindows(fogF, i0, N).forEach(function(w){ add("fog", 1, T[w.a], T[w.b] + HR, stats(w.a, w.b)); });
+  gmWindows(snowF, i0, N).forEach(function(w){ add("snow", 2, T[w.a], T[w.b] + HR, stats(w.a, w.b)); });
+  var tmin = d.temperature_2m_min[0];
+  if (tmin <= 10) add("cold", tmin <= 5 ? 1 : 0, nowMs, nowMs + 6 * HR, { mm: 0, pop: 0, gust: 0, tmax: Math.round(tmin) });
+  wins.sort(function(a, b){ return a.startMs - b.startMs; });
+
+  var code = c.weather_code, cloud = c.cloud_cover, temp = c.temperature_2m, wind = c.wind_speed_10m, gust = c.wind_gusts_10m || 0, isDay = c.is_day === 1;
+  var sky = cloud < 20 ? "clear" : cloud < 50 ? "partly" : cloud < 85 ? "cloudy" : "overcast", kind;
   if (code >= 95) kind = "storm";
   else if ((code >= 71 && code <= 77) || code === 85 || code === 86) kind = "snow";
   else if (code === 65 || code === 82 || code === 67) kind = "heavy-rain";
@@ -3272,62 +3366,76 @@ function gmWeatherAnalyse(j, place){
   else if (code === 45 || code === 48) kind = "fog";
   else if (gust >= 45 || wind >= 30) kind = "windy";
   else kind = sky === "clear" ? (isDay ? "sunny" : "clear-night") : (sky === "partly" ? "partly" : "cloudy");
-  var date0 = String(c.time).slice(0, 10), tmax = d.temperature_2m_max[0], tmin = d.temperature_2m_min[0];
-  var alerts = [];
-  if (stormAt) alerts.push({ id: "storm_" + date0 + "_" + new Date(stormAt).getHours(), key: "today_storm", vars: { tms: stormAt }, icon: "\u26C8\uFE0F", sev: 2, kind: "storm" });
-  else if (heavyAt) alerts.push({ id: "heavy_" + date0 + "_" + new Date(heavyAt).getHours(), key: "today_heavy", vars: { tms: heavyAt }, icon: "\u26C8\uFE0F", sev: 2, kind: "heavy-rain" });
-  else if (rainAt) alerts.push({ id: "rain_" + date0 + "_" + new Date(rainAt).getHours(), key: "today_rain", vars: { tms: rainAt }, icon: "\uD83C\uDF27\uFE0F", sev: 1, kind: "rain" });
-  if (snowAt) alerts.push({ id: "snow_" + date0, key: "today_snow", vars: {}, icon: "\u2744\uFE0F", sev: 2, kind: "snow" });
-  if (maxGust >= 50) alerts.push({ id: "wind_" + date0, key: "today_wind", vars: { n: Math.round(maxGust) }, icon: "\uD83D\uDCA8", sev: 1, kind: "windy" });
-  if (tmax >= 38) alerts.push({ id: "heat_" + date0, key: "today_heat", vars: { n: Math.round(tmax) }, icon: "\uD83C\uDF21\uFE0F", sev: 1, kind: "hot" });
-  if (fogAt) alerts.push({ id: "fog_" + date0, key: "today_fog", vars: {}, icon: "\uD83C\uDF2B\uFE0F", sev: 1, kind: "fog" });
-  if (tmin <= 15) alerts.push({ id: "cold_" + date0, key: "today_cold", vars: { n: Math.round(tmin) }, icon: "\uD83E\uDDCA", sev: 0, kind: "cold" });
-  var psh = (d.shortwave_radiation_sum && d.shortwave_radiation_sum[0] ? d.shortwave_radiation_sum[0] : 0) / 3.6;   // MJ/m2 -> kWh/m2
+  var important = wins.some(function(a){ return a.sev >= 1 && a.startMs <= nowMs + 90 * 60000; }) ||
+    kind === "storm" || kind === "snow" || kind === "heavy-rain" || kind === "fog" || kind === "windy" || (kind === "rain" && (c.precipitation || 0) >= 0.5);
+  var maxPop = 0, maxMm = 0;
+  for (k = i0; k < Math.min(N, i0 + 12); k++){ if ((popA[k] || 0) > maxPop) maxPop = popA[k]; if ((mmA[k] || 0) > maxMm) maxMm = mmA[k]; }
+  var psh = (d.shortwave_radiation_sum && d.shortwave_radiation_sum[0] ? d.shortwave_radiation_sum[0] : 0) / 3.6;
   return {
-    place: place || "", at: Date.now(), kind: kind, sky: sky, isDay: isDay,
+    place: place || "", at: Date.now(), nowMs: nowMs, kind: kind, sky: sky, isDay: isDay, important: important,
     emoji: GM_WEATHER_EMOJI[kind] || "\u2600\uFE0F",
     now: { temp: temp, feels: c.apparent_temperature, humidity: c.relative_humidity_2m, code: code, cloud: cloud, wind: wind, gust: gust, dir: c.wind_direction_10m, precip: c.precipitation || 0 },
-    tmax: tmax, tmin: tmin, sunrise: d.sunrise ? d.sunrise[0] : null, sunset: d.sunset ? d.sunset[0] : null, uv: d.uv_index_max ? d.uv_index_max[0] : null,
-    popMax: maxPop, mmMax: maxMm, gustMax: maxGust, alerts: alerts,
+    tmax: d.temperature_2m_max[0], tmin: tmin, sunrise: d.sunrise ? d.sunrise[0] : null, sunset: d.sunset ? d.sunset[0] : null, uv: d.uv_index_max ? d.uv_index_max[0] : null,
+    popMax: maxPop, mmMax: maxMm, gustMax: Math.max(gust, wins.reduce(function(m, a){ return Math.max(m, a.gust || 0); }, 0)), alerts: wins,
     psh: Math.round(psh * 10) / 10, perKw: Math.round(psh * 0.8 * 10) / 10
   };
 }
 
-// Which sentence goes under the greeting: danger first, then your orders, then the weather.
+// "Today: heavy rain 11 AM-2 PM . ~38 mm" in the app's language
+function gmAlertText(a){
+  var from = a.ongoing ? gmT("wx_now") : gmHourText(a.startMs), to = gmHourText(a.endMs), sfx = "";
+  if ((a.kind === "storm" || a.kind === "heavy" || a.kind === "rain") && a.mm >= 5) sfx = " \u00B7 ~" + a.mm + " mm";
+  else if (a.kind === "wind") sfx = " \u00B7 " + a.gust + " km/h";
+  else if (a.kind === "heat") sfx = " \u00B7 " + a.tmax + "\u00B0C";
+  return gmT("wx_line", { icon: a.icon, day: gmT(a.day === "tomorrow" ? "wx_tomorrow" : "wx_today"), kind: gmT("wx_k_" + a.kind), from: from, to: to, sfx: sfx });
+}
+function gmAlertDetail(a){
+  if (a.kind === "storm" || a.kind === "heavy" || a.kind === "rain" || a.kind === "light") return gmT("wx_d_rain", { pop: a.pop, mm: a.mm });
+  if (a.kind === "wind") return gmT("wx_d_wind", { n: a.gust });
+  return "";
+}
+window.gmAlertText = gmAlertText;      // EMBER runs in a different script and needs these
+window.gmAlertDetail = gmAlertDetail;
+
+// Which line goes under the greeting: danger first, then your orders, then other alerts, then the sky.
 function gmWeatherPickLine(w, orders){
-  var sev = w && w.alerts.filter(function(a){ return a.sev >= 2; })[0];
-  if (sev) return { key: sev.key, vars: sev.vars };
-  if (orders > 0) return { key: "today_order", vars: { n: orders } };
   if (w){
-    if (w.alerts[0]) return { key: w.alerts[0].key, vars: w.alerts[0].vars };
+    var soon = w.alerts.filter(function(a){ return a.sev >= 1 && a.startMs <= w.nowMs + 24 * 3600000; });
+    var severe = soon.filter(function(a){ return a.sev >= 2 && a.startMs <= w.nowMs + 12 * 3600000; })[0];
+    if (severe) return { alert: severe };
+    if (orders > 0) return { key: "today_order", vars: { n: orders } };
+    if (soon[0]) return { alert: soon[0] };
     var map = { "sunny": "today_sunny", "clear-night": "today_night", "partly": "today_partly", "cloudy": "today_cloudy" };
     return { key: map[w.kind] || "today_cloudy", vars: {} };
   }
+  if (orders > 0) return { key: "today_order", vars: { n: orders } };
   return null;
 }
-
 function gmUpdateTodayLine(){
   var el = document.getElementById("greetingSub");
   if (!el) return;
   var pick = gmWeatherPickLine(window.GM_weather, window.GM_unreadOrders || 0);
-  el.textContent = pick ? gmT(pick.key, gmWeatherVars(pick.vars)) : gmT("greeting_sub");
+  el.textContent = !pick ? gmT("greeting_sub") : pick.alert ? gmAlertText(pick.alert) : gmT(pick.key, pick.vars);
 }
 
-// Each alert is saved once on this phone, so it shows in the bell once and counts as unread once.
+// Each important alert is saved once per phone (its estimate is refreshed in place), so the bell
+// shows it once and counts it as unread once.
 function gmWeatherLogAlerts(w){
   try {
     var now = Date.now();
-    var log = JSON.parse(localStorage.getItem(GM_WALERTS_KEY) || "[]").filter(function(x){ return now - x.time < 36 * 3600 * 1000; });
+    var log = JSON.parse(localStorage.getItem(GM_WALERTS_KEY) || "[]").filter(function(x){ return now - x.time < 36 * 3600 * 1000 && x.a; });
     w.alerts.forEach(function(a){
-      if (!log.some(function(x){ return x.id === a.id; })) log.push({ id: a.id, key: a.key, vars: a.vars, icon: a.icon, time: now, place: w.place });
+      if (a.sev < 1) return;
+      var hit = log.filter(function(x){ return x.id === a.id; })[0];
+      if (hit){ hit.a = a; hit.place = w.place; } else log.push({ id: a.id, time: now, place: w.place, a: a });
     });
     localStorage.setItem(GM_WALERTS_KEY, JSON.stringify(log.slice(-12)));
   } catch (e) {}
 }
 function getWeatherLocalNotifs(){
   try {
-    return JSON.parse(localStorage.getItem(GM_WALERTS_KEY) || "[]").map(function(x){
-      return { id: "weather_" + x.id, type: "weather", icon: x.icon, title: gmT(x.key, gmWeatherVars(x.vars)), message: gmT("weather_note", { p: x.place || "" }), link: "", time: x.time };
+    return JSON.parse(localStorage.getItem(GM_WALERTS_KEY) || "[]").filter(function(x){ return x.a; }).map(function(x){
+      return { id: "weather_" + x.id, type: "weather", icon: x.a.icon, title: gmAlertText(x.a), message: (gmAlertDetail(x.a) + " " + gmT("weather_note", { p: x.place || "" })).trim(), link: "", time: x.time };
     });
   } catch (e) { return []; }
 }
@@ -4530,8 +4638,6 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
 })();
 </script>
 <script id="gmSceneJs">
-// GreenMap living scene (step 2): real sun and moon, clouds, mountains, land and a river.
-// Pure drawing code: works on any Canvas 2D context (and on the preview recorder).
 var GMScene = (function(){
   var PI = Math.PI, RAD = PI / 180;
   function clamp(x, a, b){ return x < a ? a : x > b ? b : x; }
@@ -4604,7 +4710,12 @@ var GMScene = (function(){
     var fog = kind === "fog" ? 0.75 : (wet ? 0.18 : clamp((hum - 70) / 60, 0, 0.2));
     if (fog > 0.5){ top = mix(top, [190, 198, 204], 0.5); bottom = mix(bottom, [205, 212, 217], 0.7); }
     var lum = (0.299 * top[0] + 0.587 * top[1] + 0.114 * top[2]) / 255;
-    return { sun: sun, moon: moon, lat: lat, lng: lng, kind: kind, cloud: cloud, wind: wind, oc: oc, fog: fog, wet: wet,
+    var precip = w && w.now.precip ? w.now.precip : 0, windDir = w && w.now.dir != null ? w.now.dir : 90;
+    var rain = kind === "storm" ? 1 : kind === "heavy-rain" ? 0.85 : kind === "rain" ? clamp(0.45 + precip / 12, 0.45, 0.8) : kind === "drizzle" ? 0.22 : 0;
+    var snow = kind === "snow" ? 0.8 : 0, windFx = clamp((wind - 18) / 34, 0, 1);
+    var windSign = Math.sin(windDir * RAD) >= 0 ? 1 : -1, slant = Math.sin(windDir * RAD) * clamp(wind / 3.6 / 9, 0, 1.1);
+    return { rain: rain, snow: snow, windFx: windFx, windSign: windSign, slant: slant, lightning: kind === "storm", windDir: windDir,
+             sun: sun, moon: moon, lat: lat, lng: lng, kind: kind, cloud: cloud, wind: wind, oc: oc, fog: fog, wet: wet,
              day: day, night: night, dusk: dusk, top: top, bottom: bottom, dark: lum < 0.42,
              heading: 180, fov: 200, alt0: 75 };
   }
@@ -4714,12 +4825,12 @@ var GMScene = (function(){
     var n = Math.round(2 + S.cloud / 100 * 7), r = rng(2026), out = [], hy = horizon(H);
     for (var i = 0; i < n; i++){
       var sc = 0.65 + r() * 0.95;
-      out.push({ x0: r() * (W + 240), y: hy * (0.1 + r() * 0.52), s: sc, sp: (5 + S.wind * 0.7) * (0.45 + 0.55 * sc / 1.6) });
+      out.push({ x0: r() * (W + 240), y: hy * (0.1 + r() * 0.52), s: sc, sp: (5 + S.wind * 0.7) * (0.45 + 0.55 * sc / 1.6) * S.windSign });
     }
     out.sort(function(a, b){ return a.y - b.y; });
     return out;
   }
-  function cloudX(c, W, t){ var span = W + 260; return ((c.x0 + t * c.sp) % span) - 130; }
+  function cloudX(c, W, t){ var span = W + 260; return (((c.x0 + t * c.sp) % span + span) % span) - 130; }
 
   // mountains and land -----------------------------------------------------
   function ridge(x01, seed, amp, rough){
@@ -4749,53 +4860,328 @@ var GMScene = (function(){
              y: hy + (H - hy) * Math.pow(v, 1.5), w: 2 + W * 0.30 * Math.pow(v, 1.35) };
   }
   function landTop(W, H, x){ var hy = horizon(H); return hy + H * 0.008 * Math.sin(x / W * 9 + 0.5) + H * 0.006 * Math.sin(x / W * 23 + 1.2); }
-  function drawPalm(ctx, x, y, s, S){
+  // ---------------- village (Andhra Pradesh style) ----------------
+  function zy(H, z){ var hy = horizon(H); return hy + (H - hy) * Math.pow(z, 1.5); }
+  function zs(z){ return 0.22 + 0.78 * Math.pow(z, 1.1); }
+  function roadC(W, z){ return W * (0.70 - 0.10 * z) + Math.sin(z * 3.1 + 0.6) * W * 0.045 * z; }
+  function roadHW(W, z){ return W * 0.006 + W * 0.13 * Math.pow(z, 1.15); }
+  function PL(ctx, pts, color, a){
+    ctx.fillStyle = rgba(color, a == null ? 1 : a); ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+    ctx.closePath(); ctx.fill();
+  }
+  function RC(ctx, x, y, w, h, color, a){ ctx.fillStyle = rgba(color, a == null ? 1 : a); ctx.fillRect(x, y, w, h); }
+  function CI(ctx, x, y, r, color, a){ ctx.fillStyle = rgba(color, a == null ? 1 : a); ctx.beginPath(); ctx.arc(x, y, r, 0, PI * 2); ctx.fill(); }
+  function palette(S){
+    var g = function(h){ return grade(hex(h), S, 1); };
+    var lit = clamp(S.night * 1.1 + S.dusk * 0.45, 0, 1);
+    return { g: g, lit: lit, win: mix(g("#9bb7c9"), [255, 212, 120], lit) };
+  }
+  function houseTile(ctx, x, y, k, P, wallHex){
+    var w = 54 * k, h = 22 * k, g = P.g;
+    RC(ctx, x - w / 2, y - h, w, h, g(wallHex || "#eadcb8"));
+    PL(ctx, [[x - w / 2 - 4 * k, y - h], [x, y - h - 20 * k], [x + w / 2 + 4 * k, y - h]], g("#b2543a"));
+    PL(ctx, [[x, y - h - 20 * k], [x + w / 2 + 4 * k, y - h], [x + w / 2 + 4 * k, y - h + 3 * k], [x, y - h - 16 * k]], g("#8c3f2c"));
+    RC(ctx, x - 4.5 * k, y - 14 * k, 9 * k, 14 * k, g("#5a3c28"));
+    RC(ctx, x - w / 2 + 6 * k, y - 17 * k, 8 * k, 8 * k, P.win); RC(ctx, x + w / 2 - 14 * k, y - 17 * k, 8 * k, 8 * k, P.win);
+  }
+  function hut(ctx, x, y, k, P){
+    var w = 36 * k, h = 15 * k, g = P.g;
+    RC(ctx, x - w / 2, y - h, w, h, g("#a98660"));
+    PL(ctx, [[x - w / 2 - 5 * k, y - h], [x, y - h - 22 * k], [x + w / 2 + 5 * k, y - h]], g("#c2a04c"));
+    PL(ctx, [[x, y - h - 22 * k], [x + w / 2 + 5 * k, y - h], [x + w / 2 + 2 * k, y - h + 2 * k], [x, y - h - 18 * k]], g("#8e7236"));
+    RC(ctx, x - 3.5 * k, y - 10 * k, 7 * k, 10 * k, g("#4e3624"));
+  }
+  function houseFlat(ctx, x, y, k, P, wallHex){
+    var w = 46 * k, h = 34 * k, g = P.g;
+    RC(ctx, x - w / 2, y - h, w, h, g(wallHex || "#f0a8b0"));
+    RC(ctx, x - w / 2 - 2 * k, y - h - 3 * k, w + 4 * k, 3 * k, g("#d7d2c8"));
+    RC(ctx, x + w / 2 - 14 * k, y - h - 11 * k, 9 * k, 8 * k, g("#1f2a33"));
+    RC(ctx, x - w / 2 + 6 * k, y - h + 7 * k, 8 * k, 9 * k, P.win); RC(ctx, x + w / 2 - 14 * k, y - h + 7 * k, 8 * k, 9 * k, P.win);
+    RC(ctx, x - 4.5 * k, y - 15 * k, 9 * k, 15 * k, g("#5a3c28"));
+  }
+  function flagPole(ctx, x, y, k, P){
+    var g = P.g;
+    RC(ctx, x, y - 42 * k, 1.5 * k, 42 * k, g("#dadada"));
+    RC(ctx, x + 1.5 * k, y - 42 * k, 12 * k, 3 * k, g("#ff9933")); RC(ctx, x + 1.5 * k, y - 39 * k, 12 * k, 3 * k, g("#f5f5f5")); RC(ctx, x + 1.5 * k, y - 36 * k, 12 * k, 3 * k, g("#138808"));
+  }
+  function school(ctx, x, y, k, P){
+    var w = 118 * k, h = 26 * k, g = P.g;
+    RC(ctx, x - w / 2, y - h, w, h, g("#f3ecd0"));
+    RC(ctx, x - w / 2, y - h * 0.55, w, 5 * k, g("#3a62ac"));
+    PL(ctx, [[x - w / 2 - 4 * k, y - h], [x - w / 2 + 8 * k, y - h - 7 * k], [x + w / 2 - 8 * k, y - h - 7 * k], [x + w / 2 + 4 * k, y - h]], g("#8a5a4a"));
+    for (var i = 0; i < 6; i++) RC(ctx, x - w / 2 + 10 * k + i * 18 * k, y - h + 5 * k, 8 * k, 9 * k, P.win);
+    RC(ctx, x - 5 * k, y - 14 * k, 10 * k, 14 * k, g("#5a3c28"));
+    flagPole(ctx, x + w / 2 + 6 * k, y, k, P);
+  }
+  function college(ctx, x, y, k, P){
+    var w = 98 * k, h = 52 * k, g = P.g, r, c;
+    RC(ctx, x - w / 2, y - h, w, h, g("#e6d3a6"));
+    RC(ctx, x - w / 2 - 3 * k, y - h - 4 * k, w + 6 * k, 4 * k, g("#b9a272"));
+    RC(ctx, x - 14 * k, y - h - 22 * k, 28 * k, 22 * k, g("#d8c28e"));
+    ctx.fillStyle = rgba(g("#b48c3c"), 1); ctx.beginPath(); ctx.arc(x, y - h - 22 * k, 14 * k, PI, PI * 2, false); ctx.closePath(); ctx.fill();
+    CI(ctx, x, y - h - 12 * k, 4.2 * k, g("#f3efe0"));
+    for (r = 0; r < 2; r++) for (c = 0; c < 5; c++){ if (c === 2) continue; RC(ctx, x - w / 2 + 8 * k + c * 18 * k, y - h + 8 * k + r * 20 * k, 9 * k, 11 * k, P.win); }
+    for (c = -1; c <= 1; c++) RC(ctx, x + c * 8 * k - 1.5 * k, y - 26 * k, 3 * k, 26 * k, g("#f1e9d2"));
+    RC(ctx, x - 14 * k, y - 3 * k, 28 * k, 3 * k, g("#c9bfa6"));
+    flagPole(ctx, x + w / 2 + 5 * k, y - h * 0.75, k * 0.8, P);
+  }
+  function office(ctx, x, y, k, P){
+    var w = 74 * k, h = 46 * k, g = P.g, r, c;
+    RC(ctx, x - w / 2, y - h, w, h, g("#b3c0cc"));
+    RC(ctx, x - w / 2 - 2 * k, y - h - 3 * k, w + 4 * k, 3 * k, g("#8793a0"));
+    for (r = 0; r < 3; r++) for (c = 0; c < 5; c++) RC(ctx, x - w / 2 + 6 * k + c * 13 * k, y - h + 6 * k + r * 12 * k, 8 * k, 7 * k, P.win);
+    RC(ctx, x - 12 * k, y - 11 * k, 24 * k, 11 * k, g("#586a7a")); RC(ctx, x - 9 * k, y - h * 0.62, 18 * k, 4 * k, g("#2f5d8a"));
+    flagPole(ctx, x - w / 2 + 6 * k, y - h, k * 0.75, P);
+  }
+  function bus(ctx, x, y, k, P){
+    var w = 72 * k, h = 26 * k, g = P.g, i;
+    RC(ctx, x - w / 2, y - h - 3 * k, w, h, g("#c8382c"));
+    RC(ctx, x - w / 2, y - h * 0.55 - 3 * k, w, 4 * k, g("#f1efe6"));
+    for (i = 0; i < 6; i++) RC(ctx, x - w / 2 + 5 * k + i * 11 * k, y - h - 3 * k + 3 * k, 8 * k, 8 * k, P.win);
+    CI(ctx, x - w / 2 + 14 * k, y - 2 * k, 4.2 * k, g("#20252b")); CI(ctx, x + w / 2 - 14 * k, y - 2 * k, 4.2 * k, g("#20252b"));
+  }
+  function busStand(ctx, x, y, k, P){
+    var g = P.g;
+    RC(ctx, x - 26 * k, y - 28 * k, 2.2 * k, 28 * k, g("#6b6f75")); RC(ctx, x + 24 * k, y - 28 * k, 2.2 * k, 28 * k, g("#6b6f75"));
+    RC(ctx, x - 30 * k, y - 32 * k, 60 * k, 5 * k, g("#c0392b")); RC(ctx, x - 22 * k, y - 10 * k, 44 * k, 3 * k, g("#8a6a44"));
+  }
+  function stationBuilding(ctx, x, y, k, P){
+    var w = 96 * k, h = 30 * k, g = P.g, i;
+    RC(ctx, x - w / 2, y - h, w, h, g("#e8c46c"));
+    RC(ctx, x - w / 2 - 6 * k, y - h - 5 * k, w + 12 * k, 5 * k, g("#8a4b3a"));
+    for (i = 0; i < 4; i++) RC(ctx, x - w / 2 + 9 * k + i * 22 * k, y - 20 * k, 11 * k, 20 * k, g("#6b4a30"));
+    RC(ctx, x - 16 * k, y - h - 12 * k, 32 * k, 7 * k, g("#2f5d8a")); CI(ctx, x, y - h + 7 * k, 4 * k, g("#f3efe0"));
+  }
+  function temple(ctx, x, y, k, P){
+    var g = P.g, i, w = 46 * k;
+    RC(ctx, x - w / 2, y - 14 * k, w, 14 * k, g("#d79a62"));
+    for (i = 0; i < 6; i++){
+      var tw = w * (0.86 - i * 0.12), ty = y - 14 * k - i * 9 * k;
+      RC(ctx, x - tw / 2, ty - 9 * k, tw, 9 * k, g(i % 2 ? "#c9784e" : "#dca06a"));
+      RC(ctx, x - tw / 2, ty - 9 * k, tw, 1.4 * k, g("#f0d9b0"));
+    }
+    RC(ctx, x - 1.6 * k, y - 14 * k - 6 * 9 * k - 7 * k, 3.2 * k, 7 * k, g("#d9ad3c"));
+  }
+  function waterTank(ctx, x, y, k, P){
+    var g = P.g;
+    RC(ctx, x - 7 * k, y - 22 * k, 1.8 * k, 22 * k, g("#8a8f95")); RC(ctx, x + 5.2 * k, y - 22 * k, 1.8 * k, 22 * k, g("#8a8f95")); RC(ctx, x - 1 * k, y - 22 * k, 1.8 * k, 22 * k, g("#8a8f95"));
+    RC(ctx, x - 10 * k, y - 36 * k, 20 * k, 14 * k, g("#aeb6bf")); PL(ctx, [[x - 10 * k, y - 36 * k], [x, y - 42 * k], [x + 10 * k, y - 36 * k]], g("#8e969f"));
+  }
+  function bigTree(ctx, x, y, k, P){
+    var g = P.g;
+    RC(ctx, x - 3 * k, y - 20 * k, 6 * k, 20 * k, g("#5b4430"));
+    CI(ctx, x - 10 * k, y - 28 * k, 13 * k, g("#2f6a34")); CI(ctx, x + 10 * k, y - 28 * k, 13 * k, g("#2f6a34")); CI(ctx, x, y - 36 * k, 15 * k, g("#3c8040")); CI(ctx, x - 3 * k, y - 40 * k, 8 * k, g("#4a9448"));
+  }
+  function pole(ctx, x, y, k, P){
+    var g = P.g;
+    RC(ctx, x - 1.3 * k, y - 46 * k, 2.6 * k, 46 * k, g("#6a5a4a"));
+    RC(ctx, x - 9 * k, y - 44 * k, 18 * k, 2 * k, g("#4e4338"));
+    RC(ctx, x - 6 * k, y - 38 * k, 12 * k, 1.6 * k, g("#4e4338"));
+  }
+  function drawRoad(ctx, W, H, S){
+    var N = 34, L = [], R = [], i, z, g = function(h){ return grade(hex(h), S, 1); };
+    for (i = 0; i <= N; i++){ z = 0.012 + (1 - 0.012) * i / N; var c = roadC(W, z), hw = roadHW(W, z), y = zy(H, z); L.push([c - hw, y]); R.push([c + hw, y]); }
+    var eL = [], eR = [];
+    for (i = 0; i <= N; i++){ z = 0.012 + (1 - 0.012) * i / N; var hw2 = roadHW(W, z) * 1.22, c2 = roadC(W, z), y2 = zy(H, z); eL.push([c2 - hw2, y2]); eR.push([c2 + hw2, y2]); }
+    ctx.fillStyle = rgba(g("#b89a72"), 1); ctx.beginPath(); ctx.moveTo(eL[0][0], eL[0][1]);
+    for (i = 1; i <= N; i++) ctx.lineTo(eL[i][0], eL[i][1]);
+    for (i = N; i >= 0; i--) ctx.lineTo(eR[i][0], eR[i][1]);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = rgba(g("#5b6068"), 1); ctx.beginPath(); ctx.moveTo(L[0][0], L[0][1]);
+    for (i = 1; i <= N; i++) ctx.lineTo(L[i][0], L[i][1]);
+    for (i = N; i >= 0; i--) ctx.lineTo(R[i][0], R[i][1]);
+    ctx.closePath(); ctx.fill();
+    for (i = 2; i < N; i += 2){
+      var za = 0.012 + (1 - 0.012) * i / N, zb = 0.012 + (1 - 0.012) * (i + 1) / N, wa = roadHW(W, za) * 0.07 + 0.3, wb = roadHW(W, zb) * 0.07 + 0.3;
+      PL(ctx, [[roadC(W, za) - wa, zy(H, za)], [roadC(W, za) + wa, zy(H, za)], [roadC(W, zb) + wb, zy(H, zb)], [roadC(W, zb) - wb, zy(H, zb)]], g("#e9e2c6"), 0.9);
+    }
+  }
+  function drawRailway(ctx, W, H, S){
+    var y = zy(H, 0.2), k = zs(0.2) * W / 390, g = function(h){ return grade(hex(h), S, 1); }, x;
+    RC(ctx, 0, y - 3.4 * k, W, 8 * k, g("#9a9288"));
+    for (x = 0; x < W; x += 6 * k) RC(ctx, x, y - 3 * k, 2.2 * k, 7 * k, g("#6e5a46"));
+    RC(ctx, 0, y - 1.4 * k, W, 1.4 * k, g("#59616b")); RC(ctx, 0, y + 2.2 * k, W, 1.4 * k, g("#59616b"));
+  }
+  function drawTrain(ctx, W, H, S, t){
+    var y = zy(H, 0.2) + 2 * (zs(0.2) * W / 390), k = zs(0.2) * W / 390, P = palette(S), g = P.g, n = 6, cw = 70 * k, ch = 24 * k, gap = 2 * k, locoW = 52 * k;
+    var total = locoW + n * (cw + gap), span = W + total + 120 * k, x0 = ((t * 22 * k) % span) - total;
+    var i, x;
+    for (i = 0; i < n; i++){
+      x = x0 + i * (cw + gap);
+      RC(ctx, x, y - ch, cw, ch - 1.5 * k, g("#3f6fb4")); RC(ctx, x, y - ch * 0.5, cw, 3 * k, g("#e9eef4")); RC(ctx, x, y - ch - 2 * k, cw, 2 * k, g("#2d4f86"));
+      for (var j = 0; j < 6; j++) RC(ctx, x + 5 * k + j * 11 * k, y - ch + 4 * k, 7 * k, 7 * k, P.win);
+    }
+    x = x0 + n * (cw + gap);
+    RC(ctx, x, y - ch - 2 * k, locoW, ch, g("#2a3f78")); RC(ctx, x + locoW - 14 * k, y - ch + 3 * k, 10 * k, 9 * k, P.win); RC(ctx, x, y - ch * 0.5, locoW, 3 * k, g("#f0c040"));
+    CI(ctx, x + locoW - 3 * k, y - ch * 0.35, 2.4 * k, S.night > 0.3 ? [255, 244, 190] : g("#f6f1d0"));
+  }
+  function villageItems(W, H){
+    var items = [
+      [0.06, "temple", W * 0.30], [0.07, "tank", W * 0.93],
+      [0.10, "tile", "u", 3.2, "#eadcb8"], [0.10, "hut", "u", -3.4], [0.13, "flat", "u", 5.2, "#f0a8b0"], [0.16, "tile", "u", -3.6, "#f3d8c0"],
+      [0.20, "station", W * 0.80],
+      [0.30, "college", W * 0.19], [0.31, "tile", "u", 3.0, "#e8d7b5"], [0.33, "hut", "u", 5.4],
+      [0.40, "office", "u", -3.4], [0.42, "school", "u", 4.4],
+      [0.50, "busstand", "u", 3.2], [0.50, "bus", "u", 1.9], [0.52, "flat", "u", -2.9, "#9ccfe8"],
+      [0.62, "tile", "u", 3.6, "#f1dcc0"], [0.64, "hut", "u", -3.1], [0.74, "flat", "u", 4.1, "#f6dc7c"], [0.78, "tile", "u", -3.0, "#f3d8c0"],
+      [0.90, "tile", "u", 4.0, "#e8d7b5"], [0.44, "tree", W * 0.62], [0.34, "tree", W * 0.40]
+    ];
+    [0.14, 0.25, 0.38, 0.53, 0.70, 0.90].forEach(function(z){ items.push([z, "pole", "u", 1.45]); });
+    items.sort(function(a, b){ return a[0] - b[0]; });
+    return items;
+  }
+  function poleTop(W, H, z){ var k = zs(z) * W / 390; return { x: roadC(W, z) + 1.45 * roadHW(W, z), y: zy(H, z) - 46 * k, k: k, base: zy(H, z) }; }
+  function drawVillage(ctx, W, H, S){
+    var P = palette(S), B = W / 390;
+    drawRoad(ctx, W, H, S);
+    drawRailway(ctx, W, H, S);
+    villageItems(W, H).forEach(function(it){
+      var z = it[0], k = zs(z) * B, y = zy(H, z), x = it[2] === "u" ? roadC(W, z) + it[3] * roadHW(W, z) : it[2], extra = it[2] === "u" ? it[4] : null;
+      switch (it[1]){
+        case "tile": houseTile(ctx, x, y, k, P, extra); break;
+        case "hut": hut(ctx, x, y, k, P); break;
+        case "flat": houseFlat(ctx, x, y, k, P, extra); break;
+        case "school": school(ctx, x, y, k, P); break;
+        case "college": college(ctx, x, y, k, P); break;
+        case "office": office(ctx, x, y, k, P); break;
+        case "busstand": busStand(ctx, x, y, k, P); break;
+        case "bus": bus(ctx, x, y, k, P); break;
+        case "station": RC(ctx, x - 70 * k, zy(H, 0.2) - 6 * k, 140 * k, 4 * k, P.g("#b9b4aa")); stationBuilding(ctx, x, zy(H, 0.2) - 4 * k, k, P); break;
+        case "temple": temple(ctx, x, y, k, P); break;
+        case "tank": waterTank(ctx, x, y, k, P); break;
+        case "tree": bigTree(ctx, x, y, k, P); break;
+        case "pole": pole(ctx, x, y, k, P); break;
+      }
+    });
+    var zs_ = [0.14, 0.25, 0.38, 0.53, 0.70, 0.90], i, a, b;
+    ctx.lineCap = "round";
+    for (i = 0; i < zs_.length - 1; i++){
+      a = poleTop(W, H, zs_[i]); b = poleTop(W, H, zs_[i + 1]);
+      [0, 1].forEach(function(o){
+        var dx = (o ? 7 : -7) * a.k, dx2 = (o ? 7 : -7) * b.k;
+        ctx.strokeStyle = rgba(P.g("#2b2f35"), 0.85); ctx.lineWidth = Math.max(0.7, 0.9 * (a.k + b.k) / 2);
+        ctx.beginPath(); ctx.moveTo(a.x + dx, a.y + 2 * a.k); ctx.quadraticCurveTo((a.x + b.x) / 2 + (dx + dx2) / 2, (a.y + b.y) / 2 + 9 * (a.k + b.k) / 2, b.x + dx2, b.y + 2 * b.k); ctx.stroke();
+      });
+    }
+    var tr = poleTop(W, H, 0.38); RC(ctx, tr.x - 5 * tr.k, tr.y + 8 * tr.k, 10 * tr.k, 9 * tr.k, P.g("#6e7780"));
+    if (S.night > 0.3 || S.dusk > 0.4){
+      zs_.forEach(function(z, j){
+        if (j % 2) return;
+        var q = poleTop(W, H, z), r = 16 * q.k, amt = clamp(S.night + S.dusk * 0.6, 0, 1) * 0.6;
+        var gg = ctx.createRadialGradient(q.x, q.y + 4 * q.k, 0, q.x, q.y + 4 * q.k, r);
+        gg.addColorStop(0, "rgba(255,222,140," + amt.toFixed(3) + ")"); gg.addColorStop(1, "rgba(255,222,140,0)");
+        ctx.fillStyle = gg; ctx.fillRect(q.x - r, q.y + 4 * q.k - r, r * 2, r * 2);
+        CI(ctx, q.x, q.y + 4 * q.k, 1.7 * q.k, [255, 236, 170], clamp(amt * 1.6, 0, 1));
+      });
+    }
+  }
+  function drawPalm(ctx, x, y, s, S, sway, t){
     var trunk = grade(hex("#6b4a2d"), S, 1), leaf = grade(hex("#2f6a34"), S, 1), leaf2 = grade(hex("#4a8a3c"), S, 1);
-    var h = 70 * s;
+    var h = 70 * s, sw = sway * Math.sin(t * (1.1 + sway * 3) + x), tipx = x + 4 * s + sw * h * 0.9, tipy = y - h;
     ctx.strokeStyle = rgba(trunk, 1); ctx.lineWidth = 4.2 * s; ctx.lineCap = "round";
-    ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 10 * s, y - h * 0.5, x + 4 * s, y - h); ctx.stroke();
-    var tx = x + 4 * s, ty = y - h;
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(x + 10 * s + sw * h * 0.3, y - h * 0.5, tipx, tipy); ctx.stroke();
     for (var i = 0; i < 8; i++){
-      var a = (i / 8) * PI * 2 + 0.3, len = 34 * s * (0.8 + 0.2 * Math.sin(i * 2.1));
-      var ex = tx + Math.cos(a) * len, ey = ty + Math.sin(a) * len * 0.45 + len * 0.28;
+      var a = (i / 8) * PI * 2 + 0.3 + sw * 0.5 * Math.sin(t * 2 + i), len = 34 * s * (0.8 + 0.2 * Math.sin(i * 2.1));
+      var ex = tipx + Math.cos(a) * len, ey = tipy + Math.sin(a) * len * 0.45 + len * 0.28;
       ctx.fillStyle = rgba(i % 2 ? leaf : leaf2, 1);
-      ctx.beginPath(); ctx.moveTo(tx, ty);
-      ctx.quadraticCurveTo(tx + Math.cos(a) * len * 0.55, ty + Math.sin(a) * len * 0.55 - 9 * s, ex, ey);
-      ctx.quadraticCurveTo(tx + Math.cos(a) * len * 0.5, ty + Math.sin(a) * len * 0.5 + 2 * s, tx, ty); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(tipx, tipy);
+      ctx.quadraticCurveTo(tipx + Math.cos(a) * len * 0.55, tipy + Math.sin(a) * len * 0.55 - 9 * s, ex, ey);
+      ctx.quadraticCurveTo(tipx + Math.cos(a) * len * 0.5, tipy + Math.sin(a) * len * 0.5 + 2 * s, tipx, tipy); ctx.fill();
     }
-    ctx.fillStyle = rgba(trunk, 1); ctx.beginPath(); ctx.arc(tx, ty + 2 * s, 2.4 * s, 0, PI * 2); ctx.fill();
+    ctx.fillStyle = rgba(trunk, 1); ctx.beginPath(); ctx.arc(tipx, tipy + 2 * s, 2.4 * s, 0, PI * 2); ctx.fill();
   }
-  function drawPanels(ctx, W, H, S){
-    var hy = horizon(H), frame = grade(hex("#c9d2d8"), S, 1), cell = grade(hex("#1f3c6e"), S, 1), cell2 = grade(hex("#2d57a0"), S, 1);
-    var base = hy + (H - hy) * 0.30;
-    for (var i = 0; i < 3; i++){
-      var x = W * (0.66 + i * 0.105), s = 1 - i * 0.04, y = base + i * 4;
-      var pw = W * 0.092 * s, ph = H * 0.034 * s;
-      ctx.strokeStyle = rgba(frame, 1); ctx.lineWidth = 1.4; ctx.beginPath(); ctx.moveTo(x + pw * 0.2, y + ph); ctx.lineTo(x + pw * 0.16, y + ph + H * 0.02); ctx.moveTo(x + pw * 0.8, y + ph); ctx.lineTo(x + pw * 0.84, y + ph + H * 0.02); ctx.stroke();
-      var g = ctx.createLinearGradient(x, y, x + pw, y + ph);
-      g.addColorStop(0, rgba(cell2, 1)); g.addColorStop(1, rgba(cell, 1));
-      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(x + pw * 0.08, y); ctx.lineTo(x + pw, y); ctx.lineTo(x + pw * 0.92, y + ph); ctx.lineTo(x, y + ph); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = rgba(frame, 0.9); ctx.lineWidth = 1; ctx.stroke();
+  function drawPalmsDyn(ctx, W, H, S, t){
+    var sway = 0.03 + 0.28 * S.windFx;
+    drawPalm(ctx, W * 0.07, H * 0.965, 1.15, S, sway, t); drawPalm(ctx, W * 0.025, H * 0.9, 0.85, S, sway, t + 1.7);
+    drawPalm(ctx, W * 0.94, H * 0.94, 1.0, S, sway, t + 3.1);
+    var bush = grade(hex("#2a5e30"), S, 1); ctx.fillStyle = rgba(bush, 1);
+    [[0.14, 0.925, 13], [0.18, 0.935, 10], [0.86, 0.915, 12]].forEach(function(b){ ctx.beginPath(); ctx.arc(W * b[0], H * b[1], b[2], 0, PI * 2); ctx.fill(); });
+  }
+
+  // ---------------- weather effects: rain, lightning, wind, leaves, snow, fog ----------------
+  function makeFx(W, H, S, seed){
+    var r = rng(seed || 5), fx = { r: r, rain: [], snow: [], leaves: [], streaks: [], fog: [], bolt: null, boltT: -99, nextBolt: 2 + r() * 4, flash: 0 }, i;
+    var nr = Math.round(W * 1.5 * S.rain);
+    for (i = 0; i < nr; i++) fx.rain.push({ x: r() * (W + 240) - 120, y: r() * H, d: 0.35 + r() * 0.65 });
+    var ns = Math.round(170 * S.snow);
+    for (i = 0; i < ns; i++) fx.snow.push({ x: r() * W, y: r() * H, r: 0.8 + r() * 2.0, v: 22 + r() * 40, ph: r() * 6.28 });
+    var nl = S.windFx > 0.2 ? Math.round(8 + 26 * S.windFx) : 0;
+    for (i = 0; i < nl; i++) fx.leaves.push({ x: r() * W, y: H * (0.3 + r() * 0.65), v: 60 + r() * 120, ph: r() * 6.28, s: 2.5 + r() * 2.5, c: r() });
+    var nk = Math.round(16 * S.windFx);
+    for (i = 0; i < nk; i++) fx.streaks.push({ x: r() * W, y: H * (0.1 + r() * 0.7), l: 30 + r() * 70, v: 160 + r() * 220 });
+    if (S.fog > 0.3) for (i = 0; i < 6; i++) fx.fog.push({ x: r() * W, y: horizon(H) - H * 0.06 + r() * H * 0.2, w: W * (0.5 + r() * 0.5), h: H * (0.05 + r() * 0.05), v: 6 + r() * 8 });
+    return fx;
+  }
+  function fxUpdate(fx, W, H, S, dt, t, onThunder){
+    var i, o, dir = S.windSign;
+    for (i = 0; i < fx.rain.length; i++){ o = fx.rain[i]; var vy = 520 + 560 * o.d; o.y += vy * dt; o.x += S.slant * vy * dt; if (o.y > H + 20){ o.y = -20 - fx.r() * 60; o.x = fx.r() * (W + 240) - 120; } }
+    for (i = 0; i < fx.snow.length; i++){ o = fx.snow[i]; o.y += o.v * dt; o.x += Math.sin(t * 0.9 + o.ph) * 14 * dt + S.slant * 30 * dt; if (o.y > H + 6){ o.y = -6; o.x = fx.r() * W; } }
+    for (i = 0; i < fx.leaves.length; i++){ o = fx.leaves[i]; o.x += dir * o.v * dt; o.y += Math.sin(t * 2.2 + o.ph) * 26 * dt; if (o.x > W + 30 || o.x < -30){ o.x = dir > 0 ? -20 : W + 20; o.y = H * (0.3 + fx.r() * 0.65); } }
+    for (i = 0; i < fx.streaks.length; i++){ o = fx.streaks[i]; o.x += dir * o.v * dt; if (o.x > W + 100 || o.x < -100){ o.x = dir > 0 ? -80 : W + 80; o.y = H * (0.1 + fx.r() * 0.7); } }
+    for (i = 0; i < fx.fog.length; i++){ o = fx.fog[i]; o.x += o.v * dt * dir; if (o.x > W + o.w / 2) o.x = -o.w / 2; if (o.x < -o.w / 2) o.x = W + o.w / 2; }
+    if (S.lightning){
+      if (t >= fx.nextBolt){
+        var x = W * (0.12 + fx.r() * 0.76), y = H * 0.04, pts = [[x, y]], hy = horizon(H) - H * 0.02;
+        while (y < hy){ y += H * (0.035 + fx.r() * 0.05); x += (fx.r() - 0.5) * W * 0.09; pts.push([x, Math.min(y, hy)]); }
+        fx.bolt = pts; fx.boltT = t; fx.nextBolt = t + 3.5 + fx.r() * 8;
+        if (onThunder) onThunder({ delay: 0.4 + fx.r() * 2.2 });
+      }
     }
+    var age = t - fx.boltT;
+    fx.flash = age < 0.5 ? (age < 0.07 ? 1 : age < 0.14 ? 0.15 : age < 0.22 ? 0.85 : Math.max(0, 0.55 - (age - 0.22) * 2.2)) : 0;
+    if (age > 0.5) fx.bolt = null;
   }
-  function turbineBase(W, H){ var hy = horizon(H); return { x: W * 0.2, y: hy + H * 0.052, h: H * 0.2 }; }
-  function drawTurbineTower(ctx, W, H, S){
-    var b = turbineBase(W, H), c = grade(hex("#eef1f4"), S, 1), c2 = grade(hex("#b9c2cb"), S, 1);
-    var g = ctx.createLinearGradient(b.x - 4, 0, b.x + 4, 0); g.addColorStop(0, rgba(c, 1)); g.addColorStop(1, rgba(c2, 1));
-    ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(b.x - 3.4, b.y); ctx.lineTo(b.x + 3.4, b.y); ctx.lineTo(b.x + 1.2, b.y - b.h); ctx.lineTo(b.x - 1.2, b.y - b.h); ctx.closePath(); ctx.fill();
-  }
-  function drawTurbineBlades(ctx, W, H, S, t){
-    var b = turbineBase(W, H), c = grade(hex("#f6f8fa"), S, 1), hubx = b.x, huby = b.y - b.h, L = H * 0.082;
-    var ang = (t * (0.35 + S.wind * 0.11)) % (PI * 2);
-    ctx.fillStyle = rgba(c, 1);
-    for (var i = 0; i < 3; i++){
-      var a = ang + i * PI * 2 / 3, ca = Math.cos(a), sa = Math.sin(a), nx = -sa, ny = ca;
-      ctx.beginPath(); ctx.moveTo(hubx + nx * 2.4, huby + ny * 2.4);
-      ctx.lineTo(hubx + ca * L * 0.97 + nx * 0.9, huby + sa * L * 0.97 + ny * 0.9);
-      ctx.lineTo(hubx + ca * L - nx * 0.2, huby + sa * L - ny * 0.2);
-      ctx.lineTo(hubx - nx * 2.0, huby - ny * 2.0); ctx.closePath(); ctx.fill();
+  function drawFx(ctx, W, H, S, fx, t){
+    var i, o, day = S.day, i2;
+    for (i = 0; i < fx.fog.length; i++){
+      o = fx.fog[i]; var fc = hazeColor(S), g = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.w / 2);
+      g.addColorStop(0, rgba(fc, 0.5 * S.fog)); g.addColorStop(1, rgba(fc, 0));
+      ctx.fillStyle = g; ctx.fillRect(o.x - o.w / 2, o.y - o.h * 2, o.w, o.h * 4);
     }
-    ctx.fillStyle = rgba(grade(hex("#dfe4e9"), S, 1), 1); ctx.beginPath(); ctx.arc(hubx, huby, 2.6, 0, PI * 2); ctx.fill();
+    if (fx.streaks.length){
+      ctx.strokeStyle = "rgba(255,255,255," + (0.07 + 0.1 * S.windFx).toFixed(3) + ")"; ctx.lineWidth = 1; ctx.beginPath();
+      for (i = 0; i < fx.streaks.length; i++){ o = fx.streaks[i]; ctx.moveTo(o.x, o.y); ctx.quadraticCurveTo(o.x + o.l * 0.5 * S.windSign, o.y - 3, o.x + o.l * S.windSign, o.y + 1); }
+      ctx.stroke();
+    }
+    for (i = 0; i < fx.leaves.length; i++){
+      o = fx.leaves[i]; var ang = t * 3 + o.ph, ca = Math.cos(ang), sa = Math.sin(ang), c = o.c < 0.4 ? [92, 140, 52] : o.c < 0.75 ? [190, 160, 60] : [150, 90, 40];
+      c = grade(c, S, 0.8);
+      PL(ctx, [[o.x + ca * o.s * 1.6, o.y + sa * o.s * 0.8], [o.x - sa * o.s * 0.6, o.y + ca * o.s * 0.6], [o.x - ca * o.s * 1.6, o.y - sa * o.s * 0.8], [o.x + sa * o.s * 0.6, o.y - ca * o.s * 0.6]], c, 0.95);
+    }
+    if (fx.rain.length){
+      var rc = day > 0.3 ? "200,216,236" : "170,190,230";
+      [[0.35, 0.55, 0.22, 0.7], [0.55, 0.8, 0.32, 1.0], [0.8, 1.01, 0.48, 1.4]].forEach(function(b){
+        ctx.strokeStyle = "rgba(" + rc + "," + b[2].toFixed(2) + ")"; ctx.lineWidth = b[3]; ctx.beginPath();
+        for (i2 = 0; i2 < fx.rain.length; i2++){
+          var q = fx.rain[i2]; if (q.d < b[0] || q.d >= b[1]) continue;
+          var L = 7 + 14 * q.d; ctx.moveTo(q.x, q.y); ctx.lineTo(q.x + L * S.slant, q.y + L);
+        }
+        ctx.stroke();
+      });
+    }
+    if (fx.snow.length){
+      ctx.fillStyle = "rgba(255,255,255,0.85)";
+      for (i = 0; i < fx.snow.length; i++){ o = fx.snow[i]; ctx.beginPath(); ctx.arc(o.x, o.y, o.r, 0, PI * 2); ctx.fill(); }
+    }
+    if (fx.bolt){
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "rgba(210,225,255," + (0.35 * fx.flash + 0.1).toFixed(3) + ")"; ctx.lineWidth = 7;
+      ctx.beginPath(); ctx.moveTo(fx.bolt[0][0], fx.bolt[0][1]); for (i = 1; i < fx.bolt.length; i++) ctx.lineTo(fx.bolt[i][0], fx.bolt[i][1]); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(fx.bolt[0][0], fx.bolt[0][1]); for (i = 1; i < fx.bolt.length; i++) ctx.lineTo(fx.bolt[i][0], fx.bolt[i][1]); ctx.stroke();
+    }
+    if (fx.flash > 0.02){ ctx.fillStyle = "rgba(235,242,255," + (fx.flash * 0.42).toFixed(3) + ")"; ctx.fillRect(0, 0, W, H); }
+  }
+  function drawRiverFlow(ctx, W, H, S, t){
+    var lightA = (0.16 + 0.34 * S.day) * (1 - S.oc * 0.6) + S.night * 0.07, n = 26 + Math.round(34 * S.rain);
+    for (var i = 0; i < n; i++){
+      var v = ((i / n) + t * 0.035 * (0.5 + 0.5 * ((i * 37) % 10) / 10)) % 1;
+      var p = riverPt(W, H, v), off = (((i * 53) % 17) / 17 - 0.5) * 0.7 * p.w;
+      var rx = 1.5 + 11 * v, ry = 0.4 + 1.2 * v;
+      ctx.fillStyle = "rgba(255,255,255," + (lightA * (0.3 + 0.7 * v)).toFixed(3) + ")";
+      ctx.beginPath(); ctx.moveTo(p.x + off - rx, p.y); ctx.quadraticCurveTo(p.x + off, p.y - ry * 2, p.x + off + rx, p.y); ctx.quadraticCurveTo(p.x + off, p.y + ry * 0.4, p.x + off - rx, p.y); ctx.fill();
+    }
   }
   function drawLand(ctx, W, H, S){
     var hy = horizon(H), x, i, v, p;
@@ -4808,9 +5194,9 @@ var GMScene = (function(){
     for (x = 0; x <= W + 4; x += 4) ctx.lineTo(x, landTop(W, H, x));
     ctx.lineTo(W, H); ctx.closePath(); ctx.fill();
     // paddy-field stripes on the right bank, converging on the horizon
-    var vpx = W * 0.6, cols = [grade(hex("#b5d36b"), S, 1), grade(hex("#8cc05a"), S, 1), grade(hex("#c9d98a"), S, 1), grade(hex("#74b04f"), S, 1)];
-    for (i = 0; i < 8; i++){
-      var xa = W * (0.50 + i * 0.12), xb = W * (0.50 + (i + 1) * 0.12);
+    var vpx = W * 0.70, cols = [grade(hex("#b5d36b"), S, 1), grade(hex("#8cc05a"), S, 1), grade(hex("#c9d98a"), S, 1), grade(hex("#74b04f"), S, 1)];
+    for (i = 0; i < 6; i++){
+      var xa = W * (0.78 + i * 0.13), xb = W * (0.78 + (i + 1) * 0.13);
       ctx.fillStyle = rgba(mix(cols[i % 4], haze, 0.22 + S.fog * 0.2), 0.92);
       ctx.beginPath(); ctx.moveTo(vpx + (xa - vpx) * 0.02, hy + H * 0.012); ctx.lineTo(vpx + (xb - vpx) * 0.02, hy + H * 0.012); ctx.lineTo(xb, H); ctx.lineTo(xa, H); ctx.closePath(); ctx.fill();
     }
@@ -4835,14 +5221,7 @@ var GMScene = (function(){
     for (i = 18; i >= 0; i--) ctx.lineTo(right[i].x, right[i].y);
     ctx.closePath(); ctx.fill();
     // foreground things
-    drawTurbineTower(ctx, W, H, S);
-    drawPanels(ctx, W, H, S);
-    drawPalm(ctx, W * 0.07, H * 0.965, 1.15, S);
-    drawPalm(ctx, W * 0.025, H * 0.9, 0.85, S);
-    drawPalm(ctx, W * 0.93, H * 0.935, 1.0, S);
-    var bush = grade(hex("#2a5e30"), S, 1);
-    ctx.fillStyle = rgba(bush, 1);
-    [[0.14, 0.915, 14], [0.17, 0.925, 11], [0.86, 0.9, 12], [0.8, 0.915, 9]].forEach(function(b){ ctx.beginPath(); ctx.arc(W * b[0], H * b[1], b[2], 0, PI * 2); ctx.fill(); });
+    drawVillage(ctx, W, H, S);
   }
   function drawFog(ctx, W, H, S){
     if (S.fog < 0.25) return;
@@ -4850,54 +5229,55 @@ var GMScene = (function(){
     g.addColorStop(0, rgba(c, 0)); g.addColorStop(0.3, rgba(c, S.fog * 0.62)); g.addColorStop(0.55, rgba(c, S.fog * 0.45)); g.addColorStop(1, rgba(c, S.fog * 0.12));
     ctx.fillStyle = g; ctx.fillRect(0, hy - H * 0.2, W, H - (hy - H * 0.2));
   }
-  function drawRiverFlow(ctx, W, H, S, t){
-    var lightA = (0.16 + 0.34 * S.day) * (1 - S.oc * 0.6) + S.night * 0.07, n = 26;
-    for (var i = 0; i < n; i++){
-      var v = ((i / n) + t * 0.035 * (0.5 + 0.5 * ((i * 37) % 10) / 10)) % 1;
-      var p = riverPt(W, H, v), off = (((i * 53) % 17) / 17 - 0.5) * 0.7 * p.w;
-      var rx = 1.5 + 11 * v, ry = 0.4 + 1.2 * v;
-      ctx.fillStyle = "rgba(255,255,255," + (lightA * (0.3 + 0.7 * v)).toFixed(3) + ")";
-      ctx.beginPath(); ctx.moveTo(p.x + off - rx, p.y); ctx.quadraticCurveTo(p.x + off, p.y - ry * 2, p.x + off + rx, p.y); ctx.quadraticCurveTo(p.x + off, p.y + ry * 0.4, p.x + off - rx, p.y); ctx.fill();
-    }
-  }
-
   // draw the whole scene directly (used by the preview; the app caches the static layers)
-  function renderAll(ctx, W, H, S, t){
+  function renderAll(ctx, W, H, S, t, fx){
     drawSky(ctx, W, H, S);
     drawStars(ctx, W, H, S, t, starList(W, H, 110));
     drawSun(ctx, W, H, S); drawMoon(ctx, W, H, S);
-    var pal = cloudPalette(S), cl = cloudList(W, H, S), vis = 1;
-    for (var i = 0; i < cl.length; i++) drawCloud(ctx, cloudX(cl[i], W, t), cl[i].y, cl[i].s, pal, vis);
+    var pal = cloudPalette(S), cl = cloudList(W, H, S);
+    for (var i = 0; i < cl.length; i++) drawCloud(ctx, cloudX(cl[i], W, t), cl[i].y, cl[i].s, pal, 1);
     drawMountains(ctx, W, H, S);
     drawLand(ctx, W, H, S);
     drawFog(ctx, W, H, S);
     drawRiverFlow(ctx, W, H, S, t);
-    drawTurbineBlades(ctx, W, H, S, t);
+    drawTrain(ctx, W, H, S, t);
+    drawPalmsDyn(ctx, W, H, S, t);
+    if (fx) drawFx(ctx, W, H, S, fx, t);
   }
   return { makeState: makeState, sunPos: sunPos, moonPos: moonPos, horizon: horizon, project: project, grade: grade,
     drawSky: drawSky, starList: starList, drawStars: drawStars, drawSun: drawSun, drawMoon: drawMoon, drawCloud: drawCloud,
     cloudPalette: cloudPalette, cloudList: cloudList, cloudX: cloudX, drawMountains: drawMountains, drawLand: drawLand, drawFog: drawFog,
-    drawRiverFlow: drawRiverFlow, drawTurbineBlades: drawTurbineBlades, renderAll: renderAll };
+    drawRiverFlow: drawRiverFlow, drawTrain: drawTrain, drawPalmsDyn: drawPalmsDyn, makeFx: makeFx, fxUpdate: fxUpdate, drawFx: drawFx,
+    renderAll: renderAll };
 })();
 
 // ---------------------------------------------------------------------------
-// Runtime: puts the scene behind the Home screen. Static layers (sky, mountains, land)
-// are painted once per change, clouds are cached sprites, only the moving parts redraw.
-// 30 fps cap, pauses when the tab is hidden or Home is not showing, one still frame
-// when the phone asks for reduced motion.
+// Runtime: puts the scene behind the Home screen, but only when the weather is important
+// (or when the person chose "always" through EMBER). Normal days keep the normal background.
+// Static layers are painted once per change, clouds are cached sprites, only moving things
+// redraw. 30 fps cap, pauses when hidden, one still frame under "reduce motion".
 // ---------------------------------------------------------------------------
 (function(){
   var home = document.getElementById("homeScreen");
-  if (!home || !window.GMScene) return;
+  var host = home && home.querySelector(".white-section");
+  if (!home || !host || !window.GMScene) return;
   var canvas = document.createElement("canvas");
   canvas.id = "gmScene"; canvas.setAttribute("aria-hidden", "true");
-  home.insertBefore(canvas, home.firstChild);
+  host.insertBefore(canvas, host.firstChild);
   var ctx = canvas.getContext("2d", { alpha: false });
   if (!ctx) return;
-  var W = 0, H = 0, dpr = 1, S = null, key = "", skyL = null, landL = null, stars = [], clouds = [], sprites = [];
-  var running = false, lastFrame = 0, t0 = performance.now(), stateAt = 0;
+  var W = 0, H = 0, dpr = 1, S = null, key = "", skyL = null, landL = null, stars = [], clouds = [], sprites = [], fx = null;
+  var running = false, on = false, offTimer = 0, lastFrame = 0, t0 = performance.now(), stateAt = 0;
   var reduce = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
 
+  function mode(){ try { return localStorage.getItem("gm_scene_mode") || "auto"; } catch (e) { return "auto"; } }
+  function wanted(){
+    var m = mode();
+    if (m === "off") return false;
+    if (m === "always") return true;
+    var w = window.GM_weather;
+    return !!(w && w.important);
+  }
   function layer(){
     var c = document.createElement("canvas"); c.width = canvas.width; c.height = canvas.height;
     var x = c.getContext("2d"); x.setTransform(dpr, 0, 0, dpr, 0, 0); return { c: c, x: x };
@@ -4910,7 +5290,7 @@ var GMScene = (function(){
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); key = "";
   }
   function stateKey(s){
-    return [Math.round(s.night * 25), Math.round(s.dusk * 25), Math.round(s.oc * 20), Math.round(s.fog * 20), Math.round(s.day * 25), s.kind, Math.round(s.cloud / 10)].join("|");
+    return [Math.round(s.night * 25), Math.round(s.dusk * 25), Math.round(s.oc * 20), Math.round(s.fog * 20), Math.round(s.day * 25), s.kind, Math.round(s.cloud / 10), Math.round(s.rain * 10), Math.round(s.windFx * 10), s.windSign].join("|");
   }
   function refresh(force){
     var now = Date.now();
@@ -4918,7 +5298,7 @@ var GMScene = (function(){
     stateAt = now;
     var w = window.GM_weather;
     S = GMScene.makeState(w, new Date(now), w && w.lat != null ? w.lat : null, w && w.lng != null ? w.lng : null);
-    home.classList.toggle("gm-dark-sky", !!S.dark);
+    home.classList.toggle("gm-dark-sky", !!S.dark && on);
     var k = stateKey(S) + "|" + W + "x" + H;
     if (k === key) return;
     key = k;
@@ -4934,6 +5314,7 @@ var GMScene = (function(){
       GMScene.drawCloud(cx, w2 / 2, h2 * 0.62, c.s, pal, 1);
       return { cv: cv, w: w2, h: h2 };
     });
+    fx = reduce ? null : GMScene.makeFx(W, H, S, 11);
   }
   function draw(t){
     if (!S || !skyL || !landL) return;
@@ -4945,29 +5326,46 @@ var GMScene = (function(){
       ctx.drawImage(sp.cv, GMScene.cloudX(c, W, t) - sp.w / 2, c.y - sp.h * 0.62, sp.w, sp.h);
     }
     ctx.drawImage(landL.c, 0, 0, W, H);
-    GMScene.drawRiverFlow(ctx, W, H, S, t); GMScene.drawTurbineBlades(ctx, W, H, S, t);
+    GMScene.drawRiverFlow(ctx, W, H, S, t); GMScene.drawTrain(ctx, W, H, S, t); GMScene.drawPalmsDyn(ctx, W, H, S, t);
+    if (fx) GMScene.drawFx(ctx, W, H, S, fx, t);
   }
+  function thunder(info){ try { window.dispatchEvent(new CustomEvent("gm-thunder", { detail: info })); } catch (e) {} }
   function shouldRun(){ return !document.hidden && home.offsetParent !== null; }
   function frame(now){
-    if (!shouldRun()){ running = false; return; }
+    if (!running || !shouldRun()){ running = false; return; }
     requestAnimationFrame(frame);
     if (now - lastFrame < 33) return;
-    lastFrame = now;
-    refresh(false); draw((now - t0) / 1000);
+    var dt = Math.min(0.1, (now - lastFrame) / 1000 || 0.033); lastFrame = now;
+    var t = (now - t0) / 1000;
+    refresh(false);
+    if (fx) GMScene.fxUpdate(fx, W, H, S, dt, t, thunder);
+    draw(t);
   }
-  function start(){
-    if (!shouldRun()) return;
-    resize(); refresh(true);
-    home.classList.add("gm-scene-on");
-    if (reduce){ draw(0); return; }
-    if (running) return;
+  function turnOn(){
+    if (offTimer){ clearTimeout(offTimer); offTimer = 0; }
+    resize(); refresh(true); draw((performance.now() - t0) / 1000);
+    on = true; home.classList.add("gm-scene-on"); home.classList.toggle("gm-dark-sky", !!(S && S.dark));
+    if (reduce || running) return;
     running = true; requestAnimationFrame(frame);
   }
-  function check(){ if (shouldRun()){ if (reduce){ resize(); refresh(false); draw(0); } else if (!running) start(); } }
-  window.addEventListener("resize", function(){ resize(); if (reduce) { refresh(true); draw(0); } });
-  window.addEventListener("orientationchange", function(){ setTimeout(function(){ resize(); }, 200); });
+  function turnOff(){
+    on = false; home.classList.remove("gm-scene-on"); home.classList.remove("gm-dark-sky");
+    if (offTimer) clearTimeout(offTimer);
+    offTimer = setTimeout(function(){ running = false; offTimer = 0; }, 1100);     // keep drawing while it fades out
+  }
+  function check(){
+    if (!shouldRun()) return;
+    var want = wanted();
+    if (want && !on) turnOn();
+    else if (!want && on) turnOff();
+    else if (want && on && reduce){ resize(); refresh(false); draw(0); }
+    else if (want && on && !running){ running = true; requestAnimationFrame(frame); }
+  }
+  window.addEventListener("resize", function(){ resize(); if (on && reduce){ refresh(true); draw(0); } });
+  window.addEventListener("orientationchange", function(){ setTimeout(resize, 200); });
   document.addEventListener("visibilitychange", check);
-  window.addEventListener("gm-weather", function(){ stateAt = 0; refresh(true); if (reduce) draw(0); });
+  window.addEventListener("gm-weather", function(){ stateAt = 0; if (on) refresh(true); check(); });
+  window.addEventListener("gm-scene-mode", check);
   try { new MutationObserver(check).observe(home, { attributes: true, attributeFilter: ["style", "class"] }); } catch (e) {}
   setInterval(check, 1500);
   check();
