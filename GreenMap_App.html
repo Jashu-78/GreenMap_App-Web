@@ -391,6 +391,8 @@
 #homeScreen.gm-scene-on.gm-dark-sky .greeting{color:#f2f7ff;text-shadow:0 1px 8px rgba(0,0,0,.4);}
 #homeScreen.gm-scene-on.gm-dark-sky .greeting-sub{color:#d4def0;text-shadow:0 1px 6px rgba(0,0,0,.4);}
 #homeScreen.gm-scene-on.gm-dark-sky .option-card{background:rgba(255,255,255,.62);}
+#gmMotionChip{display:none;position:fixed;left:12px;bottom:16px;z-index:60;background:rgba(6,67,31,.9);color:#fff;border:1.5px solid rgba(255,255,255,.55);border-radius:999px;padding:9px 14px;font-size:12.5px;font-weight:700;max-width:68%;text-align:left;cursor:pointer;}
+#homeScreen.gm-scene-on #gmMotionChip.show{display:block;}
 </style>
 </head>
 <body>
@@ -1485,6 +1487,13 @@
   }
   // "show the weather scene always / hide it / auto"
   function emberSceneMode(q){
+    var mv = /\b(?:turn off|disable|stop|switch off)(?: the)? (?:tilt|motion|compass|parallax)(?: and (?:tilt|motion|compass))?\b/.test(q) ? "off" :
+             /\b(?:turn on|enable|start|switch on)(?: the)? (?:tilt|motion|compass|parallax)(?: and (?:tilt|motion|compass))?\b/.test(q) ? "on" : null;
+    if (mv){
+      try { localStorage.setItem("gm_scene_motion", mv); } catch (e) {}
+      try { window.dispatchEvent(new CustomEvent("gm-scene-mode")); } catch (e) {}
+      return adSend(mv === "on" ? "Done. The weather scene will move with your phone's tilt and compass." : "Done. Tilt and compass movement is off.", []);
+    }
     var mode = null;
     if (/\b(?:auto|automatic|normal)(?: mode)? (?:weather )?(?:scene|world|background)\b|(?:scene|world|background) (?:only )?(?:when|for) (?:it.?s )?(?:important|alerts?)/.test(q)) mode = "auto";
     else if (/\b(?:hide|turn off|disable|stop|remove)(?: the)? (?:weather )?(?:scene|world|background|animation)\b/.test(q)) mode = "off";
@@ -2400,7 +2409,7 @@
     en: {
       greeting_morning: "Good morning", greeting_afternoon: "Good afternoon", greeting_evening: "Good evening",
       greeting_night: "Good night, take some rest",
-      wx_today: "Today", wx_tomorrow: "Tomorrow", wx_now: "now", wx_k_storm: "thunderstorm", wx_k_heavy: "heavy rain", wx_k_rain: "rain", wx_k_light: "light rain", wx_k_wind: "strong winds", wx_k_heat: "very hot", wx_k_fog: "fog", wx_k_snow: "snow", wx_k_cold: "cold", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "Chance {pop}%, about {mm} mm of rain.", wx_d_wind: "Gusts up to {n} km/h.", today_order: "📦 {n} order update(s) waiting. Tap the bell.", today_rain: "🌧️ Rain likely around {t}. Plan ahead.", today_heavy: "⛈️ Heavy rain expected around {t}. Stay safe.", today_storm: "⛈️ Thunderstorm possible around {t}. Unplug sensitive devices.", today_wind: "💨 Strong winds up to {n} km/h today.", today_heat: "🌡️ Very hot today, up to {n}°C. Stay hydrated.", today_fog: "🌫️ Foggy this morning. Drive carefully.", today_cold: "🧊 Cool today, low {n}°C.", today_snow: "❄️ Snow expected today.", today_sunny: "☀️ Sunny day: good for solar today.", today_night: "🌙 Clear night. Batteries take over from solar.", today_partly: "⛅ Partly cloudy: solar will still do fine.", today_cloudy: "☁️ Cloudy: solar output will be lower today.", weather_note: "Forecast from Open-Meteo for {p}. Not an official warning.", greeting_sub: "Your day, powered by clean energy",
+      wx_today: "Today", wx_tomorrow: "Tomorrow", wx_now: "now", wx_k_storm: "thunderstorm", wx_k_heavy: "heavy rain", wx_k_rain: "rain", wx_k_light: "light rain", wx_k_wind: "strong winds", wx_k_heat: "very hot", wx_k_fog: "fog", wx_k_snow: "snow", wx_k_cold: "cold", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "Chance {pop}%, about {mm} mm of rain.", wx_d_wind: "Gusts up to {n} km/h.", motion_enable: "Tap to enable tilt and compass", today_order: "📦 {n} order update(s) waiting. Tap the bell.", today_rain: "🌧️ Rain likely around {t}. Plan ahead.", today_heavy: "⛈️ Heavy rain expected around {t}. Stay safe.", today_storm: "⛈️ Thunderstorm possible around {t}. Unplug sensitive devices.", today_wind: "💨 Strong winds up to {n} km/h today.", today_heat: "🌡️ Very hot today, up to {n}°C. Stay hydrated.", today_fog: "🌫️ Foggy this morning. Drive carefully.", today_cold: "🧊 Cool today, low {n}°C.", today_snow: "❄️ Snow expected today.", today_sunny: "☀️ Sunny day: good for solar today.", today_night: "🌙 Clear night. Batteries take over from solar.", today_partly: "⛅ Partly cloudy: solar will still do fine.", today_cloudy: "☁️ Cloudy: solar output will be lower today.", weather_note: "Forecast from Open-Meteo for {p}. Not an official warning.", greeting_sub: "Your day, powered by clean energy",
       card_ses: "Find, compare, and choose renewable energy products",
       card_es: "Explore solar & wind potential across Andhra Pradesh",
       card_hub: "Find and buy from local solar & wind energy shops near you",
@@ -2492,7 +2501,7 @@
     hi: {
       greeting_morning: "सुप्रभात", greeting_afternoon: "शुभ दोपहर", greeting_evening: "शुभ संध्या",
       greeting_night: "शुभ रात्रि, थोड़ा आराम करें",
-      wx_today: "आज", wx_tomorrow: "कल", wx_now: "अभी", wx_k_storm: "आंधी-बिजली", wx_k_heavy: "भारी बारिश", wx_k_rain: "बारिश", wx_k_light: "हल्की बारिश", wx_k_wind: "तेज़ हवाएं", wx_k_heat: "भीषण गर्मी", wx_k_fog: "कोहरा", wx_k_snow: "बर्फबारी", wx_k_cold: "ठंड", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "बारिश की संभावना {pop}%, लगभग {mm} मिमी।", wx_d_wind: "झोंके {n} किमी/घंटा तक।", today_order: "📦 {n} ऑर्डर अपडेट इंतज़ार में हैं। घंटी दबाएं।", today_rain: "🌧️ {t} के आसपास बारिश हो सकती है। पहले से तैयारी करें।", today_heavy: "⛈️ {t} के आसपास भारी बारिश की संभावना है। सुरक्षित रहें।", today_storm: "⛈️ {t} के आसपास आंधी-बिजली संभव है। संवेदनशील उपकरण प्लग से निकाल दें।", today_wind: "💨 आज {n} किमी/घंटा तक तेज़ हवाएं।", today_heat: "🌡️ आज बहुत गर्मी, {n}°C तक। खूब पानी पिएं।", today_fog: "🌫️ आज सुबह कोहरा है। सावधानी से चलाएं।", today_cold: "🧊 आज ठंडक रहेगी, न्यूनतम {n}°C।", today_snow: "❄️ आज बर्फबारी की संभावना है।", today_sunny: "☀️ धूप वाला दिन: आज सोलर के लिए अच्छा है।", today_night: "🌙 साफ़ रात। सोलर की जगह बैटरी काम करेगी।", today_partly: "⛅ आंशिक बादल: सोलर फिर भी ठीक चलेगा।", today_cloudy: "☁️ बादल: आज सोलर उत्पादन कम रहेगा।", weather_note: "{p} के लिए Open-Meteo का पूर्वानुमान। यह आधिकारिक चेतावनी नहीं है।", greeting_sub: "स्वच्छ ऊर्जा के साथ आपका दिन",
+      wx_today: "आज", wx_tomorrow: "कल", wx_now: "अभी", wx_k_storm: "आंधी-बिजली", wx_k_heavy: "भारी बारिश", wx_k_rain: "बारिश", wx_k_light: "हल्की बारिश", wx_k_wind: "तेज़ हवाएं", wx_k_heat: "भीषण गर्मी", wx_k_fog: "कोहरा", wx_k_snow: "बर्फबारी", wx_k_cold: "ठंड", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "बारिश की संभावना {pop}%, लगभग {mm} मिमी।", wx_d_wind: "झोंके {n} किमी/घंटा तक।", motion_enable: "टिल्ट और कंपास चालू करने के लिए दबाएं", today_order: "📦 {n} ऑर्डर अपडेट इंतज़ार में हैं। घंटी दबाएं।", today_rain: "🌧️ {t} के आसपास बारिश हो सकती है। पहले से तैयारी करें।", today_heavy: "⛈️ {t} के आसपास भारी बारिश की संभावना है। सुरक्षित रहें।", today_storm: "⛈️ {t} के आसपास आंधी-बिजली संभव है। संवेदनशील उपकरण प्लग से निकाल दें।", today_wind: "💨 आज {n} किमी/घंटा तक तेज़ हवाएं।", today_heat: "🌡️ आज बहुत गर्मी, {n}°C तक। खूब पानी पिएं।", today_fog: "🌫️ आज सुबह कोहरा है। सावधानी से चलाएं।", today_cold: "🧊 आज ठंडक रहेगी, न्यूनतम {n}°C।", today_snow: "❄️ आज बर्फबारी की संभावना है।", today_sunny: "☀️ धूप वाला दिन: आज सोलर के लिए अच्छा है।", today_night: "🌙 साफ़ रात। सोलर की जगह बैटरी काम करेगी।", today_partly: "⛅ आंशिक बादल: सोलर फिर भी ठीक चलेगा।", today_cloudy: "☁️ बादल: आज सोलर उत्पादन कम रहेगा।", weather_note: "{p} के लिए Open-Meteo का पूर्वानुमान। यह आधिकारिक चेतावनी नहीं है।", greeting_sub: "स्वच्छ ऊर्जा के साथ आपका दिन",
       card_ses: "नवीकरणीय ऊर्जा उत्पाद खोजें, तुलना करें और चुनें",
       card_es: "आंध्र प्रदेश में सौर और पवन ऊर्जा की संभावनाएं जानें",
       card_hub: "अपने पास की स्थानीय सौर और पवन ऊर्जा दुकानों से खरीदें",
@@ -2583,7 +2592,7 @@
     ta: {
       greeting_morning: "காலை வணக்கம்", greeting_afternoon: "மதிய வணக்கம்", greeting_evening: "மாலை வணக்கம்",
       greeting_night: "இனிய இரவு, சிறிது ஓய்வு எடுங்கள்",
-      wx_today: "இன்று", wx_tomorrow: "நாளை", wx_now: "இப்போது", wx_k_storm: "இடியுடன் மழை", wx_k_heavy: "கனமழை", wx_k_rain: "மழை", wx_k_light: "லேசான மழை", wx_k_wind: "பலத்த காற்று", wx_k_heat: "கடும் வெப்பம்", wx_k_fog: "மூடுபனி", wx_k_snow: "பனிப்பொழிவு", wx_k_cold: "குளிர்", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "மழை வாய்ப்பு {pop}%, சுமார் {mm} மி.மீ.", wx_d_wind: "காற்று வேகம் {n} கி.மீ./மணி வரை.", today_order: "📦 {n} ஆர்டர் புதுப்பிப்பு(கள்) காத்திருக்கின்றன. மணியைத் தட்டுங்கள்.", today_rain: "🌧️ {t} அளவில் மழை பெய்ய வாய்ப்பு உள்ளது. முன்கூட்டியே திட்டமிடுங்கள்.", today_heavy: "⛈️ {t} அளவில் கனமழை எதிர்பார்க்கப்படுகிறது. பாதுகாப்பாக இருங்கள்.", today_storm: "⛈️ {t} அளவில் இடியுடன் கூடிய மழை சாத்தியம். உணர்திறன் சாதனங்களை பிளக்கிலிருந்து எடுங்கள்.", today_wind: "💨 இன்று மணிக்கு {n} கி.மீ. வரை பலத்த காற்று.", today_heat: "🌡️ இன்று மிகவும் வெப்பம், {n}°C வரை. நிறைய தண்ணீர் குடியுங்கள்.", today_fog: "🌫️ இன்று காலை மூடுபனி. கவனமாக ஓட்டுங்கள்.", today_cold: "🧊 இன்று குளிர்ச்சியாக இருக்கும், குறைந்தபட்சம் {n}°C.", today_snow: "❄️ இன்று பனிப்பொழிவு எதிர்பார்க்கப்படுகிறது.", today_sunny: "☀️ வெயில் நாள்: இன்று சோலாருக்கு நல்லது.", today_night: "🌙 தெளிவான இரவு. சோலாருக்குப் பதிலாக பேட்டரிகள் வேலை செய்யும்.", today_partly: "⛅ பகுதி மேகமூட்டம்: சோலார் நன்றாகவே செயல்படும்.", today_cloudy: "☁️ மேகமூட்டம்: இன்று சோலார் உற்பத்தி குறைவாக இருக்கும்.", weather_note: "{p}க்கான Open-Meteo முன்னறிவிப்பு. இது அதிகாரப்பூர்வ எச்சரிக்கை அல்ல.", greeting_sub: "தூய்மையான ஆற்றலுடன் உங்கள் நாள்",
+      wx_today: "இன்று", wx_tomorrow: "நாளை", wx_now: "இப்போது", wx_k_storm: "இடியுடன் மழை", wx_k_heavy: "கனமழை", wx_k_rain: "மழை", wx_k_light: "லேசான மழை", wx_k_wind: "பலத்த காற்று", wx_k_heat: "கடும் வெப்பம்", wx_k_fog: "மூடுபனி", wx_k_snow: "பனிப்பொழிவு", wx_k_cold: "குளிர்", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "மழை வாய்ப்பு {pop}%, சுமார் {mm} மி.மீ.", wx_d_wind: "காற்று வேகம் {n} கி.மீ./மணி வரை.", motion_enable: "சாய்வு, திசைகாட்டியை இயக்கத் தட்டுங்கள்", today_order: "📦 {n} ஆர்டர் புதுப்பிப்பு(கள்) காத்திருக்கின்றன. மணியைத் தட்டுங்கள்.", today_rain: "🌧️ {t} அளவில் மழை பெய்ய வாய்ப்பு உள்ளது. முன்கூட்டியே திட்டமிடுங்கள்.", today_heavy: "⛈️ {t} அளவில் கனமழை எதிர்பார்க்கப்படுகிறது. பாதுகாப்பாக இருங்கள்.", today_storm: "⛈️ {t} அளவில் இடியுடன் கூடிய மழை சாத்தியம். உணர்திறன் சாதனங்களை பிளக்கிலிருந்து எடுங்கள்.", today_wind: "💨 இன்று மணிக்கு {n} கி.மீ. வரை பலத்த காற்று.", today_heat: "🌡️ இன்று மிகவும் வெப்பம், {n}°C வரை. நிறைய தண்ணீர் குடியுங்கள்.", today_fog: "🌫️ இன்று காலை மூடுபனி. கவனமாக ஓட்டுங்கள்.", today_cold: "🧊 இன்று குளிர்ச்சியாக இருக்கும், குறைந்தபட்சம் {n}°C.", today_snow: "❄️ இன்று பனிப்பொழிவு எதிர்பார்க்கப்படுகிறது.", today_sunny: "☀️ வெயில் நாள்: இன்று சோலாருக்கு நல்லது.", today_night: "🌙 தெளிவான இரவு. சோலாருக்குப் பதிலாக பேட்டரிகள் வேலை செய்யும்.", today_partly: "⛅ பகுதி மேகமூட்டம்: சோலார் நன்றாகவே செயல்படும்.", today_cloudy: "☁️ மேகமூட்டம்: இன்று சோலார் உற்பத்தி குறைவாக இருக்கும்.", weather_note: "{p}க்கான Open-Meteo முன்னறிவிப்பு. இது அதிகாரப்பூர்வ எச்சரிக்கை அல்ல.", greeting_sub: "தூய்மையான ஆற்றலுடன் உங்கள் நாள்",
       card_ses: "புதுப்பிக்கத்தக்க ஆற்றல் பொருட்களைத் தேடி, ஒப்பிட்டு, தேர்வு செய்யுங்கள்",
       card_es: "ஆந்திரப் பிரதேசத்தில் சூரிய மற்றும் காற்று ஆற்றல் வாய்ப்புகளை அறியுங்கள்",
       card_hub: "உங்கள் அருகிலுள்ள சூரிய மற்றும் காற்று ஆற்றல் கடைகளில் இருந்து வாங்குங்கள்",
@@ -2674,7 +2683,7 @@
     kn: {
       greeting_morning: "ಶುಭೋದಯ", greeting_afternoon: "ಶುಭ ಮಧ್ಯಾಹ್ನ", greeting_evening: "ಶುಭ ಸಂಜೆ",
       greeting_night: "ಶುಭ ರಾತ್ರಿ, ಸ್ವಲ್ಪ ವಿಶ್ರಾಂತಿ ಪಡೆಯಿರಿ",
-      wx_today: "ಇಂದು", wx_tomorrow: "ನಾಳೆ", wx_now: "ಈಗ", wx_k_storm: "ಗುಡುಗು ಸಹಿತ ಮಳೆ", wx_k_heavy: "ಭಾರಿ ಮಳೆ", wx_k_rain: "ಮಳೆ", wx_k_light: "ಹಗುರ ಮಳೆ", wx_k_wind: "ಬಲವಾದ ಗಾಳಿ", wx_k_heat: "ತೀವ್ರ ಬಿಸಿ", wx_k_fog: "ಮಂಜು", wx_k_snow: "ಹಿಮಪಾತ", wx_k_cold: "ಚಳಿ", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "ಮಳೆ ಸಾಧ್ಯತೆ {pop}%, ಸುಮಾರು {mm} ಮಿ.ಮೀ.", wx_d_wind: "ಗಾಳಿ ಬೀಸು {n} ಕಿ.ಮೀ./ಗಂಟೆ ವರೆಗೆ.", today_order: "📦 {n} ಆರ್ಡರ್ ಅಪ್‌ಡೇಟ್(ಗಳು) ಕಾಯುತ್ತಿವೆ. ಗಂಟೆಯನ್ನು ಒತ್ತಿ.", today_rain: "🌧️ {t} ಸುಮಾರಿಗೆ ಮಳೆ ಬರುವ ಸಾಧ್ಯತೆ ಇದೆ. ಮುಂಚಿತವಾಗಿ ಸಿದ್ಧರಾಗಿ.", today_heavy: "⛈️ {t} ಸುಮಾರಿಗೆ ಭಾರಿ ಮಳೆ ನಿರೀಕ್ಷೆ. ಸುರಕ್ಷಿತವಾಗಿರಿ.", today_storm: "⛈️ {t} ಸುಮಾರಿಗೆ ಗುಡುಗು ಸಹಿತ ಮಳೆ ಸಾಧ್ಯ. ಸೂಕ್ಷ್ಮ ಸಾಧನಗಳನ್ನು ಪ್ಲಗ್‌ನಿಂದ ತೆಗೆಯಿರಿ.", today_wind: "💨 ಇಂದು ಗಂಟೆಗೆ {n} ಕಿ.ಮೀ. ವರೆಗೆ ಬಲವಾದ ಗಾಳಿ.", today_heat: "🌡️ ಇಂದು ತುಂಬಾ ಬಿಸಿ, {n}°C ವರೆಗೆ. ಹೆಚ್ಚು ನೀರು ಕುಡಿಯಿರಿ.", today_fog: "🌫️ ಈ ಬೆಳಿಗ್ಗೆ ಮಂಜು. ಎಚ್ಚರಿಕೆಯಿಂದ ಚಲಾಯಿಸಿ.", today_cold: "🧊 ಇಂದು ತಂಪಾಗಿರುತ್ತದೆ, ಕನಿಷ್ಠ {n}°C.", today_snow: "❄️ ಇಂದು ಹಿಮಪಾತ ನಿರೀಕ್ಷೆ.", today_sunny: "☀️ ಬಿಸಿಲಿನ ದಿನ: ಇಂದು ಸೋಲಾರ್‌ಗೆ ಒಳ್ಳೆಯದು.", today_night: "🌙 ಸ್ಪಷ್ಟ ರಾತ್ರಿ. ಸೋಲಾರ್ ಬದಲು ಬ್ಯಾಟರಿಗಳು ಕೆಲಸ ಮಾಡುತ್ತವೆ.", today_partly: "⛅ ಭಾಗಶಃ ಮೋಡ: ಸೋಲಾರ್ ಚೆನ್ನಾಗಿಯೇ ಕೆಲಸ ಮಾಡುತ್ತದೆ.", today_cloudy: "☁️ ಮೋಡ ಕವಿದಿದೆ: ಇಂದು ಸೋಲಾರ್ ಉತ್ಪಾದನೆ ಕಡಿಮೆ ಇರುತ್ತದೆ.", weather_note: "{p}ಗಾಗಿ Open-Meteo ಮುನ್ಸೂಚನೆ. ಇದು ಅಧಿಕೃತ ಎಚ್ಚರಿಕೆ ಅಲ್ಲ.", greeting_sub: "ಸ್ವಚ್ಛ ಶಕ್ತಿಯೊಂದಿಗೆ ನಿಮ್ಮ ದಿನ",
+      wx_today: "ಇಂದು", wx_tomorrow: "ನಾಳೆ", wx_now: "ಈಗ", wx_k_storm: "ಗುಡುಗು ಸಹಿತ ಮಳೆ", wx_k_heavy: "ಭಾರಿ ಮಳೆ", wx_k_rain: "ಮಳೆ", wx_k_light: "ಹಗುರ ಮಳೆ", wx_k_wind: "ಬಲವಾದ ಗಾಳಿ", wx_k_heat: "ತೀವ್ರ ಬಿಸಿ", wx_k_fog: "ಮಂಜು", wx_k_snow: "ಹಿಮಪಾತ", wx_k_cold: "ಚಳಿ", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "ಮಳೆ ಸಾಧ್ಯತೆ {pop}%, ಸುಮಾರು {mm} ಮಿ.ಮೀ.", wx_d_wind: "ಗಾಳಿ ಬೀಸು {n} ಕಿ.ಮೀ./ಗಂಟೆ ವರೆಗೆ.", motion_enable: "ಟಿಲ್ಟ್, ದಿಕ್ಸೂಚಿ ಆನ್ ಮಾಡಲು ಒತ್ತಿ", today_order: "📦 {n} ಆರ್ಡರ್ ಅಪ್‌ಡೇಟ್(ಗಳು) ಕಾಯುತ್ತಿವೆ. ಗಂಟೆಯನ್ನು ಒತ್ತಿ.", today_rain: "🌧️ {t} ಸುಮಾರಿಗೆ ಮಳೆ ಬರುವ ಸಾಧ್ಯತೆ ಇದೆ. ಮುಂಚಿತವಾಗಿ ಸಿದ್ಧರಾಗಿ.", today_heavy: "⛈️ {t} ಸುಮಾರಿಗೆ ಭಾರಿ ಮಳೆ ನಿರೀಕ್ಷೆ. ಸುರಕ್ಷಿತವಾಗಿರಿ.", today_storm: "⛈️ {t} ಸುಮಾರಿಗೆ ಗುಡುಗು ಸಹಿತ ಮಳೆ ಸಾಧ್ಯ. ಸೂಕ್ಷ್ಮ ಸಾಧನಗಳನ್ನು ಪ್ಲಗ್‌ನಿಂದ ತೆಗೆಯಿರಿ.", today_wind: "💨 ಇಂದು ಗಂಟೆಗೆ {n} ಕಿ.ಮೀ. ವರೆಗೆ ಬಲವಾದ ಗಾಳಿ.", today_heat: "🌡️ ಇಂದು ತುಂಬಾ ಬಿಸಿ, {n}°C ವರೆಗೆ. ಹೆಚ್ಚು ನೀರು ಕುಡಿಯಿರಿ.", today_fog: "🌫️ ಈ ಬೆಳಿಗ್ಗೆ ಮಂಜು. ಎಚ್ಚರಿಕೆಯಿಂದ ಚಲಾಯಿಸಿ.", today_cold: "🧊 ಇಂದು ತಂಪಾಗಿರುತ್ತದೆ, ಕನಿಷ್ಠ {n}°C.", today_snow: "❄️ ಇಂದು ಹಿಮಪಾತ ನಿರೀಕ್ಷೆ.", today_sunny: "☀️ ಬಿಸಿಲಿನ ದಿನ: ಇಂದು ಸೋಲಾರ್‌ಗೆ ಒಳ್ಳೆಯದು.", today_night: "🌙 ಸ್ಪಷ್ಟ ರಾತ್ರಿ. ಸೋಲಾರ್ ಬದಲು ಬ್ಯಾಟರಿಗಳು ಕೆಲಸ ಮಾಡುತ್ತವೆ.", today_partly: "⛅ ಭಾಗಶಃ ಮೋಡ: ಸೋಲಾರ್ ಚೆನ್ನಾಗಿಯೇ ಕೆಲಸ ಮಾಡುತ್ತದೆ.", today_cloudy: "☁️ ಮೋಡ ಕವಿದಿದೆ: ಇಂದು ಸೋಲಾರ್ ಉತ್ಪಾದನೆ ಕಡಿಮೆ ಇರುತ್ತದೆ.", weather_note: "{p}ಗಾಗಿ Open-Meteo ಮುನ್ಸೂಚನೆ. ಇದು ಅಧಿಕೃತ ಎಚ್ಚರಿಕೆ ಅಲ್ಲ.", greeting_sub: "ಸ್ವಚ್ಛ ಶಕ್ತಿಯೊಂದಿಗೆ ನಿಮ್ಮ ದಿನ",
       card_ses: "ನವೀಕರಿಸಬಹುದಾದ ಇಂಧನ ಉತ್ಪನ್ನಗಳನ್ನು ಹುಡುಕಿ, ಹೋಲಿಸಿ ಮತ್ತು ಆಯ್ಕೆಮಾಡಿ",
       card_es: "ಆಂಧ್ರಪ್ರದೇಶದಾದ್ಯಂತ ಸೌರ ಮತ್ತು ಪವನ ಶಕ್ತಿಯ ಅವಕಾಶಗಳನ್ನು ಅನ್ವೇಷಿಸಿ",
       card_hub: "ನಿಮ್ಮ ಹತ್ತಿರದ ಸೌರ ಮತ್ತು ಪವನ ಇಂಧನ ಅಂಗಡಿಗಳಿಂದ ಹುಡುಕಿ ಮತ್ತು ಖರೀದಿಸಿ",
@@ -2765,7 +2774,7 @@
     te: {
       greeting_morning: "శుభోదయం", greeting_afternoon: "శుభ మధ్యాహ్నం", greeting_evening: "శుభ సాయంత్రం",
       greeting_night: "శుభ రాత్రి, కొంచెం విశ్రాంతి తీసుకోండి",
-      wx_today: "ఈ రోజు", wx_tomorrow: "రేపు", wx_now: "ఇప్పుడు", wx_k_storm: "ఉరుములతో వర్షం", wx_k_heavy: "భారీ వర్షం", wx_k_rain: "వర్షం", wx_k_light: "తేలికపాటి వర్షం", wx_k_wind: "బలమైన గాలులు", wx_k_heat: "తీవ్రమైన వేడి", wx_k_fog: "పొగమంచు", wx_k_snow: "మంచు", wx_k_cold: "చలి", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "వర్షం అవకాశం {pop}%, సుమారు {mm} మి.మీ.", wx_d_wind: "గాలి వేగం {n} కి.మీ./గం వరకు.", today_order: "📦 {n} ఆర్డర్ అప్‌డేట్(లు) ఉన్నాయి. బెల్‌ను నొక్కండి.", today_rain: "🌧️ {t} సమయంలో వర్షం పడే అవకాశం ఉంది. ముందే ప్లాన్ చేసుకోండి.", today_heavy: "⛈️ {t} సమయంలో భారీ వర్షం రావచ్చు. జాగ్రత్తగా ఉండండి.", today_storm: "⛈️ {t} సమయంలో ఉరుములతో వర్షం రావచ్చు. సున్నితమైన పరికరాలను ప్లగ్ నుండి తీసేయండి.", today_wind: "💨 ఈ రోజు గంటకు {n} కి.మీ. వరకు బలమైన గాలులు.", today_heat: "🌡️ ఈ రోజు చాలా వేడి, {n}°C వరకు. నీళ్లు ఎక్కువగా తాగండి.", today_fog: "🌫️ ఈ ఉదయం పొగమంచు. జాగ్రత్తగా నడపండి.", today_cold: "🧊 ఈ రోజు చల్లగా ఉంటుంది, కనిష్టం {n}°C.", today_snow: "❄️ ఈ రోజు మంచు కురిసే అవకాశం.", today_sunny: "☀️ ఎండగా ఉంది: ఈ రోజు సోలార్‌కు మంచిది.", today_night: "🌙 నిర్మలమైన రాత్రి. సోలార్ స్థానంలో బ్యాటరీలు పనిచేస్తాయి.", today_partly: "⛅ కొంత మేఘావృతం: సోలార్ బాగానే పనిచేస్తుంది.", today_cloudy: "☁️ మేఘావృతం: ఈ రోజు సోలార్ ఉత్పత్తి తక్కువగా ఉంటుంది.", weather_note: "{p} కోసం Open-Meteo అంచనా. ఇది అధికారిక హెచ్చరిక కాదు.", greeting_sub: "స్వచ్ఛమైన శక్తితో మీ రోజు",
+      wx_today: "ఈ రోజు", wx_tomorrow: "రేపు", wx_now: "ఇప్పుడు", wx_k_storm: "ఉరుములతో వర్షం", wx_k_heavy: "భారీ వర్షం", wx_k_rain: "వర్షం", wx_k_light: "తేలికపాటి వర్షం", wx_k_wind: "బలమైన గాలులు", wx_k_heat: "తీవ్రమైన వేడి", wx_k_fog: "పొగమంచు", wx_k_snow: "మంచు", wx_k_cold: "చలి", wx_line: "{icon} {day}: {kind} {from}–{to}{sfx}", wx_d_rain: "వర్షం అవకాశం {pop}%, సుమారు {mm} మి.మీ.", wx_d_wind: "గాలి వేగం {n} కి.మీ./గం వరకు.", motion_enable: "టిల్ట్, దిక్సూచిని ఆన్ చేయడానికి నొక్కండి", today_order: "📦 {n} ఆర్డర్ అప్‌డేట్(లు) ఉన్నాయి. బెల్‌ను నొక్కండి.", today_rain: "🌧️ {t} సమయంలో వర్షం పడే అవకాశం ఉంది. ముందే ప్లాన్ చేసుకోండి.", today_heavy: "⛈️ {t} సమయంలో భారీ వర్షం రావచ్చు. జాగ్రత్తగా ఉండండి.", today_storm: "⛈️ {t} సమయంలో ఉరుములతో వర్షం రావచ్చు. సున్నితమైన పరికరాలను ప్లగ్ నుండి తీసేయండి.", today_wind: "💨 ఈ రోజు గంటకు {n} కి.మీ. వరకు బలమైన గాలులు.", today_heat: "🌡️ ఈ రోజు చాలా వేడి, {n}°C వరకు. నీళ్లు ఎక్కువగా తాగండి.", today_fog: "🌫️ ఈ ఉదయం పొగమంచు. జాగ్రత్తగా నడపండి.", today_cold: "🧊 ఈ రోజు చల్లగా ఉంటుంది, కనిష్టం {n}°C.", today_snow: "❄️ ఈ రోజు మంచు కురిసే అవకాశం.", today_sunny: "☀️ ఎండగా ఉంది: ఈ రోజు సోలార్‌కు మంచిది.", today_night: "🌙 నిర్మలమైన రాత్రి. సోలార్ స్థానంలో బ్యాటరీలు పనిచేస్తాయి.", today_partly: "⛅ కొంత మేఘావృతం: సోలార్ బాగానే పనిచేస్తుంది.", today_cloudy: "☁️ మేఘావృతం: ఈ రోజు సోలార్ ఉత్పత్తి తక్కువగా ఉంటుంది.", weather_note: "{p} కోసం Open-Meteo అంచనా. ఇది అధికారిక హెచ్చరిక కాదు.", greeting_sub: "స్వచ్ఛమైన శక్తితో మీ రోజు",
       card_ses: "పునరుత్పాదక ఇంధన ఉత్పత్తులను వెతకండి, పోల్చండి, ఎంచుకోండి",
       card_es: "ఆంధ్రప్రదేశ్‌లో సౌర, పవన శక్తి అవకాశాలను తెలుసుకోండి",
       card_hub: "మీ దగ్గరి సౌర & పవన ఇంధన దుకాణాల నుండి కొనండి",
@@ -4683,6 +4692,20 @@ var GMScene = (function(){
              frac: (1 + Math.cos(inc)) / 2, phase: 0.5 + 0.5 * inc * (angle < 0 ? -1 : 1) / PI };
   }
 
+  // ---------------- motion helpers: compass heading and tilt from the phone's sensors ----------------
+  // Direction the BACK of the phone points (like looking through a window), from the W3C formula.
+  function compassHeading(alpha, beta, gamma){
+    var x = (beta || 0) * RAD, y = (gamma || 0) * RAD, z = (alpha || 0) * RAD;
+    var cY = Math.cos(y), cZ = Math.cos(z), sX = Math.sin(x), sY = Math.sin(y), sZ = Math.sin(z);
+    var Vx = -cZ * sY - sZ * sX * cY, Vy = -sZ * sY + cZ * sX * cY;
+    if (Math.abs(Vx) < 1e-6 && Math.abs(Vy) < 1e-6) return null;              // lying flat: no usable direction
+    var h = Math.atan(Vx / Vy);
+    if (Vy < 0) h += PI; else if (Vx < 0) h += 2 * PI;
+    return h / RAD;
+  }
+  // moves an angle towards a target the short way round (for smoothing the compass)
+  function turnToward(cur, target, k){ return (cur + wrapDeg(target - cur) * k + 360) % 360; }
+
   // ---------------- scene state from the weather object ----------------
   var SKY_STOPS = [
     [-18, "#050a1e", "#0f1836"], [-9, "#16244f", "#3a3d72"], [-3, "#34487f", "#e0764f"],
@@ -4752,13 +4775,13 @@ var GMScene = (function(){
     for (var i = 0; i < n; i++) out.push({ x: r() * W, y: r() * hy * 0.92, s: 0.5 + r() * 1.1, p: r() * 6.28, f: 0.6 + r() * 1.8 });
     return out;
   }
-  function drawStars(ctx, W, H, S, t, stars){
+  function drawStars(ctx, W, H, S, t, stars, shift){
     var a0 = S.night * (1 - S.oc) * (1 - S.fog * 0.8);
     if (a0 < 0.03) return;
     for (var i = 0; i < stars.length; i++){
       var s = stars[i], tw = 0.55 + 0.45 * Math.sin(t * s.f + s.p);
       ctx.fillStyle = "rgba(255,255,245," + (a0 * tw).toFixed(3) + ")";
-      ctx.fillRect(s.x, s.y, s.s, s.s);
+      ctx.fillRect(shift ? (((s.x + shift) % W) + W) % W : s.x, s.y, s.s, s.s);
     }
   }
   function drawSun(ctx, W, H, S){
@@ -5248,7 +5271,7 @@ var GMScene = (function(){
     drawSky: drawSky, starList: starList, drawStars: drawStars, drawSun: drawSun, drawMoon: drawMoon, drawCloud: drawCloud,
     cloudPalette: cloudPalette, cloudList: cloudList, cloudX: cloudX, drawMountains: drawMountains, drawLand: drawLand, drawFog: drawFog,
     drawRiverFlow: drawRiverFlow, drawTrain: drawTrain, drawPalmsDyn: drawPalmsDyn, makeFx: makeFx, fxUpdate: fxUpdate, drawFx: drawFx,
-    renderAll: renderAll };
+    renderAll: renderAll, compassHeading: compassHeading, turnToward: turnToward, wrapDeg: wrapDeg, clamp: clamp };
 })();
 
 // ---------------------------------------------------------------------------
@@ -5256,6 +5279,8 @@ var GMScene = (function(){
 // (or when the person chose "always" through EMBER). Normal days keep the normal background.
 // Static layers are painted once per change, clouds are cached sprites, only moving things
 // redraw. 30 fps cap, pauses when hidden, one still frame under "reduce motion".
+// Step 4: tilting the phone slides the layers (far ones less, near ones more) and the compass
+// turns the sky, so the sun, moon, stars and clouds follow the direction the phone points.
 // ---------------------------------------------------------------------------
 (function(){
   var home = document.getElementById("homeScreen");
@@ -5266,11 +5291,15 @@ var GMScene = (function(){
   host.insertBefore(canvas, host.firstChild);
   var ctx = canvas.getContext("2d", { alpha: false });
   if (!ctx) return;
-  var W = 0, H = 0, dpr = 1, S = null, key = "", skyL = null, landL = null, stars = [], clouds = [], sprites = [], fx = null;
+  var W = 0, H = 0, dpr = 1, S = null, key = "", skyL = null, mtnL = null, landL = null, stars = [], clouds = [], sprites = [], fx = null;
   var running = false, on = false, offTimer = 0, lastFrame = 0, t0 = performance.now(), stateAt = 0;
   var reduce = !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  // motion (tilt and compass)
+  var tilt = { x: 0, y: 0, tx: 0, ty: 0 }, base = { b: null, g: 0 }, heading = 180, headingT = null;
+  var listening = false, needPerm = false, permGranted = false, chip = null;
 
   function mode(){ try { return localStorage.getItem("gm_scene_mode") || "auto"; } catch (e) { return "auto"; } }
+  function motionWanted(){ try { return localStorage.getItem("gm_scene_motion") !== "off"; } catch (e) { return true; } }
   function wanted(){
     var m = mode();
     if (m === "off") return false;
@@ -5303,7 +5332,8 @@ var GMScene = (function(){
     if (k === key) return;
     key = k;
     skyL = layer(); GMScene.drawSky(skyL.x, W, H, S);
-    landL = layer(); GMScene.drawMountains(landL.x, W, H, S); GMScene.drawLand(landL.x, W, H, S); GMScene.drawFog(landL.x, W, H, S);
+    mtnL = layer(); GMScene.drawMountains(mtnL.x, W, H, S);
+    landL = layer(); GMScene.drawLand(landL.x, W, H, S); GMScene.drawFog(landL.x, W, H, S);
     stars = GMScene.starList(W, H, 110);
     var pal = GMScene.cloudPalette(S);
     clouds = GMScene.cloudList(W, H, S);
@@ -5316,17 +5346,83 @@ var GMScene = (function(){
     });
     fx = reduce ? null : GMScene.makeFx(W, H, S, 11);
   }
-  function draw(t){
-    if (!S || !skyL || !landL) return;
-    ctx.drawImage(skyL.c, 0, 0, W, H);
-    GMScene.drawStars(ctx, W, H, S, t, stars);
-    GMScene.drawSun(ctx, W, H, S); GMScene.drawMoon(ctx, W, H, S);
-    for (var i = 0; i < clouds.length; i++){
-      var c = clouds[i], sp = sprites[i];
-      ctx.drawImage(sp.cv, GMScene.cloudX(c, W, t) - sp.w / 2, c.y - sp.h * 0.62, sp.w, sp.h);
+
+  // ----- motion: phone tilt and compass -----
+  function onOrient(e){
+    var b = e.beta, g = e.gamma;
+    if (b == null && g == null && e.alpha == null && typeof e.webkitCompassHeading !== "number") return;
+    if (b != null && g != null){
+      if (base.b === null){ base.b = b; base.g = g; }
+      base.b += (b - base.b) * 0.01; base.g += (g - base.g) * 0.01;                    // slow baseline: tilt is relative to how the phone is held
+      tilt.tx = GMScene.clamp((g - base.g) / 22, -1, 1); tilt.ty = GMScene.clamp((b - base.b) / 22, -1, 1);
     }
-    ctx.drawImage(landL.c, 0, 0, W, H);
+    var h = null;
+    if (typeof e.webkitCompassHeading === "number") h = e.webkitCompassHeading;           // iPhone
+    else if (e.type === "deviceorientationabsolute" && e.alpha != null) h = GMScene.compassHeading(e.alpha, e.beta, e.gamma);
+    if (h != null) headingT = h;
+  }
+  function listen(go){
+    if (go === listening) return;
+    listening = go;
+    var f = go ? "addEventListener" : "removeEventListener";
+    window[f]("deviceorientation", onOrient, true); window[f]("deviceorientationabsolute", onOrient, true);
+    if (!go){ tilt.tx = 0; tilt.ty = 0; headingT = null; base.b = null; }
+  }
+  function showChip(show){
+    if (show && !chip){
+      chip = document.createElement("button"); chip.id = "gmMotionChip"; chip.type = "button";
+      chip.addEventListener("click", function(){
+        var DOE = window.DeviceOrientationEvent;
+        DOE.requestPermission().then(function(r){
+          if (r === "granted"){ permGranted = true; needPerm = false; chip.classList.remove("show"); if (on && motionWanted() && !reduce) listen(true); }
+        }).catch(function(){});
+      });
+      host.appendChild(chip);
+    }
+    if (chip){ chip.textContent = (typeof window.gmT === "function" ? window.gmT("motion_enable") : "Tap to enable tilt and compass"); chip.classList.toggle("show", !!show); }
+  }
+  function setupMotion(){
+    var DOE = window.DeviceOrientationEvent;
+    if (reduce || !motionWanted() || !DOE){ listen(false); showChip(false); return; }
+    if (typeof DOE.requestPermission === "function" && !permGranted){ needPerm = true; showChip(true); return; }
+    needPerm = false; showChip(false); listen(true);
+  }
+  function stepMotion(){
+    if (listening && motionWanted() && !reduce){
+      tilt.x += (tilt.tx - tilt.x) * 0.12; tilt.y += (tilt.ty - tilt.y) * 0.12;
+      if (headingT != null){ heading = GMScene.turnToward(heading, headingT, 0.12); S.heading = heading; S.fov = 130; }
+    } else { tilt.x *= 0.9; tilt.y *= 0.9; }
+  }
+
+  // draws one cached layer with a parallax offset; scaled a little so the edges never show
+  function drawLayer(c, dx, dy, sc, bottom){
+    ctx.save();
+    ctx.translate(W / 2 + dx, bottom ? H + 6 + dy : -4 + dy);
+    ctx.scale(sc, sc);
+    ctx.drawImage(c, -W / 2, bottom ? -H : 0, W, H);
+    ctx.restore();
+  }
+  function draw(t){
+    if (!S || !skyL || !mtnL || !landL) return;
+    var tx = tilt.x, ty = tilt.y;
+    var dxS = -tx * 3, dyS = -ty * 2, dxM = -tx * 7, dyM = -ty * 3, dxL = -tx * 12, dyL = -ty * 6;
+    var shift = -GMScene.wrapDeg(S.heading - 180) * (W / S.fov), span = W + 260, i;
+    drawLayer(skyL.c, dxS, dyS, 1.03, false);
+    ctx.save(); ctx.translate(dxS, dyS);
+    GMScene.drawStars(ctx, W, H, S, t, stars, shift);
+    GMScene.drawSun(ctx, W, H, S); GMScene.drawMoon(ctx, W, H, S);
+    ctx.restore();
+    ctx.save(); ctx.translate(dxS * 1.6, dyS * 1.6);
+    for (i = 0; i < clouds.length; i++){
+      var c = clouds[i], sp = sprites[i], cx = ((((GMScene.cloudX(c, W, t) + 130 + shift) % span) + span) % span) - 130;
+      ctx.drawImage(sp.cv, cx - sp.w / 2, c.y - sp.h * 0.62, sp.w, sp.h);
+    }
+    ctx.restore();
+    drawLayer(mtnL.c, dxM, dyM, 1.036, true);
+    drawLayer(landL.c, dxL, dyL, 1.06, true);
+    ctx.save(); ctx.translate(W / 2 + dxL, H + 6 + dyL); ctx.scale(1.06, 1.06); ctx.translate(-W / 2, -H);
     GMScene.drawRiverFlow(ctx, W, H, S, t); GMScene.drawTrain(ctx, W, H, S, t); GMScene.drawPalmsDyn(ctx, W, H, S, t);
+    ctx.restore();
     if (fx) GMScene.drawFx(ctx, W, H, S, fx, t);
   }
   function thunder(info){ try { window.dispatchEvent(new CustomEvent("gm-thunder", { detail: info })); } catch (e) {} }
@@ -5338,6 +5434,7 @@ var GMScene = (function(){
     var dt = Math.min(0.1, (now - lastFrame) / 1000 || 0.033); lastFrame = now;
     var t = (now - t0) / 1000;
     refresh(false);
+    stepMotion();
     if (fx) GMScene.fxUpdate(fx, W, H, S, dt, t, thunder);
     draw(t);
   }
@@ -5345,11 +5442,13 @@ var GMScene = (function(){
     if (offTimer){ clearTimeout(offTimer); offTimer = 0; }
     resize(); refresh(true); draw((performance.now() - t0) / 1000);
     on = true; home.classList.add("gm-scene-on"); home.classList.toggle("gm-dark-sky", !!(S && S.dark));
+    setupMotion();
     if (reduce || running) return;
     running = true; requestAnimationFrame(frame);
   }
   function turnOff(){
     on = false; home.classList.remove("gm-scene-on"); home.classList.remove("gm-dark-sky");
+    listen(false); showChip(false);
     if (offTimer) clearTimeout(offTimer);
     offTimer = setTimeout(function(){ running = false; offTimer = 0; }, 1100);     // keep drawing while it fades out
   }
@@ -5358,14 +5457,20 @@ var GMScene = (function(){
     var want = wanted();
     if (want && !on) turnOn();
     else if (!want && on) turnOff();
-    else if (want && on && reduce){ resize(); refresh(false); draw(0); }
-    else if (want && on && !running){ running = true; requestAnimationFrame(frame); }
+    else if (want && on){
+      if (reduce){ resize(); refresh(false); draw(0); }
+      else {
+        if (!running){ running = true; requestAnimationFrame(frame); }
+        if (listening !== (motionWanted() && !needPerm)) setupMotion();        // motion switched on or off from EMBER
+      }
+    }
   }
   window.addEventListener("resize", function(){ resize(); if (on && reduce){ refresh(true); draw(0); } });
   window.addEventListener("orientationchange", function(){ setTimeout(resize, 200); });
   document.addEventListener("visibilitychange", check);
   window.addEventListener("gm-weather", function(){ stateAt = 0; if (on) refresh(true); check(); });
   window.addEventListener("gm-scene-mode", check);
+  window.GMSceneState = function(){ return { heading: heading, fov: S ? S.fov : null, tilt: { x: tilt.x, y: tilt.y }, listening: listening, needPerm: needPerm, on: on }; };
   try { new MutationObserver(check).observe(home, { attributes: true, attributeFilter: ["style", "class"] }); } catch (e) {}
   setInterval(check, 1500);
   check();
