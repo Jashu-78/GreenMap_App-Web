@@ -1334,13 +1334,15 @@
       return dsSend(gmT("ds_here") + "<br>" + dsRow(nd, true));
     }
     var qn0 = q.replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+    // Bare "best solar" / "top wind" with no "place/district/area" qualifier means
+    // "which PRODUCT is best" -> show panels/turbines only, not districts.
+    // "best solar place/district/area" means "which LOCATION is best" -> the
+    // district-ranking block just below handles that case instead.
     if (/^(?:best|top|highest|strongest) (?:solar|wind)(?: (?:energy|power))?$/.test(qn0)){
       var isWind = /wind/.test(qn0), cat0 = emberCatalog().filter(function(p){ return p.type === (isWind ? "Wind Turbine" : "Solar Panel"); });
       if (!isWind) cat0 = cat0.slice().sort(function(a, b){ return (b.score == null ? -1 : b.score) - (a.score == null ? -1 : a.score) || (b.efficiency || 0) - (a.efficiency || 0); });
-      var dl = GM_DISTRICTS.slice().sort(function(a, b){ return isWind ? parseFloat(b.wind) - parseFloat(a.wind) : parseFloat(b.sun) - parseFloat(a.sun); }).slice(0, 3);
-      return adSend(gmT(isWind ? "ds_wind_head" : "ds_sun_head") + "<br>" + dl.map(function(d){ return dsRow(d, false); }).join("<br>") +
-        "<br><br><b>" + (isWind ? "Wind turbines in the app" : "Top solar panels in the app") + "</b><br>" + cat0.slice(0, 3).map(adProductLine).join("<br>") +
-        "<br><br><i>" + gmT("ds_src") + "</i>", ["EnergyScope", "Smart Energy Search"]);
+      return adSend("<b>" + (isWind ? "Top wind turbines in the app" : "Top solar panels in the app") + "</b><br>" + cat0.slice(0, 3).map(adProductLine).join("<br>"),
+        ["Smart Energy Search"]);
     }
     var rank = /\b(best|top|highest|strongest|most|better|good|rank)\b|which (district|place|area)|where/.test(q);
     if (rank && (wantSun || wantWind || /district|place|area/.test(q)) && (!productish || /district|place|area|where/.test(q))){
@@ -2250,6 +2252,9 @@
       list.push(t); if (list.length > 30) list.shift();
       localStorage.setItem(EMC_MISS_KEY, JSON.stringify(list));
     }catch(e){}
+    // Also tell the admin directly (shared notification bell), not just this
+    // one phone's local "show unanswered" list — see window.GM_notifyAdminUnanswered.
+    try{ if (window.GM_notifyAdminUnanswered) window.GM_notifyAdminUnanswered(text); }catch(e){}
   }
   var emcOrigFallback = emberFallback;
   emberFallback = function(text){ emcLogMiss(text); emcOrigFallback(text); };
@@ -3653,6 +3658,27 @@ async function notifyAdminOfLogin(user){
     console.warn("Could not notify admin of login:", err);
   }
 }
+
+// Bridge for EMBER's unanswered-question logging (EMBER's own code is a classic
+// <script>, not this module, so it cannot see db/addDoc/collection directly —
+// it calls window.GM_notifyAdminUnanswered(text) instead, defined here where
+// those Firestore imports are actually in scope).
+// Only reaches the admin's own notification panel (targetEmails), so regular
+// users never see "EMBER couldn't answer" messages meant for Jashu.
+window.GM_notifyAdminUnanswered = async function(questionText){
+  try {
+    var who = (auth.currentUser && auth.currentUser.email) ? auth.currentUser.email : "a user (not signed in)";
+    await addDoc(collection(db, "notifications"), {
+      type: "ember_miss",
+      title: "EMBER could not answer a question",
+      message: "From " + who + ": \"" + String(questionText).slice(0, 180) + "\"",
+      targetEmails: [ADMIN_EMAIL],
+      createdAt: serverTimestamp()
+    });
+  } catch (err){
+    console.warn("Could not notify admin of an unanswered EMBER question:", err);
+  }
+};
 
 
 // ---------------------------------------------------------------------------
