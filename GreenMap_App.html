@@ -396,7 +396,7 @@
 </style>
 <style id="gmWxCss">
   /* Weather screen (opens from the location pill or the greeting line) */
-  .gmwx{position:fixed;inset:0;z-index:200;overflow-y:auto;color:#fff;visibility:hidden;transform:translateY(100%);transition:transform .35s cubic-bezier(.2,.8,.2,1),visibility 0s .35s;padding:env(safe-area-inset-top,0) 0 24px;}
+  .gmwx{position:fixed;left:0;right:0;bottom:0;top:0;z-index:35;overflow-y:auto;color:#fff;visibility:hidden;transform:translateY(100%);transition:transform .35s cubic-bezier(.2,.8,.2,1),visibility 0s .35s;padding:env(safe-area-inset-top,0) 0 24px;}
   .gmwx.open{visibility:visible;transform:none;transition:transform .35s cubic-bezier(.2,.8,.2,1),visibility 0s;}
   .gmwx-bar{display:flex;align-items:center;gap:10px;padding:14px 16px;font-weight:700;font-size:17px;}
   .gmwx-x{background:rgba(255,255,255,.18);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;}
@@ -423,6 +423,28 @@
   .gmwx-tile .n{font-weight:700;margin-top:6px;}
   .gmwx-tile .v{font-size:14px;opacity:.8;margin-top:2px;}
   .gmwx-foot{font-size:11px;opacity:.6;text-align:center;padding:4px 20px;}
+  .gmwx-aq{display:flex;align-items:center;gap:12px;}
+  .gmwx-aq b{font-size:46px;font-weight:700;line-height:1;}
+  .gmwx-aq span{padding:4px 12px;border-radius:12px;font-weight:700;font-size:14px;color:#fff;}
+  .gmwx-scale{position:relative;height:8px;border-radius:6px;margin:14px 0 6px;background:linear-gradient(90deg,#55a84f 0 10%,#a3c853 10% 20%,#f2c94c 20% 40%,#f29c38 40% 60%,#e5493a 60% 80%,#9b1c1c 80% 100%);}
+  .gmwx-scale i{position:absolute;top:-4px;width:4px;height:16px;background:#fff;border-radius:2px;}
+  .gmwx-pol{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;font-size:12px;text-align:center;}
+  .gmwx-pol div{background:rgba(255,255,255,.1);border-radius:12px;padding:8px 4px;}
+  .gmwx-pol b{display:block;font-size:15px;}
+  .gmwx-tip{margin-top:10px;font-size:13px;line-height:1.4;}
+  .gmwx-tips{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;}
+  .gmwx-tips::-webkit-scrollbar{display:none;}
+  .gmwx-t2{flex:0 0 100%;scroll-snap-align:start;text-align:center;padding:2px 18px;box-sizing:border-box;}
+  .gmwx-t2 b{display:block;font-size:17px;margin-bottom:4px;}
+  .gmwx-t2 span{font-size:14px;opacity:.85;line-height:1.4;}
+  .gmwx-dots{display:flex;justify-content:center;gap:7px;margin-top:10px;}
+  .gmwx-dots i{width:7px;height:7px;border-radius:50%;background:#fff;opacity:.4;transition:opacity .2s;}
+  .gmwx-dots i.on{opacity:1;}
+  .gmwx-sol{display:flex;align-items:center;gap:10px;font-size:13px;margin:7px 0;}
+  .gmwx-sol span{width:64px;}
+  .gmwx-sol div{flex:1;height:9px;background:rgba(255,255,255,.15);border-radius:6px;overflow:hidden;}
+  .gmwx-sol div i{display:block;height:100%;background:#f2da44;border-radius:6px;}
+  .gmwx-sol b{width:30px;text-align:right;}
   #locTempPill,#greetingSub{cursor:pointer;}
   @keyframes gmwxUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
   @keyframes gmwxFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
@@ -636,7 +658,7 @@
     <button class="notif-close" onclick="toggleSound(false)">✕</button>
   </div>
   <div id="soundList" style="flex:1;overflow-y:auto;"></div>
-  <div class="lang-note" id="addDeviceSoundRow" style="cursor:pointer;">+ 🔔 Add sound for device</div>
+  <div class="lang-note" id="addDeviceSoundRow" style="cursor:pointer;">+ 🔔 Choose a sound file from this phone</div>
 </div>
 
 <div id="aboutOverlay" class="notif-overlay" onclick="toggleAbout(false)"></div>
@@ -2268,6 +2290,7 @@
   // Called from agentSendText before the older routes. Returns true when EMBER answered.
   function emberCalcTry(text){
     var q = text.toLowerCase().trim();
+    if (window.GM_emberAir && window.GM_emberAir(q)) return true;
     if (!q || q.length > 200) return false;
     if (/^(?:show |list |see )?(?:my )?(?:unanswered|missed|unknown)(?: questions?)?$/.test(q)){
       var list = []; try{ list = JSON.parse(localStorage.getItem(EMC_MISS_KEY) || "[]"); }catch(e){}
@@ -3080,12 +3103,16 @@
     pop:    { label: 'Pop',      notes: [440] },
     marimba:{ label: 'Marimba',  notes: [523, 659, 784] }
   };
+  SOUNDS.system = { label: 'Phone default (system sound)', notes: [] };
+  SOUNDS.custom = { label: (localStorage.getItem('gm_notif_sound_name') || 'My sound').replace(/\.[^.]+$/, ''), notes: [] };
   var audioCtx = null;
   function getAudioCtx(){
     if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     return audioCtx;
   }
   function playNotifSound(key){
+    if (key === 'system'){ if (typeof Notification !== 'undefined' && Notification.permission === 'granted') return; key = 'chime'; }
+    if (key === 'custom'){ try { var cu = localStorage.getItem('gm_notif_sound_custom'); if (cu){ new Audio(cu).play().catch(function(){}); return; } } catch (e) {} key = 'chime'; }
     var sound = SOUNDS[key] || SOUNDS.chime;
     try {
       var ctx = getAudioCtx();
@@ -3105,19 +3132,28 @@
       });
     } catch (err){ console.warn('Could not play notification sound:', err); }
   }
+  function gmSoundPreview(key){
+    if (key === 'system'){
+      var go = function(){ if (window.gmSysNotify) window.gmSysNotify('GreenMap AI', 'This is the sound your phone plays for alerts.', 'sndtest', 'GreenMap_App.html'); };
+      if (typeof Notification !== 'undefined' && Notification.permission === 'default') Notification.requestPermission().then(go); else go();
+      return;
+    }
+    playNotifSound(key);
+  }
   function getSavedSound(){ return localStorage.getItem(NOTIF_SOUND_KEY) || 'chime'; }
   function renderSoundList(){
     var listEl = document.getElementById('soundList');
     var selected = getSavedSound();
     listEl.innerHTML = '';
     Object.keys(SOUNDS).forEach(function(key){
+      if (key === 'custom' && !localStorage.getItem('gm_notif_sound_custom')) return;
       var row = document.createElement('div');
       row.className = 'lang-item' + (key === selected ? ' selected' : '');
       row.innerHTML = '<span>' + SOUNDS[key].label + '</span><span class="lang-check">✓</span>';
       row.addEventListener('click', function(){
         localStorage.setItem(NOTIF_SOUND_KEY, key);
         document.getElementById('currentSoundLabel').textContent = SOUNDS[key].label;
-        playNotifSound(key);
+        gmSoundPreview(key);
         renderSoundList();
       });
       listEl.appendChild(row);
@@ -3125,9 +3161,21 @@
   }
   document.getElementById('currentSoundLabel').textContent = SOUNDS[getSavedSound()].label;
   renderSoundList();
-  document.getElementById('addDeviceSoundRow').addEventListener('click', function(){
-    alert('Adding your own device sound is coming soon! For now, pick one of the built-in tones above.');
-  });
+  var gmSndInput = document.createElement('input'); gmSndInput.type = 'file'; gmSndInput.accept = 'audio/*';
+  gmSndInput.onchange = function(){
+    var f = gmSndInput.files && gmSndInput.files[0]; if (!f) return;
+    if (f.size > 700 * 1024){ alert('That sound file is too big. Please pick a short notification tone under 700 KB.'); return; }
+    var rd = new FileReader();
+    rd.onload = function(){
+      try { localStorage.setItem('gm_notif_sound_custom', rd.result); localStorage.setItem('gm_notif_sound_name', f.name); localStorage.setItem(NOTIF_SOUND_KEY, 'custom'); }
+      catch (e) { alert('Could not save that sound on this phone.'); return; }
+      SOUNDS.custom.label = f.name.replace(/\.[^.]+$/, '');
+      document.getElementById('currentSoundLabel').textContent = SOUNDS.custom.label;
+      renderSoundList(); gmSoundPreview('custom');
+    };
+    rd.readAsDataURL(f);
+  };
+  document.getElementById('addDeviceSoundRow').addEventListener('click', function(){ gmSndInput.value = ''; gmSndInput.click(); });
 
 window.GM_playNotifSound = function(){ playNotifSound(getSavedSound()); };
 
@@ -3802,7 +3850,7 @@ async function fetchNotifications(){
   var localItems = getGovtSchemesLocalNotifs().filter(function(n){
     return !n.time || n.time > clearedBefore;
   });
-  items = items.concat(localItems).concat(getWeatherLocalNotifs().filter(function(n){ return !n.time || n.time > clearedBefore; }));
+  items = items.concat(localItems).concat(getWeatherLocalNotifs().filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmAqNotifs ? window.gmAqNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; }));
   items.sort(function(a, b){ return b.time - a.time; });
 
   return items;
@@ -3816,6 +3864,7 @@ async function updateBellBadge(){
     var lastSeen = getLastSeenTime();
     var unread = items.filter(function(n){ return n.time > lastSeen; }).length;
     window.GM_unreadOrders = items.filter(function(n){ return n.type === "order" && n.time > lastSeen; }).length;
+    if (window.gmSysNotifyNew) window.gmSysNotifyNew(items);
     gmUpdateTodayLine();
     if (unread > 0){
       badge.textContent = unread > 9 ? "9+" : String(unread);
@@ -5534,6 +5583,37 @@ var GMScene = (function(){
     if (c >= 2) return "linear-gradient(180deg,#5d7bb0,#a3b6d6)";
     return "linear-gradient(180deg,#2f7fd0,#8cc4f0)";
   }
+  function tipsHtml(r, i0, now){
+    var h = r.hourly, d = r.daily, T = [], i, pop, wet = -1, uv = d.uv_index_max[0];
+    var setMs = new Date(d.sunset[0]).getTime();
+    if (now < setMs) T.push(["Don't miss the sunset", "Sunset will be at " + clock(d.sunset[0])]);
+    else T.push(["Sunrise tomorrow", "Sunrise will be at " + clock(d.sunrise[1])]);
+    for (i = i0; i < Math.min(h.time.length, i0 + 24); i++){ pop = h.precipitation_probability ? h.precipitation_probability[i] : 0; if (pop >= 50){ wet = i; break; } }
+    T.push(wet >= 0 ? ["Grab an umbrella", "Rain is likely around " + hr12(new Date(h.time[wet]).getTime())] : ["No rain expected", "It looks dry for the next 24 hours"]);
+    T.push(["Tomorrow's outlook", wmo(d.weather_code ? d.weather_code[1] : 3, false)[0] + ". High " + Math.round(d.temperature_2m_max[1]) + "\u00B0, low " + Math.round(d.temperature_2m_min[1]) + "\u00B0."]);
+    if (uv >= 6) T.push(["Cover up", "UV is " + uvName(uv).toLowerCase() + " today. Use sun protection from 11 am to 3 pm."]);
+    return '<div class="gmwx-card" style="animation-delay:.15s;padding:14px 0"><div class="gmwx-tips">' + T.map(function(t){ return '<div class="gmwx-t2"><b>' + t[0] + '</b><span>' + t[1] + '</span></div>'; }).join("") +
+      '</div><div class="gmwx-dots">' + T.map(function(t, k){ return '<i' + (k ? "" : ' class="on"') + '></i>'; }).join("") + '</div></div>';
+  }
+  function solarHtml(d){
+    if (!d.shortwave_radiation_sum) return "";
+    var u = d.shortwave_radiation_sum.map(function(x){ return x == null ? 0 : x / 3.6 * 0.75; }), mx = Math.max.apply(null, u) || 1, t = u[0];
+    var lab = t >= 4.3 * 1.1 ? "Good solar day" : t <= 4.3 * 0.7 ? "Low solar output" : "Average solar day", rows = "";
+    u.forEach(function(v, i){
+      var nm = i === 0 ? "Today" : i === 1 ? "Tomorrow" : new Date(d.time[i] + "T12:00").toLocaleDateString("en-IN", { weekday: "short" });
+      rows += '<div class="gmwx-sol"><span>' + nm + '</span><div><i style="width:' + Math.round(v / mx * 100) + '%"></i></div><b>' + v.toFixed(1) + '</b></div>';
+    });
+    return '<div class="gmwx-card" style="animation-delay:.25s"><div class="gmwx-ct">Solar forecast \u00B7 units per kW</div><div style="font-size:15px;margin-bottom:6px"><b>' + lab + '</b>. A 3 kW system could make about ' + (t * 3).toFixed(0) + ' units today.</div>' + rows +
+      '<div style="font-size:11px;opacity:.65;margin-top:6px">Estimate: sunshine energy x 75% system efficiency.</div></div>';
+  }
+  function aqHtml(){
+    var a = window.GM_aq, h = '<div class="gmwx-card" style="animation-delay:.05s"><div class="gmwx-ct">Air quality' + (a ? " \u00B7 " + a.src : "") + '</div>';
+    if (!a) return h + '<div style="font-size:13px;opacity:.8">Loading air quality\u2026</div></div>';
+    var P = [["PM2.5", a.pm25], ["PM10", a.pm10], ["CO", a.co], ["NO\u2082", a.no2], ["SO\u2082", a.so2], ["O\u2083", a.o3]];
+    return h + '<div class="gmwx-aq"><b style="color:' + a.color + '">' + a.aqi + '</b><span style="background:' + a.color + '">' + a.name + '</span></div>' +
+      '<div class="gmwx-scale"><i style="left:' + Math.min(99, a.aqi / 5) + '%"></i></div><div class="gmwx-pol">' +
+      P.map(function(p){ return "<div>" + p[0] + "<b>" + (p[1] == null ? "-" : Math.round(p[1])) + "</b>\u00B5g/m\u00B3</div>"; }).join("") + '</div><div class="gmwx-tip">' + a.tip + '</div></div>';
+  }
   function build(){
     var r = window.GM_weatherRaw, w = window.GM_weather;
     if (!r || !r.current || !r.hourly || !r.daily){
@@ -5549,6 +5629,7 @@ var GMScene = (function(){
     html += '<div class="gmwx-bar"><button class="gmwx-x" aria-label="Back">\u2190</button><span>\uD83D\uDCCD ' + '<span id="gmwxPlace"></span></span></div>';
     html += '<div class="gmwx-hero"><div class="gmwx-ico">' + info[1] + '</div><div class="gmwx-temp"><span id="gmwxT">' + Math.round(c.temperature_2m) + '</span>\u00B0</div>' +
       '<div class="gmwx-cond">' + info[0] + '</div><div class="gmwx-sub">' + Math.round(d.temperature_2m_max[0]) + '\u00B0 / ' + Math.round(d.temperature_2m_min[0]) + '\u00B0 &nbsp; Feels like ' + Math.round(c.apparent_temperature) + '\u00B0</div></div>';
+    html += aqHtml();
     html += '<div class="gmwx-card" style="animation-delay:.1s"><div class="gmwx-ct">Next 24 hours</div><div class="gmwx-hours">';
     for (i = i0; i < Math.min(h.time.length, i0 + 24); i++){
       var t = new Date(h.time[i]).getTime(), hn = new Date(t).getHours(), dayIdx = 0;
@@ -5556,14 +5637,14 @@ var GMScene = (function(){
       var p = h.precipitation_probability ? h.precipitation_probability[i] : 0;
       html += '<div class="gmwx-h"><span>' + (i === i0 ? "Now" : hr12(t)) + '</span><span style="font-size:22px">' + wmo(h.weather_code[i], nt)[1] + '</span><b>' + Math.round(h.temperature_2m[i]) + '\u00B0</b><small>' + (p >= 10 ? "\uD83D\uDCA7" + p + "%" : "") + '</small></div>';
     }
-    html += '</div></div><div class="gmwx-card" style="animation-delay:.2s"><div class="gmwx-ct">Next days</div>';
+    html += '</div></div>' + tipsHtml(r, i0, now) + '<div class="gmwx-card" style="animation-delay:.2s"><div class="gmwx-ct">Next days</div>';
     for (i = 0; i < d.time.length; i++){
       var nm = i === 0 ? "Today" : i === 1 ? "Tomorrow" : new Date(d.time[i] + "T12:00").toLocaleDateString("en-IN", { weekday: "long" });
       var pp = d.precipitation_probability_max ? d.precipitation_probability_max[i] : 0;
       html += '<div class="gmwx-d"><span>' + nm + '</span><i>' + (pp >= 10 ? "\uD83D\uDCA7 " + pp + "%" : "") + '</i><em>' + wmo(d.weather_code ? d.weather_code[i] : 3, false)[1] + '</em><b>' + Math.round(d.temperature_2m_max[i]) + '\u00B0 ' + Math.round(d.temperature_2m_min[i]) + '\u00B0</b></div>';
     }
     var dirs = ["N","NE","E","SE","S","SW","W","NW"], uv = d.uv_index_max[0];
-    html += '</div><div class="gmwx-tiles">' +
+    html += '</div>' + solarHtml(d) + '<div class="gmwx-tiles">' +
       '<div class="gmwx-tile" style="animation-delay:.3s"><div class="k">\u2600\uFE0F</div><div class="n">UV index</div><div class="v">' + uvName(uv) + ' (' + Math.round(uv) + ')</div></div>' +
       '<div class="gmwx-tile" style="animation-delay:.35s"><div class="k">\uD83D\uDCA7</div><div class="n">Humidity</div><div class="v">' + Math.round(c.relative_humidity_2m) + '%</div></div>' +
       '<div class="gmwx-tile" style="animation-delay:.4s"><div class="k">\uD83D\uDCA8</div><div class="n">Wind</div><div class="v">' + Math.round(c.wind_speed_10m) + ' km/h ' + dirs[Math.round(c.wind_direction_10m / 45) % 8] + '</div></div>' +
@@ -5583,7 +5664,9 @@ var GMScene = (function(){
   function show(){
     if (open) return;
     if (!el){ el = document.createElement("div"); el.id = "gmWx"; el.className = "gmwx"; el.setAttribute("role", "dialog"); document.body.appendChild(el);
-      el.addEventListener("click", function(e){ if (e.target.closest(".gmwx-x")) hide(true); }); }
+      el.addEventListener("click", function(e){ if (e.target.closest(".gmwx-x")) hide(true); });
+      el.addEventListener("scroll", function(e){ var t = e.target; if (t.classList && t.classList.contains("gmwx-tips")){ var k = Math.round(t.scrollLeft / t.clientWidth), ds = t.parentNode.querySelectorAll(".gmwx-dots i"); for (var z = 0; z < ds.length; z++) ds[z].className = z === k ? "on" : ""; } }, true); }
+    var tb = document.querySelector("#homeScreen .topbar"); el.style.top = (tb ? Math.round(tb.getBoundingClientRect().bottom) : 0) + "px";
     build(); open = true; el.scrollTop = 0;
     try{ history.pushState({ gmwx: 1 }, ""); }catch(e){}
     requestAnimationFrame(function(){ el.classList.add("open"); });
@@ -5596,6 +5679,86 @@ var GMScene = (function(){
   window.addEventListener("popstate", function(){ if (open) hide(false); });
   document.addEventListener("click", function(e){ if (e.target.closest && e.target.closest("#locTempPill,#greetingSub")) show(); });
   window.addEventListener("gm-weather", function(){ if (open) build(); });
+  window.addEventListener("gm-aq", function(){ if (open) build(); });
+})();
+</script>
+<script id="gmAqJs">
+/* Air quality (Open-Meteo, modelled; India NAQI bands), bell alerts, EMBER answers and phone notifications */
+(function(){
+  var KEY = "gm_aq_v1", ALOG = "gm_aq_alerts_v1", SYN = "gm_sysnotif_last";
+  var COL = ["#55a84f", "#a3c853", "#f2c94c", "#f29c38", "#e5493a", "#9b1c1c"];
+  var NAME = ["Good", "Satisfactory", "Moderate", "Poor", "Very poor", "Severe"];
+  var TIP = ["The air is clean. A good day to be outside.",
+    "Fine for most people. Very sensitive people may feel mild discomfort.",
+    "People with asthma or heart or lung problems should limit long outdoor effort.",
+    "Wear a mask outdoors and keep outdoor exercise short. Sensitive people should stay indoors.",
+    "Wear an N95 mask outside, skip outdoor exercise and keep windows closed.",
+    "Stay indoors. If you must go out, wear an N95 mask. Use an air purifier if you have one."];
+  var BP = { pm25: [[0,30,0,50],[30,60,50,100],[60,90,100,200],[90,120,200,300],[120,250,300,400],[250,380,400,500]],
+             pm10: [[0,50,0,50],[50,100,50,100],[100,250,100,200],[250,350,200,300],[350,430,300,400],[430,600,400,500]] };
+  function sub(c, t){ if (c == null || isNaN(c)) return 0; for (var i = 0; i < t.length; i++){ if (c <= t[i][1]) return t[i][2] + (c - t[i][0]) / (t[i][1] - t[i][0]) * (t[i][3] - t[i][2]); } return 500; }
+  function band(a){ return a <= 50 ? 0 : a <= 100 ? 1 : a <= 200 ? 2 : a <= 300 ? 3 : a <= 400 ? 4 : 5; }
+  function analyse(c, place){
+    var a = Math.round(Math.max(sub(c.pm2_5, BP.pm25), sub(c.pm10, BP.pm10))), b = band(a);
+    return { aqi: a, b: b, name: NAME[b], color: COL[b], tip: TIP[b], pm25: c.pm2_5, pm10: c.pm10, co: c.carbon_monoxide, no2: c.nitrogen_dioxide, so2: c.sulphur_dioxide, o3: c.ozone, place: place || "Your area", ts: Date.now(), src: "Open-Meteo (modelled)" };
+  }
+  async function load(lat, lng, place){
+    var j = null;
+    try{ var c = JSON.parse(localStorage.getItem(KEY) || "null"); if (c && Math.abs(c.lat - lat) < .05 && Math.abs(c.lng - lng) < .05 && Date.now() - c.ts < 30 * 60000) j = c.j; }catch(e){}
+    if (!j){
+      try{
+        var r = await fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude=" + lat + "&longitude=" + lng + "&current=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone&timezone=auto");
+        if (r.ok){ j = await r.json(); localStorage.setItem(KEY, JSON.stringify({ lat: lat, lng: lng, ts: Date.now(), j: j })); }
+      }catch(e){}
+    }
+    if (!j || !j.current || j.current.pm2_5 == null) return;
+    var a = analyse(j.current, place); window.GM_aq = a; logAlert(a);
+    try{ window.dispatchEvent(new CustomEvent("gm-aq", { detail: a })); }catch(e){}
+  }
+  window.addEventListener("gm-weather", function(e){ var w = e.detail; if (w && w.lat != null) load(w.lat, w.lng, w.place); });
+  function logAlert(a){
+    if (a.b < 3) return;
+    try{
+      var log = JSON.parse(localStorage.getItem(ALOG) || "[]"), id = "aq_" + a.b + "_" + new Date().toISOString().slice(0, 10);
+      if (log.some(function(x){ return x.id === id; })) return;
+      log.push({ id: id, time: Date.now(), aqi: a.aqi, b: a.b, place: a.place });
+      localStorage.setItem(ALOG, JSON.stringify(log.slice(-6)));
+      if (typeof updateBellBadge === "function") updateBellBadge();
+    }catch(e){}
+  }
+  window.gmAqNotifs = function(){
+    try{ return JSON.parse(localStorage.getItem(ALOG) || "[]").map(function(x){
+      return { id: x.id, type: "weather", icon: "\uD83D\uDE37", title: "Air quality: " + NAME[x.b] + " (AQI " + x.aqi + ")", message: TIP[x.b] + " " + x.place + ".", link: "", time: x.time };
+    }); }catch(e){ return []; }
+  };
+  // ---- phone notification panel (works while the app is open or alive in the background) ----
+  window.gmSysNotify = function(title, body, tag, url){
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    var silent = (localStorage.getItem("gm_notif_sound") || "chime") !== "system";   // only the "phone default" choice uses the phone's own sound
+    var o = { body: body || "", icon: "icon-192.png", badge: "icon-192.png", tag: String(tag || "gm"), silent: silent, data: { url: url || "GreenMap_App.html" } };
+    if (navigator.serviceWorker && navigator.serviceWorker.ready){
+      navigator.serviceWorker.ready.then(function(r){ r.showNotification(title, o); }).catch(function(){ try{ new Notification(title, o); }catch(e){} });
+    } else { try{ new Notification(title, o); }catch(e){} }
+  };
+  window.gmSysNotifyNew = function(items){
+    try{
+      var last = parseInt(localStorage.getItem(SYN) || "0", 10);
+      if (!last){ localStorage.setItem(SYN, String(Date.now())); return; }
+      var fresh = items.filter(function(n){ return n.time > last; }).sort(function(a, b){ return a.time - b.time; }), newest = last;
+      fresh.slice(-3).forEach(function(n){ window.gmSysNotify(n.title, n.message, n.id, n.link || "GreenMap_App.html"); });
+      fresh.forEach(function(n){ if (n.time > newest) newest = n.time; });
+      if (newest > last) localStorage.setItem(SYN, String(newest));
+    }catch(e){}
+  };
+  // ---- EMBER ----
+  window.GM_emberAir = function(q){
+    if (!/\b(aqi|air quality|air pollution|pollution|smog|haze|pm ?2\.?5|pm ?10)\b|\bmask\b/.test(q)) return false;
+    var a = window.GM_aq, h;
+    if (!a) h = "<b>Air quality</b><br>I don't have air quality for your area yet. Allow location, open the weather screen, then ask again.";
+    else h = "<b>Air quality in " + emberEsc(a.place) + ": AQI " + a.aqi + " (" + a.name + ")</b><br>PM2.5 " + Math.round(a.pm25) + ", PM10 " + Math.round(a.pm10) + " \u00B5g/m\u00B3<br>" + a.tip + "<br><i>" + a.src + ". Approximate, not medical advice.</i>";
+    emcSay(h, "");
+    return true;
+  };
 })();
 </script>
 </body>
