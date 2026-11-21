@@ -1851,9 +1851,12 @@ async function loadLiveCatalog(){
 // list into Firestore so loadLiveCatalog() above always has the latest data, and
 // so EMBER (which reads the same "SEScollection" collection) stays in sync too.
 // Silent: logs to console only, nothing shown to the person using the page.
+var catalogSyncedThisLoad = false; // onAuthStateChanged can fire more than once per page load; only sync once
 async function autoSyncCatalogIfAdmin(){
   var user = sesAuth.currentUser;
   if (!user || user.email !== SES_ADMIN_EMAIL) return;
+  if (catalogSyncedThisLoad) return;
+  catalogSyncedThisLoad = true;
   var list = window.SES_BUILTIN_CATALOG || [];
   var ok = 0, failed = 0;
   // Demo products that were removed from the catalog are deleted from Firestore too.
@@ -1876,7 +1879,9 @@ async function autoSyncCatalogIfAdmin(){
     }
   }
   console.log("Auto-synced " + ok + " product(s) to Firestore" + (failed ? ", " + failed + " failed." : "."));
-  loadLiveCatalog();
+  // No loadLiveCatalog() call here: it would just re-read the data we were already
+  // showing (we pushed window.SES_BUILTIN_CATALOG, the same list already rendered
+  // on page load) — the one call inside onAuthStateChanged below covers it.
 };
 
 var sesAuthReadyResolve;
@@ -1917,13 +1922,14 @@ async function sesFetchFirebaseNotifs(){
   }
 }
 
+var catalogLoadedThisLoad = false; // same reasoning: onAuthStateChanged can fire more than once
 onAuthStateChanged(sesAuth, function(){
   if (!sesAuthReadyDone){ sesAuthReadyDone = true; sesAuthReadyResolve(); }
   sesFetchFirebaseNotifs();
   autoSyncCatalogIfAdmin();
+  if (!catalogLoadedThisLoad){ catalogLoadedThisLoad = true; loadLiveCatalog(); }
 });
 sesFetchFirebaseNotifs();
-loadLiveCatalog();
 window.addEventListener("gm-notifs-updated", sesFetchFirebaseNotifs);
 setInterval(sesFetchFirebaseNotifs, 60000);
 </script>

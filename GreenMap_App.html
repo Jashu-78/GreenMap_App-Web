@@ -396,16 +396,16 @@
 </style>
 <style id="gmWxCss">
   /* Weather screen (opens from the location pill or the greeting line) */
-  .gmwx{position:fixed;left:0;right:0;bottom:0;top:0;z-index:35;overflow-y:auto;color:#fff;visibility:hidden;transform:translateY(100%);transition:transform .35s cubic-bezier(.2,.8,.2,1),visibility 0s .35s;padding:env(safe-area-inset-top,0) 0 24px;}
+  .gmwx{position:fixed;left:0;right:0;bottom:0;top:0;z-index:35;overflow-y:auto;color:#fff;visibility:hidden;transform:translateY(100%);transition:transform .35s cubic-bezier(.2,.8,.2,1),visibility 0s .35s;padding:env(safe-area-inset-top,0) 0 24px;-webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%);text-shadow:0 1px 3px rgba(0,0,0,.28);}
   .gmwx.open{visibility:visible;transform:none;transition:transform .35s cubic-bezier(.2,.8,.2,1),visibility 0s;}
   .gmwx-bar{display:flex;align-items:center;gap:10px;padding:14px 16px;font-weight:700;font-size:17px;}
-  .gmwx-x{background:rgba(255,255,255,.18);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;}
+  .gmwx-x{background:rgba(255,255,255,.22);border:1.5px solid rgba(255,255,255,.7);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;}
   .gmwx-hero{padding:6px 22px 18px;position:relative;}
   .gmwx-temp{font-size:84px;font-weight:300;line-height:1;}
   .gmwx-cond{font-size:22px;margin-top:6px;}
   .gmwx-sub{font-size:14px;opacity:.8;margin-top:6px;}
   .gmwx-ico{position:absolute;right:22px;top:6px;font-size:64px;animation:gmwxFloat 4s ease-in-out infinite;}
-  .gmwx-card,.gmwx-tile{background:rgba(0,0,0,.22);border-radius:22px;margin:0 14px 12px;padding:14px 16px;}
+  .gmwx-card,.gmwx-tile{background:rgba(255,255,255,.2);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);border:1.5px solid rgba(255,255,255,.75);border-radius:24px;box-shadow:0 8px 24px rgba(20,70,60,.16),inset 0 1px 0 rgba(255,255,255,.55);margin:0 14px 12px;padding:14px 16px;}
   .gmwx.open .gmwx-card,.gmwx.open .gmwx-tile{animation:gmwxUp .5s both;}
   .gmwx-ct{font-weight:700;font-size:14px;opacity:.85;margin-bottom:10px;}
   .gmwx-hours{display:flex;gap:16px;overflow-x:auto;padding-bottom:4px;}
@@ -429,7 +429,7 @@
   .gmwx-scale{position:relative;height:8px;border-radius:6px;margin:14px 0 6px;background:linear-gradient(90deg,#55a84f 0 10%,#a3c853 10% 20%,#f2c94c 20% 40%,#f29c38 40% 60%,#e5493a 60% 80%,#9b1c1c 80% 100%);}
   .gmwx-scale i{position:absolute;top:-4px;width:4px;height:16px;background:#fff;border-radius:2px;}
   .gmwx-pol{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;font-size:12px;text-align:center;}
-  .gmwx-pol div{background:rgba(255,255,255,.1);border-radius:12px;padding:8px 4px;}
+  .gmwx-pol div{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:8px 4px;}
   .gmwx-pol b{display:block;font-size:15px;}
   .gmwx-tip{margin-top:10px;font-size:13px;line-height:1.4;}
   .gmwx-tips{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;}
@@ -5586,6 +5586,289 @@ var GMScene = (function(){
   check();
 })();
 </script>
+<script id="gmWxI18nJs">
+/* Weather screen, air quality and tips: text for all five languages (added to the main I18N table) */
+(function(){
+  var D = {
+ "en": {
+  "wxs_loading": "Weather is still loading. Allow location, then try again in a moment.",
+  "wxs_next24": "Next 24 hours",
+  "wxs_days": "Next days",
+  "wxs_now": "Now",
+  "wxs_feels": "Feels like",
+  "wxs_air": "Air quality",
+  "wxs_air_wait": "Loading air quality…",
+  "wxs_uv": "UV index",
+  "wxs_hum": "Humidity",
+  "wxs_wind": "Wind",
+  "wxs_sun": "Sun",
+  "wxs_uv0": "Low",
+  "wxs_uv1": "Moderate",
+  "wxs_uv2": "High",
+  "wxs_uv3": "Very high",
+  "wxs_uv4": "Extreme",
+  "wxs_foot": "Forecast data: Open-Meteo. These are forecasts, not official warnings.",
+  "wxs_c_clear": "Clear",
+  "wxs_c_night": "Clear night",
+  "wxs_c_partly": "Partly cloudy",
+  "wxs_c_cloudy": "Cloudy",
+  "wxs_c_fog": "Fog",
+  "wxs_c_snow": "Snow",
+  "wxs_t_sunset": "Don't miss the sunset",
+  "wxs_t_sunset_b": "Sunset will be at {t}",
+  "wxs_t_sunrise": "Sunrise tomorrow",
+  "wxs_t_sunrise_b": "Sunrise will be at {t}",
+  "wxs_t_umb": "Grab an umbrella",
+  "wxs_t_umb_b": "Rain is likely around {t}",
+  "wxs_t_dry": "No rain expected",
+  "wxs_t_dry_b": "It looks dry for the next 24 hours",
+  "wxs_t_tom": "Tomorrow's outlook",
+  "wxs_t_tom_b": "{c}. High {h}°, low {l}°.",
+  "wxs_t_uv": "Cover up",
+  "wxs_t_uv_b": "UV is {u} today. Use sun protection from 11 am to 3 pm.",
+  "wxs_sol": "Solar forecast · units per kW",
+  "wxs_sol_good": "Good solar day",
+  "wxs_sol_avg": "Average solar day",
+  "wxs_sol_low": "Low solar output",
+  "wxs_sol_b": "A 3 kW system could make about {n} units today.",
+  "wxs_sol_f": "Estimate: sunshine energy x 75% system efficiency.",
+  "wxs_aq0": "Good",
+  "wxs_aq1": "Satisfactory",
+  "wxs_aq2": "Moderate",
+  "wxs_aq3": "Poor",
+  "wxs_aq4": "Very poor",
+  "wxs_aq5": "Severe",
+  "wxs_aqt0": "The air is clean. A good day to be outside.",
+  "wxs_aqt1": "Fine for most people. Very sensitive people may feel mild discomfort.",
+  "wxs_aqt2": "People with asthma or heart or lung problems should limit long outdoor effort.",
+  "wxs_aqt3": "Wear a mask outdoors and keep outdoor exercise short. Sensitive people should stay indoors.",
+  "wxs_aqt4": "Wear an N95 mask outside, skip outdoor exercise and keep windows closed.",
+  "wxs_aqt5": "Stay indoors. If you must go out, wear an N95 mask. Use an air purifier if you have one."
+ },
+ "hi": {
+  "wxs_loading": "मौसम लोड हो रहा है। लोकेशन की अनुमति दें और थोड़ी देर बाद फिर कोशिश करें।",
+  "wxs_next24": "अगले 24 घंटे",
+  "wxs_days": "अगले दिन",
+  "wxs_now": "अभी",
+  "wxs_feels": "महसूस होता है",
+  "wxs_air": "वायु गुणवत्ता",
+  "wxs_air_wait": "वायु गुणवत्ता लोड हो रही है…",
+  "wxs_uv": "यूवी इंडेक्स",
+  "wxs_hum": "नमी",
+  "wxs_wind": "हवा",
+  "wxs_sun": "सूर्य",
+  "wxs_uv0": "कम",
+  "wxs_uv1": "मध्यम",
+  "wxs_uv2": "ज़्यादा",
+  "wxs_uv3": "बहुत ज़्यादा",
+  "wxs_uv4": "अत्यधिक",
+  "wxs_foot": "पूर्वानुमान डेटा: Open-Meteo। ये पूर्वानुमान हैं, आधिकारिक चेतावनी नहीं।",
+  "wxs_c_clear": "साफ़",
+  "wxs_c_night": "साफ़ रात",
+  "wxs_c_partly": "आंशिक बादल",
+  "wxs_c_cloudy": "बादल",
+  "wxs_c_fog": "कोहरा",
+  "wxs_c_snow": "बर्फबारी",
+  "wxs_t_sunset": "सूर्यास्त न चूकें",
+  "wxs_t_sunset_b": "सूर्यास्त {t} पर होगा",
+  "wxs_t_sunrise": "कल सूर्योदय",
+  "wxs_t_sunrise_b": "सूर्योदय {t} पर होगा",
+  "wxs_t_umb": "छाता साथ रखें",
+  "wxs_t_umb_b": "लगभग {t} बजे बारिश की संभावना है",
+  "wxs_t_dry": "बारिश की उम्मीद नहीं",
+  "wxs_t_dry_b": "अगले 24 घंटे सूखे रहने की संभावना है",
+  "wxs_t_tom": "कल का अनुमान",
+  "wxs_t_tom_b": "{c}। अधिकतम {h}°, न्यूनतम {l}°।",
+  "wxs_t_uv": "धूप से बचें",
+  "wxs_t_uv_b": "आज यूवी {u} है। सुबह 11 से दोपहर 3 बजे तक धूप से बचाव करें।",
+  "wxs_sol": "सौर पूर्वानुमान · प्रति kW यूनिट",
+  "wxs_sol_good": "अच्छा सौर दिन",
+  "wxs_sol_avg": "सामान्य सौर दिन",
+  "wxs_sol_low": "कम सौर उत्पादन",
+  "wxs_sol_b": "आज 3 kW सिस्टम से लगभग {n} यूनिट बन सकती हैं।",
+  "wxs_sol_f": "अनुमान: धूप की ऊर्जा × 75% सिस्टम क्षमता।",
+  "wxs_aq0": "अच्छी",
+  "wxs_aq1": "संतोषजनक",
+  "wxs_aq2": "मध्यम",
+  "wxs_aq3": "खराब",
+  "wxs_aq4": "बहुत खराब",
+  "wxs_aq5": "गंभीर",
+  "wxs_aqt0": "हवा साफ़ है। बाहर रहने का अच्छा दिन।",
+  "wxs_aqt1": "ज़्यादातर लोगों के लिए ठीक है। बहुत संवेदनशील लोगों को हल्की परेशानी हो सकती है।",
+  "wxs_aqt2": "दमा या दिल-फेफड़ों की समस्या वाले लोग बाहर ज़्यादा मेहनत न करें।",
+  "wxs_aqt3": "बाहर मास्क पहनें और कसरत कम करें। संवेदनशील लोग घर के अंदर रहें।",
+  "wxs_aqt4": "बाहर N95 मास्क पहनें, बाहर कसरत न करें और खिड़कियां बंद रखें।",
+  "wxs_aqt5": "घर के अंदर रहें। बाहर जाना ज़रूरी हो तो N95 मास्क पहनें। एयर प्यूरीफायर हो तो चलाएं।"
+ },
+ "te": {
+  "wxs_loading": "వాతావరణం లోడ్ అవుతోంది. లొకేషన్ అనుమతి ఇచ్చి, కొద్దిసేపటి తర్వాత మళ్లీ ప్రయత్నించండి.",
+  "wxs_next24": "తదుపరి 24 గంటలు",
+  "wxs_days": "రాబోయే రోజులు",
+  "wxs_now": "ఇప్పుడు",
+  "wxs_feels": "అనిపించే ఉష్ణోగ్రత",
+  "wxs_air": "గాలి నాణ్యత",
+  "wxs_air_wait": "గాలి నాణ్యత లోడ్ అవుతోంది…",
+  "wxs_uv": "యూవీ సూచిక",
+  "wxs_hum": "తేమ",
+  "wxs_wind": "గాలి",
+  "wxs_sun": "సూర్యుడు",
+  "wxs_uv0": "తక్కువ",
+  "wxs_uv1": "మధ్యస్థం",
+  "wxs_uv2": "ఎక్కువ",
+  "wxs_uv3": "చాలా ఎక్కువ",
+  "wxs_uv4": "తీవ్రం",
+  "wxs_foot": "అంచనా డేటా: Open-Meteo. ఇవి అంచనాలు మాత్రమే, అధికారిక హెచ్చరికలు కావు.",
+  "wxs_c_clear": "నిర్మలం",
+  "wxs_c_night": "నిర్మలమైన రాత్రి",
+  "wxs_c_partly": "పాక్షికంగా మేఘావృతం",
+  "wxs_c_cloudy": "మేఘావృతం",
+  "wxs_c_fog": "పొగమంచు",
+  "wxs_c_snow": "మంచు కురుస్తుంది",
+  "wxs_t_sunset": "సూర్యాస్తమయం మిస్ కావద్దు",
+  "wxs_t_sunset_b": "సూర్యాస్తమయం {t}కి",
+  "wxs_t_sunrise": "రేపు సూర్యోదయం",
+  "wxs_t_sunrise_b": "సూర్యోదయం {t}కి",
+  "wxs_t_umb": "గొడుగు తీసుకెళ్లండి",
+  "wxs_t_umb_b": "{t} సమయంలో వర్షం పడే అవకాశం ఉంది",
+  "wxs_t_dry": "వర్షం ఆశించడం లేదు",
+  "wxs_t_dry_b": "రాబోయే 24 గంటలు పొడిగా ఉండే అవకాశం ఉంది",
+  "wxs_t_tom": "రేపటి అంచనా",
+  "wxs_t_tom_b": "{c}. గరిష్ఠం {h}°, కనిష్ఠం {l}°.",
+  "wxs_t_uv": "ఎండ నుంచి జాగ్రత్త",
+  "wxs_t_uv_b": "ఈ రోజు యూవీ {u}. ఉదయం 11 నుంచి మధ్యాహ్నం 3 వరకు ఎండ రక్షణ వాడండి.",
+  "wxs_sol": "సోలార్ అంచనా · kWకి యూనిట్లు",
+  "wxs_sol_good": "మంచి సోలార్ రోజు",
+  "wxs_sol_avg": "సాధారణ సోలార్ రోజు",
+  "wxs_sol_low": "తక్కువ సోలార్ ఉత్పత్తి",
+  "wxs_sol_b": "ఈ రోజు 3 kW సిస్టమ్ సుమారు {n} యూనిట్లు ఉత్పత్తి చేయగలదు.",
+  "wxs_sol_f": "అంచనా: సూర్యకాంతి శక్తి × 75% సిస్టమ్ సామర్థ్యం.",
+  "wxs_aq0": "మంచిది",
+  "wxs_aq1": "సంతృప్తికరం",
+  "wxs_aq2": "మధ్యస్థం",
+  "wxs_aq3": "పేలవం",
+  "wxs_aq4": "చాలా పేలవం",
+  "wxs_aq5": "తీవ్రం",
+  "wxs_aqt0": "గాలి శుభ్రంగా ఉంది. బయట ఉండటానికి మంచి రోజు.",
+  "wxs_aqt1": "చాలామందికి పర్వాలేదు. చాలా సున్నితమైన వారికి కొంచెం ఇబ్బంది కలగవచ్చు.",
+  "wxs_aqt2": "ఆస్తమా లేదా గుండె, ఊపిరితిత్తుల సమస్యలు ఉన్నవారు బయట ఎక్కువ శ్రమ చేయవద్దు.",
+  "wxs_aqt3": "బయట మాస్క్ ధరించండి, వ్యాయామం తగ్గించండి. సున్నితమైన వారు ఇంట్లోనే ఉండండి.",
+  "wxs_aqt4": "బయట N95 మాస్క్ ధరించండి, బయట వ్యాయామం మానండి, కిటికీలు మూసి ఉంచండి.",
+  "wxs_aqt5": "ఇంట్లోనే ఉండండి. బయటకు వెళ్లాల్సి వస్తే N95 మాస్క్ ధరించండి. ఎయిర్ ప్యూరిఫైయర్ ఉంటే వాడండి."
+ },
+ "ta": {
+  "wxs_loading": "வானிலை ஏற்றப்படுகிறது. இருப்பிட அனுமதி அளித்து சிறிது நேரம் கழித்து மீண்டும் முயற்சிக்கவும்.",
+  "wxs_next24": "அடுத்த 24 மணி நேரம்",
+  "wxs_days": "வரும் நாட்கள்",
+  "wxs_now": "இப்போது",
+  "wxs_feels": "உணரப்படும் வெப்பம்",
+  "wxs_air": "காற்றின் தரம்",
+  "wxs_air_wait": "காற்றின் தரம் ஏற்றப்படுகிறது…",
+  "wxs_uv": "UV குறியீடு",
+  "wxs_hum": "ஈரப்பதம்",
+  "wxs_wind": "காற்று",
+  "wxs_sun": "சூரியன்",
+  "wxs_uv0": "குறைவு",
+  "wxs_uv1": "மிதம்",
+  "wxs_uv2": "அதிகம்",
+  "wxs_uv3": "மிக அதிகம்",
+  "wxs_uv4": "தீவிரம்",
+  "wxs_foot": "முன்னறிவிப்பு தரவு: Open-Meteo. இவை முன்னறிவிப்புகள் மட்டுமே, அதிகாரப்பூர்வ எச்சரிக்கைகள் அல்ல.",
+  "wxs_c_clear": "தெளிவு",
+  "wxs_c_night": "தெளிவான இரவு",
+  "wxs_c_partly": "ஓரளவு மேகமூட்டம்",
+  "wxs_c_cloudy": "மேகமூட்டம்",
+  "wxs_c_fog": "மூடுபனி",
+  "wxs_c_snow": "பனிப்பொழிவு",
+  "wxs_t_sunset": "சூரிய அஸ்தமனத்தைத் தவறவிடாதீர்கள்",
+  "wxs_t_sunset_b": "சூரிய அஸ்தமனம் {t} மணிக்கு",
+  "wxs_t_sunrise": "நாளை சூரிய உதயம்",
+  "wxs_t_sunrise_b": "சூரிய உதயம் {t} மணிக்கு",
+  "wxs_t_umb": "குடை எடுத்துச் செல்லுங்கள்",
+  "wxs_t_umb_b": "சுமார் {t} மணிக்கு மழை பெய்ய வாய்ப்பு உள்ளது",
+  "wxs_t_dry": "மழை எதிர்பார்க்கப்படவில்லை",
+  "wxs_t_dry_b": "அடுத்த 24 மணி நேரம் வறண்டிருக்க வாய்ப்பு",
+  "wxs_t_tom": "நாளைய முன்னறிவிப்பு",
+  "wxs_t_tom_b": "{c}. அதிகபட்சம் {h}°, குறைந்தபட்சம் {l}°.",
+  "wxs_t_uv": "வெயிலிலிருந்து பாதுகாப்பு",
+  "wxs_t_uv_b": "இன்று UV {u}. காலை 11 முதல் பிற்பகல் 3 வரை வெயில் பாதுகாப்பு பயன்படுத்துங்கள்.",
+  "wxs_sol": "சோலார் முன்னறிவிப்பு · kW-க்கு யூனிட்",
+  "wxs_sol_good": "நல்ல சோலார் நாள்",
+  "wxs_sol_avg": "சராசரி சோலார் நாள்",
+  "wxs_sol_low": "குறைந்த சோலார் உற்பத்தி",
+  "wxs_sol_b": "இன்று 3 kW அமைப்பு சுமார் {n} யூனிட் உற்பத்தி செய்யலாம்.",
+  "wxs_sol_f": "மதிப்பீடு: சூரிய ஒளி ஆற்றல் × 75% அமைப்புத் திறன்.",
+  "wxs_aq0": "நன்று",
+  "wxs_aq1": "திருப்தி",
+  "wxs_aq2": "மிதம்",
+  "wxs_aq3": "மோசம்",
+  "wxs_aq4": "மிக மோசம்",
+  "wxs_aq5": "கடுமை",
+  "wxs_aqt0": "காற்று தூய்மையாக உள்ளது. வெளியில் இருக்க நல்ல நாள்.",
+  "wxs_aqt1": "பெரும்பாலானோருக்கு பரவாயில்லை. மிகவும் உணர்திறன் உள்ளவர்களுக்கு லேசான அசௌகரியம் ஏற்படலாம்.",
+  "wxs_aqt2": "ஆஸ்துமா அல்லது இதய, நுரையீரல் பிரச்சினை உள்ளவர்கள் வெளியில் அதிகம் உழைக்க வேண்டாம்.",
+  "wxs_aqt3": "வெளியில் முகக்கவசம் அணியுங்கள், உடற்பயிற்சியைக் குறையுங்கள். உணர்திறன் உள்ளவர்கள் வீட்டிலேயே இருங்கள்.",
+  "wxs_aqt4": "வெளியில் N95 முகக்கவசம் அணியுங்கள், வெளிப்புற உடற்பயிற்சியைத் தவிர்க்கவும், ஜன்னல்களை மூடி வைக்கவும்.",
+  "wxs_aqt5": "வீட்டிலேயே இருங்கள். வெளியே செல்ல வேண்டுமானால் N95 முகக்கவசம் அணியுங்கள். காற்று சுத்திகரிப்பான் இருந்தால் பயன்படுத்துங்கள்."
+ },
+ "kn": {
+  "wxs_loading": "ಹವಾಮಾನ ಲೋಡ್ ಆಗುತ್ತಿದೆ. ಸ್ಥಳದ ಅನುಮತಿ ನೀಡಿ, ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.",
+  "wxs_next24": "ಮುಂದಿನ 24 ಗಂಟೆಗಳು",
+  "wxs_days": "ಮುಂದಿನ ದಿನಗಳು",
+  "wxs_now": "ಈಗ",
+  "wxs_feels": "ಅನಿಸುವ ತಾಪಮಾನ",
+  "wxs_air": "ಗಾಳಿಯ ಗುಣಮಟ್ಟ",
+  "wxs_air_wait": "ಗಾಳಿಯ ಗುಣಮಟ್ಟ ಲೋಡ್ ಆಗುತ್ತಿದೆ…",
+  "wxs_uv": "ಯುವಿ ಸೂಚ್ಯಂಕ",
+  "wxs_hum": "ತೇವಾಂಶ",
+  "wxs_wind": "ಗಾಳಿ",
+  "wxs_sun": "ಸೂರ್ಯ",
+  "wxs_uv0": "ಕಡಿಮೆ",
+  "wxs_uv1": "ಮಧ್ಯಮ",
+  "wxs_uv2": "ಹೆಚ್ಚು",
+  "wxs_uv3": "ತುಂಬಾ ಹೆಚ್ಚು",
+  "wxs_uv4": "ತೀವ್ರ",
+  "wxs_foot": "ಮುನ್ಸೂಚನೆ ಡೇಟಾ: Open-Meteo. ಇವು ಮುನ್ಸೂಚನೆಗಳು ಮಾತ್ರ, ಅಧಿಕೃತ ಎಚ್ಚರಿಕೆಗಳಲ್ಲ.",
+  "wxs_c_clear": "ಸ್ಪಷ್ಟ",
+  "wxs_c_night": "ಸ್ಪಷ್ಟ ರಾತ್ರಿ",
+  "wxs_c_partly": "ಭಾಗಶಃ ಮೋಡ",
+  "wxs_c_cloudy": "ಮೋಡ ಕವಿದಿದೆ",
+  "wxs_c_fog": "ಮಂಜು",
+  "wxs_c_snow": "ಹಿಮಪಾತ",
+  "wxs_t_sunset": "ಸೂರ್ಯಾಸ್ತ ತಪ್ಪಿಸಿಕೊಳ್ಳಬೇಡಿ",
+  "wxs_t_sunset_b": "ಸೂರ್ಯಾಸ್ತ {t}ಕ್ಕೆ",
+  "wxs_t_sunrise": "ನಾಳೆ ಸೂರ್ಯೋದಯ",
+  "wxs_t_sunrise_b": "ಸೂರ್ಯೋದಯ {t}ಕ್ಕೆ",
+  "wxs_t_umb": "ಕೊಡೆ ತೆಗೆದುಕೊಂಡು ಹೋಗಿ",
+  "wxs_t_umb_b": "ಸುಮಾರು {t}ಕ್ಕೆ ಮಳೆ ಬರುವ ಸಾಧ್ಯತೆ ಇದೆ",
+  "wxs_t_dry": "ಮಳೆ ನಿರೀಕ್ಷೆ ಇಲ್ಲ",
+  "wxs_t_dry_b": "ಮುಂದಿನ 24 ಗಂಟೆ ಒಣ ಹವೆ ಇರುವ ಸಾಧ್ಯತೆ",
+  "wxs_t_tom": "ನಾಳೆಯ ಮುನ್ಸೂಚನೆ",
+  "wxs_t_tom_b": "{c}. ಗರಿಷ್ಠ {h}°, ಕನಿಷ್ಠ {l}°.",
+  "wxs_t_uv": "ಬಿಸಿಲಿನಿಂದ ರಕ್ಷಣೆ",
+  "wxs_t_uv_b": "ಇಂದು ಯುವಿ {u}. ಬೆಳಿಗ್ಗೆ 11 ರಿಂದ ಮಧ್ಯಾಹ್ನ 3 ರವರೆಗೆ ಬಿಸಿಲಿನ ರಕ್ಷಣೆ ಬಳಸಿ.",
+  "wxs_sol": "ಸೋಲಾರ್ ಮುನ್ಸೂಚನೆ · kWಗೆ ಯೂನಿಟ್",
+  "wxs_sol_good": "ಉತ್ತಮ ಸೋಲಾರ್ ದಿನ",
+  "wxs_sol_avg": "ಸಾಮಾನ್ಯ ಸೋಲಾರ್ ದಿನ",
+  "wxs_sol_low": "ಕಡಿಮೆ ಸೋಲಾರ್ ಉತ್ಪಾದನೆ",
+  "wxs_sol_b": "ಇಂದು 3 kW ವ್ಯವಸ್ಥೆ ಸುಮಾರು {n} ಯೂನಿಟ್ ಉತ್ಪಾದಿಸಬಹುದು.",
+  "wxs_sol_f": "ಅಂದಾಜು: ಸೂರ್ಯನ ಬೆಳಕಿನ ಶಕ್ತಿ × 75% ವ್ಯವಸ್ಥೆಯ ದಕ್ಷತೆ.",
+  "wxs_aq0": "ಉತ್ತಮ",
+  "wxs_aq1": "ಸಮಾಧಾನಕರ",
+  "wxs_aq2": "ಮಧ್ಯಮ",
+  "wxs_aq3": "ಕಳಪೆ",
+  "wxs_aq4": "ತುಂಬಾ ಕಳಪೆ",
+  "wxs_aq5": "ತೀವ್ರ",
+  "wxs_aqt0": "ಗಾಳಿ ಶುದ್ಧವಾಗಿದೆ. ಹೊರಗೆ ಇರಲು ಒಳ್ಳೆಯ ದಿನ.",
+  "wxs_aqt1": "ಬಹುತೇಕರಿಗೆ ಸರಿ. ತುಂಬಾ ಸೂಕ್ಷ್ಮ ಜನರಿಗೆ ಸ್ವಲ್ಪ ತೊಂದರೆ ಆಗಬಹುದು.",
+  "wxs_aqt2": "ಅಸ್ತಮಾ ಅಥವಾ ಹೃದಯ, ಶ್ವಾಸಕೋಶ ಸಮಸ್ಯೆ ಇರುವವರು ಹೊರಗೆ ಹೆಚ್ಚು ಶ್ರಮ ಪಡಬೇಡಿ.",
+  "wxs_aqt3": "ಹೊರಗೆ ಮಾಸ್ಕ್ ಧರಿಸಿ, ವ್ಯಾಯಾಮ ಕಡಿಮೆ ಮಾಡಿ. ಸೂಕ್ಷ್ಮ ಜನರು ಮನೆಯಲ್ಲೇ ಇರಿ.",
+  "wxs_aqt4": "ಹೊರಗೆ N95 ಮಾಸ್ಕ್ ಧರಿಸಿ, ಹೊರಾಂಗಣ ವ್ಯಾಯಾಮ ಬೇಡ, ಕಿಟಕಿಗಳನ್ನು ಮುಚ್ಚಿ ಇಡಿ.",
+  "wxs_aqt5": "ಮನೆಯಲ್ಲೇ ಇರಿ. ಹೊರಗೆ ಹೋಗಲೇಬೇಕಾದರೆ N95 ಮಾಸ್ಕ್ ಧರಿಸಿ. ಏರ್ ಪ್ಯೂರಿಫೈಯರ್ ಇದ್ದರೆ ಬಳಸಿ."
+ }
+};
+  Object.keys(D).forEach(function(l){ if (window.I18N && window.I18N[l]) Object.assign(window.I18N[l], D[l]); });
+})();
+</script>
 <script id="gmWxJs">
 /* Weather screen: reads window.GM_weatherRaw (Open-Meteo) set by gmWeatherLoad */
 (function(){
@@ -5594,57 +5877,61 @@ var GMScene = (function(){
     71:["Light snow","\uD83C\uDF28\uFE0F"],73:["Snow","\uD83C\uDF28\uFE0F"],75:["Heavy snow","\u2744\uFE0F"],80:["Showers","\uD83C\uDF26\uFE0F"],81:["Rain showers","\uD83C\uDF27\uFE0F"],82:["Heavy showers","\u26C8\uFE0F"],
     95:["Thunderstorm","\u26C8\uFE0F"],96:["Thunderstorm, hail","\u26C8\uFE0F"],99:["Thunderstorm, hail","\u26C8\uFE0F"]};
   var el = null, open = false;
+  function T(k, v){ try{ return window.gmT ? window.gmT(k, v) : k; }catch(e){ return k; } }
+  function loc(){ try{ return { en: "en-IN", te: "te-IN", hi: "hi-IN", ta: "ta-IN", kn: "kn-IN" }[window.gmLang()] || "en-IN"; }catch(e){ return "en-IN"; } }
+  function cap(s){ return s.charAt(0).toUpperCase() + s.slice(1); }
+  var CK = {0:"wxs_c_clear",1:"wxs_c_clear",2:"wxs_c_partly",3:"wxs_c_cloudy",45:"wxs_c_fog",48:"wxs_c_fog",51:"wx_k_light",53:"wx_k_light",55:"wx_k_rain",61:"wx_k_light",63:"wx_k_rain",65:"wx_k_heavy",71:"wxs_c_snow",73:"wxs_c_snow",75:"wxs_c_snow",80:"wx_k_light",81:"wx_k_rain",82:"wx_k_heavy",95:"wx_k_storm",96:"wx_k_storm",99:"wx_k_storm"};
   function wmo(c, night){
     var r = WMO[c] || ["Weather", "\uD83C\uDF21\uFE0F"];
-    if (night && (c === 0 || c === 1)) return [c === 0 ? "Clear night" : r[0], "\uD83C\uDF19"];
-    return r;
+    if (night && (c === 0 || c === 1)) return [T("wxs_c_night"), "\uD83C\uDF19"];
+    return [cap(T(CK[c] || "wxs_c_cloudy")), r[1]];
   }
-  function hr12(ms){ var h = new Date(ms).getHours(); return (h % 12 || 12) + (h < 12 ? " am" : " pm"); }
-  function clock(iso){ var d = new Date(iso), h = d.getHours(), m = d.getMinutes(); return (h % 12 || 12) + ":" + (m < 10 ? "0" : "") + m + (h < 12 ? " am" : " pm"); }
-  function uvName(u){ return u < 3 ? "Low" : u < 6 ? "Moderate" : u < 8 ? "High" : u < 11 ? "Very high" : "Extreme"; }
-  function bg(c, night){
-    if (night) return "linear-gradient(180deg,#1b2340,#3b3f6b)";
-    if (c >= 95) return "linear-gradient(180deg,#3f4756,#6b7686)";
-    if (c >= 51) return "linear-gradient(180deg,#4f6178,#8496ab)";
-    if (c >= 2) return "linear-gradient(180deg,#5d7bb0,#a3b6d6)";
-    return "linear-gradient(180deg,#2f7fd0,#8cc4f0)";
+  function hr12(ms){ return new Date(ms).toLocaleTimeString(loc(), { hour: "numeric" }); }
+  function clock(iso){ return new Date(iso).toLocaleTimeString(loc(), { hour: "numeric", minute: "2-digit" }); }
+  function uvName(u){ return T("wxs_uv" + (u < 3 ? 0 : u < 6 ? 1 : u < 8 ? 2 : u < 11 ? 3 : 4)); }
+  function bg(c, night){   /* see-through sky tint: the Home page shows softly through it */
+    if (night) return "linear-gradient(180deg,rgba(27,35,64,.78),rgba(59,63,107,.6))";
+    if (c >= 95) return "linear-gradient(180deg,rgba(63,71,86,.72),rgba(107,118,134,.52))";
+    if (c >= 51) return "linear-gradient(180deg,rgba(79,97,120,.66),rgba(132,150,171,.46))";
+    if (c >= 2) return "linear-gradient(180deg,rgba(93,123,176,.6),rgba(163,182,214,.42))";
+    return "linear-gradient(180deg,rgba(47,127,208,.58),rgba(140,196,240,.4))";
   }
   function tipsHtml(r, i0, now){
-    var h = r.hourly, d = r.daily, T = [], i, pop, wet = -1, uv = d.uv_index_max[0];
+    var h = r.hourly, d = r.daily, TP = [], i, pop, wet = -1, uv = d.uv_index_max[0];
     var setMs = new Date(d.sunset[0]).getTime();
-    if (now < setMs) T.push(["Don't miss the sunset", "Sunset will be at " + clock(d.sunset[0])]);
-    else T.push(["Sunrise tomorrow", "Sunrise will be at " + clock(d.sunrise[1])]);
+    if (now < setMs) TP.push([T("wxs_t_sunset"), T("wxs_t_sunset_b", { t: clock(d.sunset[0]) })]);
+    else TP.push([T("wxs_t_sunrise"), T("wxs_t_sunrise_b", { t: clock(d.sunrise[1]) })]);
     for (i = i0; i < Math.min(h.time.length, i0 + 24); i++){ pop = h.precipitation_probability ? h.precipitation_probability[i] : 0; if (pop >= 50){ wet = i; break; } }
-    T.push(wet >= 0 ? ["Grab an umbrella", "Rain is likely around " + hr12(new Date(h.time[wet]).getTime())] : ["No rain expected", "It looks dry for the next 24 hours"]);
-    T.push(["Tomorrow's outlook", wmo(d.weather_code ? d.weather_code[1] : 3, false)[0] + ". High " + Math.round(d.temperature_2m_max[1]) + "\u00B0, low " + Math.round(d.temperature_2m_min[1]) + "\u00B0."]);
-    if (uv >= 6) T.push(["Cover up", "UV is " + uvName(uv).toLowerCase() + " today. Use sun protection from 11 am to 3 pm."]);
-    return '<div class="gmwx-card" style="animation-delay:.15s;padding:14px 0"><div class="gmwx-tips">' + T.map(function(t){ return '<div class="gmwx-t2"><b>' + t[0] + '</b><span>' + t[1] + '</span></div>'; }).join("") +
-      '</div><div class="gmwx-dots">' + T.map(function(t, k){ return '<i' + (k ? "" : ' class="on"') + '></i>'; }).join("") + '</div></div>';
+    TP.push(wet >= 0 ? [T("wxs_t_umb"), T("wxs_t_umb_b", { t: hr12(new Date(h.time[wet]).getTime()) })] : [T("wxs_t_dry"), T("wxs_t_dry_b")]);
+    TP.push([T("wxs_t_tom"), T("wxs_t_tom_b", { c: wmo(d.weather_code ? d.weather_code[1] : 3, false)[0], h: Math.round(d.temperature_2m_max[1]), l: Math.round(d.temperature_2m_min[1]) })]);
+    if (uv >= 6) TP.push([T("wxs_t_uv"), T("wxs_t_uv_b", { u: uvName(uv) })]);
+    return '<div class="gmwx-card" style="animation-delay:.15s;padding:14px 0"><div class="gmwx-tips">' + TP.map(function(t){ return '<div class="gmwx-t2"><b>' + t[0] + '</b><span>' + t[1] + '</span></div>'; }).join("") +
+      '</div><div class="gmwx-dots">' + TP.map(function(t, k){ return '<i' + (k ? "" : ' class="on"') + '></i>'; }).join("") + '</div></div>';
   }
   function solarHtml(d){
     if (!d.shortwave_radiation_sum) return "";
     var u = d.shortwave_radiation_sum.map(function(x){ return x == null ? 0 : x / 3.6 * 0.75; }), mx = Math.max.apply(null, u) || 1, t = u[0];
-    var lab = t >= 4.3 * 1.1 ? "Good solar day" : t <= 4.3 * 0.7 ? "Low solar output" : "Average solar day", rows = "";
+    var lab = T(t >= 4.3 * 1.1 ? "wxs_sol_good" : t <= 4.3 * 0.7 ? "wxs_sol_low" : "wxs_sol_avg"), rows = "";
     u.forEach(function(v, i){
-      var nm = i === 0 ? "Today" : i === 1 ? "Tomorrow" : new Date(d.time[i] + "T12:00").toLocaleDateString("en-IN", { weekday: "short" });
+      var nm = i === 0 ? T("wx_today") : i === 1 ? T("wx_tomorrow") : new Date(d.time[i] + "T12:00").toLocaleDateString(loc(), { weekday: "short" });
       rows += '<div class="gmwx-sol"><span>' + nm + '</span><div><i style="width:' + Math.round(v / mx * 100) + '%"></i></div><b>' + v.toFixed(1) + '</b></div>';
     });
-    return '<div class="gmwx-card" style="animation-delay:.25s"><div class="gmwx-ct">Solar forecast \u00B7 units per kW</div><div style="font-size:15px;margin-bottom:6px"><b>' + lab + '</b>. A 3 kW system could make about ' + (t * 3).toFixed(0) + ' units today.</div>' + rows +
-      '<div style="font-size:11px;opacity:.65;margin-top:6px">Estimate: sunshine energy x 75% system efficiency.</div></div>';
+    return '<div class="gmwx-card" style="animation-delay:.25s"><div class="gmwx-ct">' + T("wxs_sol") + '</div><div style="font-size:15px;margin-bottom:6px"><b>' + lab + '</b>. ' + T("wxs_sol_b", { n: (t * 3).toFixed(0) }) + '</div>' + rows +
+      '<div style="font-size:11px;opacity:.65;margin-top:6px">' + T('wxs_sol_f') + '</div></div>';
   }
   function aqHtml(){
-    var a = window.GM_aq, h = '<div class="gmwx-card" style="animation-delay:.05s"><div class="gmwx-ct">Air quality' + (a ? " \u00B7 " + a.src : "") + '</div>';
-    if (!a) return h + '<div style="font-size:13px;opacity:.8">Loading air quality\u2026</div></div>';
+    var a = window.GM_aq, h = '<div class="gmwx-card" style="animation-delay:.05s"><div class="gmwx-ct">' + T("wxs_air") + (a ? " \u00B7 " + a.src : "") + '</div>';
+    if (!a) return h + '<div style="font-size:13px;opacity:.8">' + T('wxs_air_wait') + '</div></div>';
     var P = [["PM2.5", a.pm25], ["PM10", a.pm10], ["CO", a.co], ["NO\u2082", a.no2], ["SO\u2082", a.so2], ["O\u2083", a.o3]];
-    return h + '<div class="gmwx-aq"><b style="color:' + a.color + '">' + a.aqi + '</b><span style="background:' + a.color + '">' + a.name + '</span></div>' +
+    return h + '<div class="gmwx-aq"><b style="color:' + a.color + '">' + a.aqi + '</b><span style="background:' + a.color + '">' + T("wxs_aq" + a.b) + '</span></div>' +
       '<div class="gmwx-scale"><i style="left:' + Math.min(99, a.aqi / 5) + '%"></i></div><div class="gmwx-pol">' +
-      P.map(function(p){ return "<div>" + p[0] + "<b>" + (p[1] == null ? "-" : Math.round(p[1])) + "</b>\u00B5g/m\u00B3</div>"; }).join("") + '</div><div class="gmwx-tip">' + a.tip + '</div></div>';
+      P.map(function(p){ return "<div>" + p[0] + "<b>" + (p[1] == null ? "-" : Math.round(p[1])) + "</b>\u00B5g/m\u00B3</div>"; }).join("") + '</div><div class="gmwx-tip">' + T("wxs_aqt" + a.b) + '</div></div>';
   }
   function build(){
     var r = window.GM_weatherRaw, w = window.GM_weather;
     if (!r || !r.current || !r.hourly || !r.daily){
       el.style.background = bg(3, false);
-      el.innerHTML = '<div class="gmwx-bar"><button class="gmwx-x" aria-label="Back">\u2190</button>Weather</div><div class="gmwx-card">Weather is still loading. Allow location, then try again in a moment.</div>';
+      el.innerHTML = '<div class="gmwx-bar"><button class="gmwx-x" aria-label="Back">\u2190</button></div><div class="gmwx-card">' + T('wxs_loading') + '</div>';
       return;
     }
     var c = r.current, h = r.hourly, d = r.daily, now = new Date(c.time).getTime(), i0 = 0, i, html = "";
@@ -5654,28 +5941,28 @@ var GMScene = (function(){
     for (i = 0; i < h.time.length; i++){ if (new Date(h.time[i]).getTime() >= now - 1800000){ i0 = i; break; } }
     html += '<div class="gmwx-bar"><button class="gmwx-x" aria-label="Back">\u2190</button><span>\uD83D\uDCCD ' + '<span id="gmwxPlace"></span></span></div>';
     html += '<div class="gmwx-hero"><div class="gmwx-ico">' + info[1] + '</div><div class="gmwx-temp"><span id="gmwxT">' + Math.round(c.temperature_2m) + '</span>\u00B0</div>' +
-      '<div class="gmwx-cond">' + info[0] + '</div><div class="gmwx-sub">' + Math.round(d.temperature_2m_max[0]) + '\u00B0 / ' + Math.round(d.temperature_2m_min[0]) + '\u00B0 &nbsp; Feels like ' + Math.round(c.apparent_temperature) + '\u00B0</div></div>';
+      '<div class="gmwx-cond">' + info[0] + '</div><div class="gmwx-sub">' + Math.round(d.temperature_2m_max[0]) + '\u00B0 / ' + Math.round(d.temperature_2m_min[0]) + '\u00B0 &nbsp; ' + T('wxs_feels') + ' ' + Math.round(c.apparent_temperature) + '\u00B0</div></div>';
     html += aqHtml();
-    html += '<div class="gmwx-card" style="animation-delay:.1s"><div class="gmwx-ct">Next 24 hours</div><div class="gmwx-hours">';
+    html += '<div class="gmwx-card" style="animation-delay:.1s"><div class="gmwx-ct">' + T("wxs_next24") + '</div><div class="gmwx-hours">';
     for (i = i0; i < Math.min(h.time.length, i0 + 24); i++){
       var t = new Date(h.time[i]).getTime(), hn = new Date(t).getHours(), dayIdx = 0;
       var nt = hn < new Date(d.sunrise[0]).getHours() || hn >= new Date(d.sunset[0]).getHours();
       var p = h.precipitation_probability ? h.precipitation_probability[i] : 0;
-      html += '<div class="gmwx-h"><span>' + (i === i0 ? "Now" : hr12(t)) + '</span><span style="font-size:22px">' + wmo(h.weather_code[i], nt)[1] + '</span><b>' + Math.round(h.temperature_2m[i]) + '\u00B0</b><small>' + (p >= 10 ? "\uD83D\uDCA7" + p + "%" : "") + '</small></div>';
+      html += '<div class="gmwx-h"><span>' + (i === i0 ? T("wxs_now") : hr12(t)) + '</span><span style="font-size:22px">' + wmo(h.weather_code[i], nt)[1] + '</span><b>' + Math.round(h.temperature_2m[i]) + '\u00B0</b><small>' + (p >= 10 ? "\uD83D\uDCA7" + p + "%" : "") + '</small></div>';
     }
-    html += '</div></div>' + tipsHtml(r, i0, now) + '<div class="gmwx-card" style="animation-delay:.2s"><div class="gmwx-ct">Next days</div>';
+    html += '</div></div>' + tipsHtml(r, i0, now) + '<div class="gmwx-card" style="animation-delay:.2s"><div class="gmwx-ct">' + T("wxs_days") + '</div>';
     for (i = 0; i < d.time.length; i++){
-      var nm = i === 0 ? "Today" : i === 1 ? "Tomorrow" : new Date(d.time[i] + "T12:00").toLocaleDateString("en-IN", { weekday: "long" });
+      var nm = i === 0 ? T("wx_today") : i === 1 ? T("wx_tomorrow") : new Date(d.time[i] + "T12:00").toLocaleDateString(loc(), { weekday: "long" });
       var pp = d.precipitation_probability_max ? d.precipitation_probability_max[i] : 0;
       html += '<div class="gmwx-d"><span>' + nm + '</span><i>' + (pp >= 10 ? "\uD83D\uDCA7 " + pp + "%" : "") + '</i><em>' + wmo(d.weather_code ? d.weather_code[i] : 3, false)[1] + '</em><b>' + Math.round(d.temperature_2m_max[i]) + '\u00B0 ' + Math.round(d.temperature_2m_min[i]) + '\u00B0</b></div>';
     }
     var dirs = ["N","NE","E","SE","S","SW","W","NW"], uv = d.uv_index_max[0];
     html += '</div>' + solarHtml(d) + '<div class="gmwx-tiles">' +
-      '<div class="gmwx-tile" style="animation-delay:.3s"><div class="k">\u2600\uFE0F</div><div class="n">UV index</div><div class="v">' + uvName(uv) + ' (' + Math.round(uv) + ')</div></div>' +
-      '<div class="gmwx-tile" style="animation-delay:.35s"><div class="k">\uD83D\uDCA7</div><div class="n">Humidity</div><div class="v">' + Math.round(c.relative_humidity_2m) + '%</div></div>' +
-      '<div class="gmwx-tile" style="animation-delay:.4s"><div class="k">\uD83D\uDCA8</div><div class="n">Wind</div><div class="v">' + Math.round(c.wind_speed_10m) + ' km/h ' + dirs[Math.round(c.wind_direction_10m / 45) % 8] + '</div></div>' +
-      '<div class="gmwx-tile" style="animation-delay:.45s"><div class="k">\uD83C\uDF05</div><div class="n">Sun</div><div class="v">\u2191 ' + clock(d.sunrise[0]) + '<br>\u2193 ' + clock(d.sunset[0]) + '</div></div></div>' +
-      '<div class="gmwx-foot">Forecast data: Open-Meteo. These are forecasts, not official warnings.</div>';
+      '<div class="gmwx-tile" style="animation-delay:.3s"><div class="k">\u2600\uFE0F</div><div class="n">' + T("wxs_uv") + '</div><div class="v">' + uvName(uv) + ' (' + Math.round(uv) + ')</div></div>' +
+      '<div class="gmwx-tile" style="animation-delay:.35s"><div class="k">\uD83D\uDCA7</div><div class="n">' + T("wxs_hum") + '</div><div class="v">' + Math.round(c.relative_humidity_2m) + '%</div></div>' +
+      '<div class="gmwx-tile" style="animation-delay:.4s"><div class="k">\uD83D\uDCA8</div><div class="n">' + T("wxs_wind") + '</div><div class="v">' + Math.round(c.wind_speed_10m) + ' km/h ' + dirs[Math.round(c.wind_direction_10m / 45) % 8] + '</div></div>' +
+      '<div class="gmwx-tile" style="animation-delay:.45s"><div class="k">\uD83C\uDF05</div><div class="n">' + T("wxs_sun") + '</div><div class="v">\u2191 ' + clock(d.sunrise[0]) + '<br>\u2193 ' + clock(d.sunset[0]) + '</div></div></div>' +
+      '<div class="gmwx-foot">' + T('wxs_foot') + '</div>';
     el.innerHTML = html;
     var pl = el.querySelector("#gmwxPlace"); if (pl) pl.textContent = (w && w.place) || "Your area";
     countUp(el.querySelector("#gmwxT"), Math.round(c.temperature_2m));
@@ -5752,9 +6039,10 @@ var GMScene = (function(){
       if (typeof updateBellBadge === "function") updateBellBadge();
     }catch(e){}
   }
+  function T(k){ try{ return window.gmT ? window.gmT(k) : k; }catch(e){ return k; } }
   window.gmAqNotifs = function(){
     try{ return JSON.parse(localStorage.getItem(ALOG) || "[]").map(function(x){
-      return { id: x.id, type: "weather", icon: "\uD83D\uDE37", title: "Air quality: " + NAME[x.b] + " (AQI " + x.aqi + ")", message: TIP[x.b] + " " + x.place + ".", link: "", time: x.time };
+      return { id: x.id, type: "weather", icon: "\uD83D\uDE37", title: T("wxs_air") + ": " + T("wxs_aq" + x.b) + " (AQI " + x.aqi + ")", message: T("wxs_aqt" + x.b) + " " + x.place + ".", link: "", time: x.time };
     }); }catch(e){ return []; }
   };
   // ---- phone notification panel (works while the app is open or alive in the background) ----
@@ -5781,7 +6069,7 @@ var GMScene = (function(){
     if (!/\b(aqi|air quality|air pollution|pollution|smog|haze|pm ?2\.?5|pm ?10)\b|\bmask\b/.test(q)) return false;
     var a = window.GM_aq, h;
     if (!a) h = "<b>Air quality</b><br>I don't have air quality for your area yet. Allow location, open the weather screen, then ask again.";
-    else h = "<b>Air quality in " + emberEsc(a.place) + ": AQI " + a.aqi + " (" + a.name + ")</b><br>PM2.5 " + Math.round(a.pm25) + ", PM10 " + Math.round(a.pm10) + " \u00B5g/m\u00B3<br>" + a.tip + "<br><i>" + a.src + ". Approximate, not medical advice.</i>";
+    else h = "<b>" + T("wxs_air") + " \u00B7 " + emberEsc(a.place) + ": AQI " + a.aqi + " (" + T("wxs_aq" + a.b) + ")</b><br>PM2.5 " + Math.round(a.pm25) + ", PM10 " + Math.round(a.pm10) + " \u00B5g/m\u00B3<br>" + T("wxs_aqt" + a.b) + "<br><i>" + a.src + "</i>";
     emcSay(h, "");
     return true;
   };
