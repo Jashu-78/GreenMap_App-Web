@@ -1156,6 +1156,7 @@ function esUpdateBellBadge(){
   var menuBadge = document.getElementById("menuBellBadge");
   var lastSeen = esGetLastSeen();
   var unread = esGetVisibleNotifLog().filter(function(n){ return new Date(n.time).getTime() > lastSeen; }).length;
+  if (window.gmSysNotifyList) window.gmSysNotifyList(esGetVisibleNotifLog());
   if (unread > 0){
     badge.textContent = unread > 9 ? "9+" : String(unread);
     badge.classList.add("show");
@@ -1637,9 +1638,9 @@ import { getFirestore, collection, query, where, getDocs, doc, setDoc, Timestamp
   /* inputs and search */
   input,select,textarea{transition:border-color .2s ease,box-shadow .25s ease,background-color .2s ease;}
   input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px rgba(61,153,102,.22);}
-  /* box-shadow only: a transform on .search-wrap would trap its dropdown behind the page below */
-  .search-wrap{transition:box-shadow .25s ease;}
-  .search-wrap:focus-within{box-shadow:0 0 0 3px rgba(120,200,150,.35);}
+  .search-wrap{transition:box-shadow .25s ease,transform .25s ease;}
+  .search-wrap:focus-within{box-shadow:0 0 0 3px rgba(120,200,150,.35);transform:translateY(-1px);}
+  .search-wrap:focus-within svg{animation:gmBump .45s ease;}
 
   /* headers: bar fades in, buttons spring in, logo breathes */
   .header,.topbar{animation:gmFadeIn .5s ease backwards;}
@@ -1836,6 +1837,39 @@ import { getFirestore, collection, query, where, getDocs, doc, setDoc, Timestamp
 <script id="gmPwaJs">
 /* PWA: registers the service worker so the app installs and opens offline */
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){});});}
+</script>
+<script id="gmPhoneNotifyJs">
+/* Sends this page's new bell items to the phone's notification panel (shared by every GreenMap page).
+   One shared time mark (gm_sysnotif_last) stops the same alert being sent twice when you move between pages. */
+(function(){
+  if (window.gmSysNotify) return;
+  var SYN = "gm_sysnotif_last";
+  window.gmSysNotify = function(title, body, tag, url){
+    if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+    var silent = (localStorage.getItem("gm_notif_sound") || "chime") !== "system";   // only "phone default" uses the phone's own sound
+    var o = { body: body || "", icon: "icon-192.png", badge: "icon-192.png", tag: String(tag || "gm"), silent: silent, data: { url: url || "GreenMap_App.html" } };
+    if (navigator.serviceWorker && navigator.serviceWorker.ready){
+      navigator.serviceWorker.ready.then(function(r){ r.showNotification(title, o); }).catch(function(){ try{ new Notification(title, o); }catch(e){} });
+    } else { try{ new Notification(title, o); }catch(e){} }
+  };
+  window.gmSysNotifyNew = function(items){
+    try{
+      var last = parseInt(localStorage.getItem(SYN) || "0", 10);
+      if (!last){ localStorage.setItem(SYN, String(Date.now())); return; }
+      var fresh = items.filter(function(n){ return n.time > last; }).sort(function(a, b){ return a.time - b.time; }), newest = last;
+      fresh.slice(-3).forEach(function(n){ window.gmSysNotify(n.title, n.message, n.id, n.link || "GreenMap_App.html"); });
+      fresh.forEach(function(n){ if (n.time > newest) newest = n.time; });
+      if (newest > last) localStorage.setItem(SYN, String(newest));
+    }catch(e){}
+  };
+  // for pages whose bell list looks like [{title, body, time(ISO)}]
+  window.gmSysNotifyList = function(log){
+    try{
+      var page = location.pathname.split("/").pop() || "GreenMap_App.html";
+      window.gmSysNotifyNew((log || []).map(function(n){ return { id: n.id || ((n.title || "") + "|" + n.time), title: n.title, message: n.body || n.message || "", time: new Date(n.time).getTime(), link: page }; }));
+    }catch(e){}
+  };
+})();
 </script>
 </body>
 </html>

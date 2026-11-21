@@ -396,16 +396,16 @@
 </style>
 <style id="gmWxCss">
   /* Weather screen (opens from the location pill or the greeting line) */
-  .gmwx{position:fixed;left:0;right:0;bottom:0;top:0;z-index:35;overflow-y:auto;color:#fff;visibility:hidden;transform:translateY(100%);transition:transform .35s cubic-bezier(.2,.8,.2,1),visibility 0s .35s;padding:env(safe-area-inset-top,0) 0 24px;-webkit-backdrop-filter:blur(16px) saturate(140%);backdrop-filter:blur(16px) saturate(140%);text-shadow:0 1px 3px rgba(0,0,0,.28);}
+  .gmwx{position:fixed;left:0;right:0;bottom:0;top:0;z-index:35;overflow-y:auto;color:#fff;visibility:hidden;transform:translateY(100%);transition:transform .35s cubic-bezier(.2,.8,.2,1),visibility 0s .35s;padding:env(safe-area-inset-top,0) 0 24px;}
   .gmwx.open{visibility:visible;transform:none;transition:transform .35s cubic-bezier(.2,.8,.2,1),visibility 0s;}
   .gmwx-bar{display:flex;align-items:center;gap:10px;padding:14px 16px;font-weight:700;font-size:17px;}
-  .gmwx-x{background:rgba(255,255,255,.22);border:1.5px solid rgba(255,255,255,.7);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;}
+  .gmwx-x{background:rgba(255,255,255,.18);border:none;color:#fff;width:36px;height:36px;border-radius:50%;font-size:18px;cursor:pointer;}
   .gmwx-hero{padding:6px 22px 18px;position:relative;}
   .gmwx-temp{font-size:84px;font-weight:300;line-height:1;}
   .gmwx-cond{font-size:22px;margin-top:6px;}
   .gmwx-sub{font-size:14px;opacity:.8;margin-top:6px;}
   .gmwx-ico{position:absolute;right:22px;top:6px;font-size:64px;animation:gmwxFloat 4s ease-in-out infinite;}
-  .gmwx-card,.gmwx-tile{background:rgba(255,255,255,.2);-webkit-backdrop-filter:blur(20px) saturate(160%);backdrop-filter:blur(20px) saturate(160%);border:1.5px solid rgba(255,255,255,.75);border-radius:24px;box-shadow:0 8px 24px rgba(20,70,60,.16),inset 0 1px 0 rgba(255,255,255,.55);margin:0 14px 12px;padding:14px 16px;}
+  .gmwx-card,.gmwx-tile{background:rgba(0,0,0,.22);border-radius:22px;margin:0 14px 12px;padding:14px 16px;}
   .gmwx.open .gmwx-card,.gmwx.open .gmwx-tile{animation:gmwxUp .5s both;}
   .gmwx-ct{font-weight:700;font-size:14px;opacity:.85;margin-bottom:10px;}
   .gmwx-hours{display:flex;gap:16px;overflow-x:auto;padding-bottom:4px;}
@@ -429,7 +429,7 @@
   .gmwx-scale{position:relative;height:8px;border-radius:6px;margin:14px 0 6px;background:linear-gradient(90deg,#55a84f 0 10%,#a3c853 10% 20%,#f2c94c 20% 40%,#f29c38 40% 60%,#e5493a 60% 80%,#9b1c1c 80% 100%);}
   .gmwx-scale i{position:absolute;top:-4px;width:4px;height:16px;background:#fff;border-radius:2px;}
   .gmwx-pol{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px;font-size:12px;text-align:center;}
-  .gmwx-pol div{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.35);border-radius:12px;padding:8px 4px;}
+  .gmwx-pol div{background:rgba(255,255,255,.1);border-radius:12px;padding:8px 4px;}
   .gmwx-pol b{display:block;font-size:15px;}
   .gmwx-tip{margin-top:10px;font-size:13px;line-height:1.4;}
   .gmwx-tips{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;}
@@ -3511,7 +3511,8 @@ function gmUpdateTodayLine(){
   var el = document.getElementById("greetingSub");
   if (!el) return;
   var pick = gmWeatherPickLine(window.GM_weather, window.GM_unreadOrders || 0);
-  el.textContent = !pick ? gmT("greeting_sub") : pick.alert ? gmAlertText(pick.alert) : gmT(pick.key, pick.vars);
+  var base = !pick ? gmT("greeting_sub") : pick.alert ? gmAlertText(pick.alert) : gmT(pick.key, pick.vars);
+  if (window.gmFlipLines) window.gmFlipLines(el, base); else el.textContent = base;
 }
 
 // Each important alert is saved once per phone (its estimate is refreshed in place), so the bell
@@ -3876,7 +3877,7 @@ async function fetchNotifications(){
   var localItems = getGovtSchemesLocalNotifs().filter(function(n){
     return !n.time || n.time > clearedBefore;
   });
-  items = items.concat(localItems).concat(getWeatherLocalNotifs().filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmAqNotifs ? window.gmAqNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; }));
+  items = items.concat(localItems).concat(getWeatherLocalNotifs().filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmAqNotifs ? window.gmAqNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmSunNotifs ? window.gmSunNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; }));
   items.sort(function(a, b){ return b.time - a.time; });
 
   return items;
@@ -5889,12 +5890,12 @@ var GMScene = (function(){
   function hr12(ms){ return new Date(ms).toLocaleTimeString(loc(), { hour: "numeric" }); }
   function clock(iso){ return new Date(iso).toLocaleTimeString(loc(), { hour: "numeric", minute: "2-digit" }); }
   function uvName(u){ return T("wxs_uv" + (u < 3 ? 0 : u < 6 ? 1 : u < 8 ? 2 : u < 11 ? 3 : 4)); }
-  function bg(c, night){   /* see-through sky tint: the Home page shows softly through it */
-    if (night) return "linear-gradient(180deg,rgba(27,35,64,.78),rgba(59,63,107,.6))";
-    if (c >= 95) return "linear-gradient(180deg,rgba(63,71,86,.72),rgba(107,118,134,.52))";
-    if (c >= 51) return "linear-gradient(180deg,rgba(79,97,120,.66),rgba(132,150,171,.46))";
-    if (c >= 2) return "linear-gradient(180deg,rgba(93,123,176,.6),rgba(163,182,214,.42))";
-    return "linear-gradient(180deg,rgba(47,127,208,.58),rgba(140,196,240,.4))";
+  function bg(c, night){
+    if (night) return "linear-gradient(180deg,#1b2340,#3b3f6b)";
+    if (c >= 95) return "linear-gradient(180deg,#3f4756,#6b7686)";
+    if (c >= 51) return "linear-gradient(180deg,#4f6178,#8496ab)";
+    if (c >= 2) return "linear-gradient(180deg,#5d7bb0,#a3b6d6)";
+    return "linear-gradient(180deg,#2f7fd0,#8cc4f0)";
   }
   function tipsHtml(r, i0, now){
     var h = r.hourly, d = r.daily, TP = [], i, pop, wet = -1, uv = d.uv_index_max[0];
@@ -6073,6 +6074,83 @@ var GMScene = (function(){
     emcSay(h, "");
     return true;
   };
+})();
+</script>
+<style id="gmFlipCss">
+  /* The line under the greeting flips between today's alerts like a split-flap clock */
+  #greetingSub.gm-flip{display:block;perspective:600px;min-height:1.35em;}
+  #greetingSub .gmf{display:block;transform-origin:50% 50%;transition:transform .32s ease,opacity .32s ease;backface-visibility:hidden;}
+  #greetingSub .gmf.out{transform:rotateX(-90deg);opacity:0;}
+  #greetingSub .gmf.pre{transform:rotateX(90deg);opacity:0;transition:none;}
+  @media (prefers-reduced-motion:reduce){#greetingSub .gmf{transition:none;}}
+</style>
+<script id="gmFlipJs">
+/* Flipping alerts under the greeting: [today's line] + sunset reminder + air quality */
+(function(){
+  var D = {
+    en: { flip_sset_in: "\uD83C\uDF05 Sunset in {m} min, at {t}. Use your solar while it lasts.", flip_sset_at: "\uD83C\uDF05 Sunset today at {t}.", flip_srise: "\uD83C\uDF19 Sunrise tomorrow at {t}." },
+    hi: { flip_sset_in: "\uD83C\uDF05 \u0938\u0942\u0930\u094D\u092F\u093E\u0938\u094D\u0924 {m} \u092E\u093F\u0928\u091F \u092E\u0947\u0902, {t} \u092A\u0930\u0964 \u0938\u094B\u0932\u0930 \u0915\u093E \u092D\u0930\u092A\u0942\u0930 \u0909\u092A\u092F\u094B\u0917 \u0915\u0930\u0947\u0902\u0964", flip_sset_at: "\uD83C\uDF05 \u0906\u091C \u0938\u0942\u0930\u094D\u092F\u093E\u0938\u094D\u0924 {t} \u092A\u0930\u0964", flip_srise: "\uD83C\uDF19 \u0915\u0932 \u0938\u0942\u0930\u094D\u092F\u094B\u0926\u092F {t} \u092A\u0930\u0964" },
+    te: { flip_sset_in: "\uD83C\uDF05 {m} \u0C28\u0C3F\u0C2E\u0C3F\u0C37\u0C3E\u0C32\u0C4D\u0C32\u0C4B \u0C38\u0C42\u0C30\u0C4D\u0C2F\u0C3E\u0C38\u0C4D\u0C24\u0C2E\u0C2F\u0C02, {t}\u0C15\u0C3F. \u0C38\u0C4B\u0C32\u0C3E\u0C30\u0C4D\u200C\u0C28\u0C41 \u0C07\u0C2A\u0C4D\u0C2A\u0C41\u0C21\u0C47 \u0C35\u0C3E\u0C21\u0C41\u0C15\u0C4B\u0C02\u0C21\u0C3F.", flip_sset_at: "\uD83C\uDF05 \u0C08 \u0C30\u0C4B\u0C1C\u0C41 \u0C38\u0C42\u0C30\u0C4D\u0C2F\u0C3E\u0C38\u0C4D\u0C24\u0C2E\u0C2F\u0C02 {t}\u0C15\u0C3F.", flip_srise: "\uD83C\uDF19 \u0C30\u0C47\u0C2A\u0C41 \u0C38\u0C42\u0C30\u0C4D\u0C2F\u0C4B\u0C26\u0C2F\u0C02 {t}\u0C15\u0C3F." },
+    ta: { flip_sset_in: "\uD83C\uDF05 {m} \u0BA8\u0BBF\u0BAE\u0BBF\u0B9F\u0BA4\u0BCD\u0BA4\u0BBF\u0BB2\u0BCD \u0B9A\u0BC2\u0BB0\u0BBF\u0BAF \u0B85\u0BB8\u0BCD\u0BA4\u0BAE\u0BA9\u0BAE\u0BCD, {t} \u0BAE\u0BA3\u0BBF\u0B95\u0BCD\u0B95\u0BC1. \u0B9A\u0BCB\u0BB2\u0BBE\u0BB0\u0BC8 \u0B87\u0BAA\u0BCD\u0BAA\u0BCB\u0BA4\u0BC7 \u0BAA\u0BAF\u0BA9\u0BCD\u0BAA\u0B9F\u0BC1\u0BA4\u0BCD\u0BA4\u0BC1\u0B99\u0BCD\u0B95\u0BB3\u0BCD.", flip_sset_at: "\uD83C\uDF05 \u0B87\u0BA9\u0BCD\u0BB1\u0BC1 \u0B9A\u0BC2\u0BB0\u0BBF\u0BAF \u0B85\u0BB8\u0BCD\u0BA4\u0BAE\u0BA9\u0BAE\u0BCD {t} \u0BAE\u0BA3\u0BBF\u0B95\u0BCD\u0B95\u0BC1.", flip_srise: "\uD83C\uDF19 \u0BA8\u0BBE\u0BB3\u0BC8 \u0B9A\u0BC2\u0BB0\u0BBF\u0BAF \u0B89\u0BA4\u0BAF\u0BAE\u0BCD {t} \u0BAE\u0BA3\u0BBF\u0B95\u0BCD\u0B95\u0BC1." },
+    kn: { flip_sset_in: "\uD83C\uDF05 {m} \u0CA8\u0CBF\u0CAE\u0CBF\u0CB7\u0CA6\u0CB2\u0CCD\u0CB2\u0CBF \u0CB8\u0CC2\u0CB0\u0CCD\u0CAF\u0CBE\u0CB8\u0CCD\u0CA4, {t}\u0C95\u0CCD\u0C95\u0CC6. \u0CB8\u0CCB\u0CB2\u0CBE\u0CB0\u0CCD \u0C85\u0CA8\u0CCD\u0CA8\u0CC1 \u0C88\u0C97\u0CB2\u0CC7 \u0CAC\u0CB3\u0CB8\u0CBF.", flip_sset_at: "\uD83C\uDF05 \u0C87\u0C82\u0CA6\u0CC1 \u0CB8\u0CC2\u0CB0\u0CCD\u0CAF\u0CBE\u0CB8\u0CCD\u0CA4 {t}\u0C95\u0CCD\u0C95\u0CC6.", flip_srise: "\uD83C\uDF19 \u0CA8\u0CBE\u0CB3\u0CC6 \u0CB8\u0CC2\u0CB0\u0CCD\u0CAF\u0CCB\u0CA6\u0CAF {t}\u0C95\u0CCD\u0C95\u0CC6." }
+  };
+  Object.keys(D).forEach(function(l){ if (window.I18N && window.I18N[l]) Object.assign(window.I18N[l], D[l]); });
+  var st = { el: null, lines: [], i: 0, timer: null, key: "" };
+  function T(k, v){ try{ return window.gmT(k, v); }catch(e){ return k; } }
+  function loc(){ try{ return { en: "en-IN", te: "te-IN", hi: "hi-IN", ta: "ta-IN", kn: "kn-IN" }[window.gmLang()] || "en-IN"; }catch(e){ return "en-IN"; } }
+  function clock(iso){ return new Date(iso).toLocaleTimeString(loc(), { hour: "numeric", minute: "2-digit" }); }
+  function sunLine(){
+    var r = window.GM_weatherRaw; if (!r || !r.daily || !r.daily.sunset) return null;
+    var now = Date.now(), set = new Date(r.daily.sunset[0]).getTime(), rise0 = new Date(r.daily.sunrise[0]).getTime();
+    if (now < rise0) return T("flip_srise", { t: clock(r.daily.sunrise[0]) });
+    if (now < set){ var m = Math.round((set - now) / 60000); return m <= 120 ? T("flip_sset_in", { m: m, t: clock(r.daily.sunset[0]) }) : T("flip_sset_at", { t: clock(r.daily.sunset[0]) }); }
+    return r.daily.sunrise[1] ? T("flip_srise", { t: clock(r.daily.sunrise[1]) }) : null;
+  }
+  function aqLine(){
+    var a = window.GM_aq; if (!a) return null;
+    return (a.b <= 1 ? "\uD83C\uDF3F " : a.b === 2 ? "\uD83D\uDE10 " : "\uD83D\uDE37 ") + T("wxs_air") + ": " + T("wxs_aq" + a.b) + " (AQI " + a.aqi + ")";
+  }
+  function paint(text, animate){
+    var sp = st.el.firstChild;
+    if (!sp || !sp.classList || !sp.classList.contains("gmf")){ st.el.innerHTML = '<span class="gmf"></span>'; sp = st.el.firstChild; }
+    var reduce = false; try{ reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){}
+    if (!animate || reduce){ sp.textContent = text; return; }
+    sp.classList.add("out");
+    setTimeout(function(){ sp.textContent = text; sp.classList.remove("out"); sp.classList.add("pre"); void sp.offsetWidth; sp.classList.remove("pre"); }, 330);
+  }
+  function tick(){ if (document.hidden || st.lines.length < 2) return; st.i = (st.i + 1) % st.lines.length; paint(st.lines[st.i], true); }
+  // called by gmUpdateTodayLine with the line it picked (alert, order, solar sentence)
+  window.gmFlipLines = function(el, base){
+    var lines = [base, sunLine(), aqLine()].filter(Boolean), key = lines.join("|");
+    st.el = el; el.classList.add("gm-flip");
+    if (key === st.key) return;
+    st.key = key; st.lines = lines; st.i = 0; paint(lines[0], false);
+    if (st.timer){ clearInterval(st.timer); st.timer = null; }
+    if (lines.length > 1) st.timer = setInterval(tick, 4500);
+  };
+  // ---- sunset reminder: one bell item and phone notification a day, within 60 minutes before sunset ----
+  var SLOG = "gm_sunset_log_v1";
+  function sunsetCheck(){
+    var r = window.GM_weatherRaw; if (!r || !r.daily || !r.daily.sunset) return;
+    var now = Date.now(), left = new Date(r.daily.sunset[0]).getTime() - now;
+    if (left <= 0 || left > 60 * 60000) return;
+    var id = "sunset_" + r.daily.sunset[0].slice(0, 10);
+    try{
+      var log = JSON.parse(localStorage.getItem(SLOG) || "[]");
+      if (log.some(function(x){ return x.id === id; })) return;
+      log.push({ id: id, time: now, m: Math.max(1, Math.round(left / 60000)), t: r.daily.sunset[0] });
+      localStorage.setItem(SLOG, JSON.stringify(log.slice(-5)));
+      if (typeof updateBellBadge === "function") updateBellBadge();
+    }catch(e){}
+  }
+  window.gmSunNotifs = function(){
+    try{ return JSON.parse(localStorage.getItem(SLOG) || "[]").map(function(x){
+      return { id: x.id, type: "weather", icon: "\uD83C\uDF05", title: T("flip_sset_in", { m: x.m, t: clock(x.t) }).replace(/^\S+\s+/, ""), message: "", link: "", time: x.time };
+    }); }catch(e){ return []; }
+  };
+  setInterval(sunsetCheck, 5 * 60000);
+  window.addEventListener("gm-aq", function(){ if (typeof gmUpdateTodayLine === "function") gmUpdateTodayLine(); });
+  window.addEventListener("gm-weather", sunsetCheck);
 })();
 </script>
 </body>
