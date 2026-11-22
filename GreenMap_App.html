@@ -445,10 +445,19 @@
   .gmwx-sol div{flex:1;height:9px;background:rgba(255,255,255,.15);border-radius:6px;overflow:hidden;}
   .gmwx-sol div i{display:block;height:100%;background:#f2da44;border-radius:6px;}
   .gmwx-sol b{width:30px;text-align:right;}
+  .gmwx-cl{display:flex;align-items:baseline;gap:8px;font-size:14px;margin:7px 0;}
+  .gmwx-cl span{flex:1;}
+  .gmwx-cl small{opacity:.7;font-size:11px;width:92px;text-align:right;}
   #locTempPill,#greetingSub{cursor:pointer;}
   @keyframes gmwxUp{from{opacity:0;transform:translateY(14px);}to{opacity:1;transform:none;}}
   @keyframes gmwxFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-6px);}}
   @media (prefers-reduced-motion:reduce){.gmwx,.gmwx.open{transition:none;}.gmwx.open .gmwx-card,.gmwx.open .gmwx-tile,.gmwx-ico{animation:none;}}
+</style>
+<style id="gmPingCss">
+  /* red dot on the EMBER button when EMBER has a new heads-up */
+  .energy-agent-fab.ember-ping::after{content:"";position:absolute;top:6px;right:6px;width:14px;height:14px;border-radius:50%;background:#e5493a;border:2px solid #fff;animation:emberPing 1.4s ease-in-out infinite;}
+  @keyframes emberPing{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(229,73,58,.6);}50%{transform:scale(1.15);box-shadow:0 0 0 7px rgba(229,73,58,0);}}
+  @media (prefers-reduced-motion:reduce){.energy-agent-fab.ember-ping::after{animation:none;}}
 </style>
 </head>
 <body>
@@ -2295,6 +2304,9 @@
   // Called from agentSendText before the older routes. Returns true when EMBER answered.
   function emberCalcTry(text){
     var q = text.toLowerCase().trim();
+    if (window.gmNormalizeIndic) q = window.gmNormalizeIndic(q);   // Telugu, Hindi, Tamil, Kannada words and digits become the English words EMBER knows
+    if (window.GM_emberTest && window.GM_emberTest(q)) return true;
+    if (window.GM_emberAdvice && window.GM_emberAdvice(q)) return true;
     if (window.GM_emberAir && window.GM_emberAir(q)) return true;
     if (!q || q.length > 200) return false;
     if (/^(?:show |list |see )?(?:my )?(?:unanswered|missed|unknown)(?: questions?)?$/.test(q)){
@@ -5920,6 +5932,20 @@ var GMScene = (function(){
     return '<div class="gmwx-card" style="animation-delay:.25s"><div class="gmwx-ct">' + T("wxs_sol") + '</div><div style="font-size:15px;margin-bottom:6px"><b>' + lab + '</b>. ' + T("wxs_sol_b", { n: (t * 3).toFixed(0) }) + '</div>' + rows +
       '<div style="font-size:11px;opacity:.65;margin-top:6px">' + T('wxs_sol_f') + '</div></div>';
   }
+  function climHtml(d){
+    var c = window.GM_clim; if (!c) return "";
+    function dt(x){ return new Date(x + "T12:00").toLocaleDateString(loc(), { day: "numeric", month: "short", year: "numeric" }); }
+    var R = [["\uD83D\uDD25", "wxs_cl_hot", Math.round(c.hot[0]) + "\u00B0C", c.hot[1]], ["\u2744\uFE0F", "wxs_cl_cold", Math.round(c.cold[0]) + "\u00B0C", c.cold[1]],
+             ["\uD83C\uDF27\uFE0F", "wxs_cl_wet", Math.round(c.wet[0]) + " mm", c.wet[1]], ["\uD83D\uDCA8", "wxs_cl_wind", Math.round(c.wind[0]) + " km/h", c.wind[1]]];
+    var o = '<div class="gmwx-card" style="animation-delay:.3s"><div class="gmwx-ct">' + T("wxs_cl_title", { y0: c.y0, y1: c.y1 }) + '</div>';
+    R.forEach(function(r){ o += '<div class="gmwx-cl"><span>' + r[0] + " " + T(r[1]) + '</span><b>' + r[2] + '</b><small>' + dt(r[3]) + '</small></div>'; });
+    if (c.mh != null){
+      var diff = d.temperature_2m_max[0] - c.mh, mon = new Date().toLocaleDateString(loc(), { month: "long" });
+      o += '<div class="gmwx-cl" style="margin-top:10px"><span>' + T("wxs_cl_avg", { m: mon, h: Math.round(c.mh), l: Math.round(c.ml) }) + '</span></div>' +
+        '<div style="font-size:13px;opacity:.9">' + (Math.abs(diff) < 1.5 ? T("wxs_cl_same") : T(diff > 0 ? "wxs_cl_warm" : "wxs_cl_cool", { d: Math.abs(diff).toFixed(1) })) + '</div>';
+    }
+    return o + '</div>';
+  }
   function aqHtml(){
     var a = window.GM_aq, h = '<div class="gmwx-card" style="animation-delay:.05s"><div class="gmwx-ct">' + T("wxs_air") + (a ? " \u00B7 " + a.src : "") + '</div>';
     if (!a) return h + '<div style="font-size:13px;opacity:.8">' + T('wxs_air_wait') + '</div></div>';
@@ -5958,7 +5984,7 @@ var GMScene = (function(){
       html += '<div class="gmwx-d"><span>' + nm + '</span><i>' + (pp >= 10 ? "\uD83D\uDCA7 " + pp + "%" : "") + '</i><em>' + wmo(d.weather_code ? d.weather_code[i] : 3, false)[1] + '</em><b>' + Math.round(d.temperature_2m_max[i]) + '\u00B0 ' + Math.round(d.temperature_2m_min[i]) + '\u00B0</b></div>';
     }
     var dirs = ["N","NE","E","SE","S","SW","W","NW"], uv = d.uv_index_max[0];
-    html += '</div>' + solarHtml(d) + '<div class="gmwx-tiles">' +
+    html += '</div>' + solarHtml(d) + climHtml(d) + '<div class="gmwx-tiles">' +
       '<div class="gmwx-tile" style="animation-delay:.3s"><div class="k">\u2600\uFE0F</div><div class="n">' + T("wxs_uv") + '</div><div class="v">' + uvName(uv) + ' (' + Math.round(uv) + ')</div></div>' +
       '<div class="gmwx-tile" style="animation-delay:.35s"><div class="k">\uD83D\uDCA7</div><div class="n">' + T("wxs_hum") + '</div><div class="v">' + Math.round(c.relative_humidity_2m) + '%</div></div>' +
       '<div class="gmwx-tile" style="animation-delay:.4s"><div class="k">\uD83D\uDCA8</div><div class="n">' + T("wxs_wind") + '</div><div class="v">' + Math.round(c.wind_speed_10m) + ' km/h ' + dirs[Math.round(c.wind_direction_10m / 45) % 8] + '</div></div>' +
@@ -5994,6 +6020,7 @@ var GMScene = (function(){
   document.addEventListener("click", function(e){ if (e.target.closest && e.target.closest("#locTempPill,#greetingSub")) show(); });
   window.addEventListener("gm-weather", function(){ if (open) build(); });
   window.addEventListener("gm-aq", function(){ if (open) build(); });
+  window.addEventListener("gm-clim", function(){ if (open) build(); });
 })();
 </script>
 <script id="gmAqJs">
@@ -6151,6 +6178,153 @@ var GMScene = (function(){
   setInterval(sunsetCheck, 5 * 60000);
   window.addEventListener("gm-aq", function(){ if (typeof gmUpdateTodayLine === "function") gmUpdateTodayLine(); });
   window.addEventListener("gm-weather", sunsetCheck);
+})();
+</script>
+<script id="gmEmberLangJs">
+/* EMBER in Telugu, Hindi, Tamil and Kannada for air quality and calculator questions, the "what should I do now" answer,
+   and the climate history behind the weather screen. */
+(function(){
+  var D = {"en": {"adv_title": "What to do now", "adv_nodata": "I do not have weather for your area yet. Allow location and open the weather screen.", "adv_ok": "No special warning right now. Enjoy the day.", "adv_solar_good": "Strong sun today (about {u} units per kW). Run the pump, washing machine or water heater between 10 am and 3 pm.", "adv_solar_avg": "Average sun today (about {u} units per kW). Run heavy appliances around noon.", "adv_solar_low": "Weak sun today (about {u} units per kW). Do not count on solar for heavy loads and save battery for the evening.", "adv_rain": "Rain is likely around {t}. Charge batteries and finish outdoor work before then.", "adv_storm": "Thunderstorm risk. Unplug sensitive devices and stay indoors during the storm.", "adv_wind": "Strong gusts up to {n} km/h. Secure or brake small wind turbines and loose panels.", "adv_heat": "Very hot, up to {n}°C. Panel output dips a little in heat. Use fans and shade to cut the AC load.", "wxs_cl_title": "Climate here, {y0} to {y1}", "wxs_cl_hot": "Hottest day", "wxs_cl_cold": "Coldest day", "wxs_cl_wet": "Wettest day", "wxs_cl_wind": "Windiest day", "wxs_cl_avg": "Usual for {m}: high {h}°, low {l}°", "wxs_cl_warm": "Today is {d}° warmer than usual for this time of year.", "wxs_cl_cool": "Today is {d}° cooler than usual for this time of year.", "wxs_cl_same": "About normal for this time of year.", "adv_ping_t": "EMBER heads-up", "adv_ping_aq": "Air quality is {name} right now (AQI {n})."}, "hi": {"adv_title": "अभी क्या करें", "adv_nodata": "आपके क्षेत्र का मौसम अभी उपलब्ध नहीं है। लोकेशन की अनुमति दें और मौसम स्क्रीन खोलें।", "adv_ok": "अभी कोई विशेष चेतावनी नहीं है। दिन का आनंद लें।", "adv_solar_good": "आज तेज़ धूप है (लगभग {u} यूनिट प्रति kW)। पंप, वॉशिंग मशीन या वॉटर हीटर सुबह 10 से दोपहर 3 बजे के बीच चलाएं।", "adv_solar_avg": "आज सामान्य धूप है (लगभग {u} यूनिट प्रति kW)। भारी उपकरण दोपहर के आसपास चलाएं।", "adv_solar_low": "आज धूप कमज़ोर है (लगभग {u} यूनिट प्रति kW)। भारी लोड के लिए सोलर पर निर्भर न रहें और बैटरी शाम के लिए बचाएं।", "adv_rain": "लगभग {t} बजे बारिश की संभावना है। उससे पहले बैटरी चार्ज करें और बाहर का काम निपटा लें।", "adv_storm": "आंधी-तूफ़ान का खतरा है। संवेदनशील उपकरण प्लग से निकालें और तूफ़ान में घर के अंदर रहें।", "adv_wind": "{n} km/h तक तेज़ झोंके हैं। छोटी पवन चक्कियों और ढीले पैनलों को सुरक्षित करें या ब्रेक लगाएं।", "adv_heat": "बहुत गर्मी है, {n}°C तक। गर्मी में पैनल का उत्पादन थोड़ा घटता है। पंखे और छाया से एसी का भार कम करें।", "wxs_cl_title": "यहाँ की जलवायु, {y0} से {y1}", "wxs_cl_hot": "सबसे गर्म दिन", "wxs_cl_cold": "सबसे ठंडा दिन", "wxs_cl_wet": "सबसे बारिश वाला दिन", "wxs_cl_wind": "सबसे तेज़ हवा का दिन", "wxs_cl_avg": "{m} के लिए सामान्य: अधिकतम {h}°, न्यूनतम {l}°", "wxs_cl_warm": "आज साल के इस समय के सामान्य से {d}° ज़्यादा गर्म है।", "wxs_cl_cool": "आज साल के इस समय के सामान्य से {d}° ज़्यादा ठंडा है।", "wxs_cl_same": "साल के इस समय के लिए लगभग सामान्य।", "adv_ping_t": "EMBER की चेतावनी", "adv_ping_aq": "अभी वायु गुणवत्ता {name} है (AQI {n})।"}, "te": {"adv_title": "ఇప్పుడు ఏం చేయాలి", "adv_nodata": "మీ ప్రాంతానికి వాతావరణ సమాచారం ఇంకా లేదు. లొకేషన్ అనుమతి ఇచ్చి వాతావరణ స్క్రీన్ తెరవండి.", "adv_ok": "ప్రస్తుతం ప్రత్యేక హెచ్చరిక ఏదీ లేదు. రోజును ఆస్వాదించండి.", "adv_solar_good": "ఈ రోజు ఎండ బలంగా ఉంది (kWకి సుమారు {u} యూనిట్లు). పంప్, వాషింగ్ మెషిన్ లేదా వాటర్ హీటర్‌ను ఉదయం 10 నుంచి మధ్యాహ్నం 3 మధ్య నడపండి.", "adv_solar_avg": "ఈ రోజు ఎండ సాధారణంగా ఉంది (kWకి సుమారు {u} యూనిట్లు). భారీ పరికరాలను మధ్యాహ్నం సమయంలో నడపండి.", "adv_solar_low": "ఈ రోజు ఎండ బలహీనంగా ఉంది (kWకి సుమారు {u} యూనిట్లు). భారీ లోడ్లకు సోలార్‌పై ఆధారపడవద్దు, బ్యాటరీని సాయంత్రానికి ఆదా చేయండి.", "adv_rain": "సుమారు {t} సమయంలో వర్షం పడే అవకాశం ఉంది. ఆ లోపు బ్యాటరీలు ఛార్జ్ చేసి బయటి పని ముగించండి.", "adv_storm": "ఉరుములతో కూడిన తుఫాను ప్రమాదం ఉంది. సున్నితమైన పరికరాలను ప్లగ్ నుంచి తీసివేసి, తుఫాను సమయంలో ఇంట్లోనే ఉండండి.", "adv_wind": "{n} km/h వరకు బలమైన గాలి ఝంకారాలు ఉన్నాయి. చిన్న విండ్ టర్బైన్లను, వదులైన ప్యానెల్స్‌ను భద్రపరచండి లేదా బ్రేక్ వేయండి.", "adv_heat": "చాలా వేడిగా ఉంది, {n}°C వరకు. వేడిలో ప్యానెల్ ఉత్పత్తి కొంచెం తగ్గుతుంది. ఫ్యాన్లు, నీడ వాడి ఏసీ లోడ్ తగ్గించండి.", "wxs_cl_title": "ఇక్కడి వాతావరణం, {y0} నుంచి {y1} వరకు", "wxs_cl_hot": "అత్యంత వేడి రోజు", "wxs_cl_cold": "అత్యంత చల్లని రోజు", "wxs_cl_wet": "అత్యధిక వర్షం కురిసిన రోజు", "wxs_cl_wind": "అత్యంత గాలి వీచిన రోజు", "wxs_cl_avg": "{m}కి సాధారణం: గరిష్ఠం {h}°, కనిష్ఠం {l}°", "wxs_cl_warm": "ఈ రోజు ఏడాదిలో ఈ సమయానికి సాధారణం కంటే {d}° ఎక్కువ వేడిగా ఉంది.", "wxs_cl_cool": "ఈ రోజు ఏడాదిలో ఈ సమయానికి సాధారణం కంటే {d}° చల్లగా ఉంది.", "wxs_cl_same": "ఏడాదిలో ఈ సమయానికి సుమారు సాధారణంగా ఉంది.", "adv_ping_t": "EMBER హెచ్చరిక", "adv_ping_aq": "ప్రస్తుతం గాలి నాణ్యత {name} (AQI {n})."}, "ta": {"adv_title": "இப்போது என்ன செய்யலாம்", "adv_nodata": "உங்கள் பகுதிக்கான வானிலை இன்னும் இல்லை. இருப்பிட அனுமதி அளித்து வானிலைத் திரையைத் திறக்கவும்.", "adv_ok": "இப்போது சிறப்பு எச்சரிக்கை எதுவும் இல்லை. நாளை இனிமையாகக் கழியுங்கள்.", "adv_solar_good": "இன்று வெயில் வலுவாக உள்ளது (kW-க்கு சுமார் {u} யூனிட்). பம்ப், துணி துவைக்கும் இயந்திரம் அல்லது வாட்டர் ஹீட்டரை காலை 10 முதல் பிற்பகல் 3 மணிக்குள் இயக்குங்கள்.", "adv_solar_avg": "இன்று வெயில் சராசரியாக உள்ளது (kW-க்கு சுமார் {u} யூனிட்). கனமான சாதனங்களை மதிய நேரத்தில் இயக்குங்கள்.", "adv_solar_low": "இன்று வெயில் பலவீனமாக உள்ளது (kW-க்கு சுமார் {u} யூனிட்). கனமான மின்சுமைக்கு சோலாரை நம்ப வேண்டாம், பேட்டரியை மாலைக்காகச் சேமியுங்கள்.", "adv_rain": "சுமார் {t} மணிக்கு மழை பெய்ய வாய்ப்பு உள்ளது. அதற்கு முன் பேட்டரிகளை சார்ஜ் செய்து வெளிவேலைகளை முடியுங்கள்.", "adv_storm": "இடியுடன் கூடிய புயல் ஆபத்து உள்ளது. உணர்திறன் சாதனங்களின் பிளக்கை அகற்றி, புயலின்போது வீட்டிலேயே இருங்கள்.", "adv_wind": "{n} km/h வரை பலத்த காற்று வீசும். சிறிய காற்றாலைகளையும் தளர்வான பேனல்களையும் பாதுகாப்பாக வையுங்கள் அல்லது பிரேக் போடுங்கள்.", "adv_heat": "மிகவும் வெப்பம், {n}°C வரை. வெப்பத்தில் பேனல் உற்பத்தி சற்றுக் குறையும். மின்விசிறிகளையும் நிழலையும் பயன்படுத்தி ஏசி சுமையைக் குறையுங்கள்.", "wxs_cl_title": "இங்குள்ள காலநிலை, {y0} முதல் {y1} வரை", "wxs_cl_hot": "மிகவும் வெப்பமான நாள்", "wxs_cl_cold": "மிகவும் குளிரான நாள்", "wxs_cl_wet": "அதிக மழை பெய்த நாள்", "wxs_cl_wind": "அதிக காற்று வீசிய நாள்", "wxs_cl_avg": "{m} மாதத்திற்கான வழக்கம்: அதிகபட்சம் {h}°, குறைந்தபட்சம் {l}°", "wxs_cl_warm": "இன்று ஆண்டின் இந்த நேரத்தின் வழக்கத்தை விட {d}° அதிக வெப்பம்.", "wxs_cl_cool": "இன்று ஆண்டின் இந்த நேரத்தின் வழக்கத்தை விட {d}° குளிர்ச்சி.", "wxs_cl_same": "ஆண்டின் இந்த நேரத்திற்கு ஏறக்குறைய வழக்கமானது.", "adv_ping_t": "EMBER எச்சரிக்கை", "adv_ping_aq": "இப்போது காற்றின் தரம் {name} (AQI {n})."}, "kn": {"adv_title": "ಈಗ ಏನು ಮಾಡಬೇಕು", "adv_nodata": "ನಿಮ್ಮ ಪ್ರದೇಶದ ಹವಾಮಾನ ಇನ್ನೂ ಲಭ್ಯವಿಲ್ಲ. ಸ್ಥಳದ ಅನುಮತಿ ನೀಡಿ ಹವಾಮಾನ ಪರದೆಯನ್ನು ತೆರೆಯಿರಿ.", "adv_ok": "ಈಗ ವಿಶೇಷ ಎಚ್ಚರಿಕೆ ಇಲ್ಲ. ದಿನವನ್ನು ಆನಂದಿಸಿ.", "adv_solar_good": "ಇಂದು ಬಿಸಿಲು ಬಲವಾಗಿದೆ (kWಗೆ ಸುಮಾರು {u} ಯೂನಿಟ್). ಪಂಪ್, ವಾಷಿಂಗ್ ಮೆಷಿನ್ ಅಥವಾ ವಾಟರ್ ಹೀಟರ್ ಅನ್ನು ಬೆಳಿಗ್ಗೆ 10 ರಿಂದ ಮಧ್ಯಾಹ್ನ 3 ರ ನಡುವೆ ಓಡಿಸಿ.", "adv_solar_avg": "ಇಂದು ಬಿಸಿಲು ಸಾಮಾನ್ಯವಾಗಿದೆ (kWಗೆ ಸುಮಾರು {u} ಯೂನಿಟ್). ಭಾರವಾದ ಉಪಕರಣಗಳನ್ನು ಮಧ್ಯಾಹ್ನದ ಸುಮಾರಿಗೆ ಓಡಿಸಿ.", "adv_solar_low": "ಇಂದು ಬಿಸಿಲು ದುರ್ಬಲವಾಗಿದೆ (kWಗೆ ಸುಮಾರು {u} ಯೂನಿಟ್). ಭಾರವಾದ ಲೋಡ್‌ಗಳಿಗೆ ಸೋಲಾರ್ ಮೇಲೆ ಅವಲಂಬಿಸಬೇಡಿ, ಬ್ಯಾಟರಿಯನ್ನು ಸಂಜೆಗೆ ಉಳಿಸಿ.", "adv_rain": "ಸುಮಾರು {t}ಕ್ಕೆ ಮಳೆ ಬರುವ ಸಾಧ್ಯತೆ ಇದೆ. ಅದಕ್ಕೂ ಮೊದಲು ಬ್ಯಾಟರಿ ಚಾರ್ಜ್ ಮಾಡಿ ಹೊರಗಿನ ಕೆಲಸ ಮುಗಿಸಿ.", "adv_storm": "ಗುಡುಗು ಸಹಿತ ಚಂಡಮಾರುತದ ಅಪಾಯವಿದೆ. ಸೂಕ್ಷ್ಮ ಸಾಧನಗಳ ಪ್ಲಗ್ ತೆಗೆದು, ಚಂಡಮಾರುತದ ವೇಳೆ ಮನೆಯೊಳಗೆ ಇರಿ.", "adv_wind": "{n} km/h ವರೆಗೆ ಬಲವಾದ ಗಾಳಿ ಬೀಸುತ್ತದೆ. ಸಣ್ಣ ವಿಂಡ್ ಟರ್ಬೈನ್‌ಗಳನ್ನೂ ಸಡಿಲ ಪ್ಯಾನೆಲ್‌ಗಳನ್ನೂ ಭದ್ರಪಡಿಸಿ ಅಥವಾ ಬ್ರೇಕ್ ಹಾಕಿ.", "adv_heat": "ತುಂಬಾ ಬಿಸಿಲು, {n}°C ವರೆಗೆ. ಬಿಸಿಯಲ್ಲಿ ಪ್ಯಾನೆಲ್ ಉತ್ಪಾದನೆ ಸ್ವಲ್ಪ ಕಡಿಮೆಯಾಗುತ್ತದೆ. ಫ್ಯಾನ್ ಮತ್ತು ನೆರಳು ಬಳಸಿ ಎಸಿ ಲೋಡ್ ಕಡಿಮೆ ಮಾಡಿ.", "wxs_cl_title": "ಇಲ್ಲಿನ ಹವಾಮಾನ, {y0} ರಿಂದ {y1} ವರೆಗೆ", "wxs_cl_hot": "ಅತ್ಯಂತ ಬಿಸಿ ದಿನ", "wxs_cl_cold": "ಅತ್ಯಂತ ತಂಪಾದ ದಿನ", "wxs_cl_wet": "ಅತಿ ಹೆಚ್ಚು ಮಳೆ ಬಂದ ದಿನ", "wxs_cl_wind": "ಅತಿ ಹೆಚ್ಚು ಗಾಳಿ ಬೀಸಿದ ದಿನ", "wxs_cl_avg": "{m} ತಿಂಗಳಿಗೆ ಸಾಮಾನ್ಯ: ಗರಿಷ್ಠ {h}°, ಕನಿಷ್ಠ {l}°", "wxs_cl_warm": "ಇಂದು ವರ್ಷದ ಈ ಸಮಯದ ಸಾಮಾನ್ಯಕ್ಕಿಂತ {d}° ಹೆಚ್ಚು ಬಿಸಿಯಾಗಿದೆ.", "wxs_cl_cool": "ಇಂದು ವರ್ಷದ ಈ ಸಮಯದ ಸಾಮಾನ್ಯಕ್ಕಿಂತ {d}° ತಂಪಾಗಿದೆ.", "wxs_cl_same": "ವರ್ಷದ ಈ ಸಮಯಕ್ಕೆ ಸುಮಾರು ಸಾಮಾನ್ಯ.", "adv_ping_t": "EMBER ಎಚ್ಚರಿಕೆ", "adv_ping_aq": "ಈಗ ಗಾಳಿಯ ಗುಣಮಟ್ಟ {name} (AQI {n})."}};
+  Object.keys(D).forEach(function(l){ if (window.I18N && window.I18N[l]) Object.assign(window.I18N[l], D[l]); });
+  function T(k, v){ try{ return window.gmT(k, v); }catch(e){ return k; } }
+  function loc(){ try{ return { en: "en-IN", te: "te-IN", hi: "hi-IN", ta: "ta-IN", kn: "kn-IN" }[window.gmLang()] || "en-IN"; }catch(e){ return "en-IN"; } }
+  // ---- 1. turn Indian-language words and digits into the English words EMBER already understands ----
+  var MAP = [
+    ["\u0C15\u0C3F\u0C32\u0C4B\u0C35\u0C3E\u0C1F\u0C4D|\u0915\u093F\u0932\u094B\u0935\u093E\u091F|\u0B95\u0BBF\u0BB2\u0BCB\u0BB5\u0BBE\u0B9F\u0BCD|\u0C95\u0CBF\u0CB2\u0CCB\u0CB5\u0CBE\u0C9F\u0CCD", " kw "],
+    ["\u0C35\u0C3E\u0C1F\u0C4D|\u0935\u093E\u091F|\u0BB5\u0BBE\u0B9F\u0BCD|\u0CB5\u0CCD\u0CAF\u0CBE\u0C9F\u0CCD", " w "],
+    ["\u0C17\u0C02\u0C1F\u0C32\u0C41|\u0C17\u0C02\u0C1F\u0C32|\u0C17\u0C02\u0C1F|\u0918\u0902\u091F\u0947|\u0918\u0902\u091F\u093E|\u0BAE\u0BA3\u0BBF \u0BA8\u0BC7\u0BB0\u0BAE\u0BCD|\u0BAE\u0BA3\u0BBF|\u0C97\u0C82\u0C9F\u0CC6\u0C97\u0CB3\u0CC1|\u0C97\u0C82\u0C9F\u0CC6", " hours "],
+    ["\u0C2F\u0C42\u0C28\u0C3F\u0C1F\u0C4D\u0C32\u0C41|\u0C2F\u0C42\u0C28\u0C3F\u0C1F\u0C4D|\u092F\u0942\u0928\u093F\u091F|\u0BAF\u0BC2\u0BA9\u0BBF\u0B9F\u0BCD|\u0CAF\u0CC2\u0CA8\u0CBF\u0C9F\u0CCD", " units "],
+    ["\u0C2C\u0C3F\u0C32\u0C4D\u0C32\u0C41|\u0C2C\u0C3F\u0C32\u0C4D|\u092C\u093F\u0932|\u0BAA\u0BBF\u0BB2\u0BCD|\u0CAC\u0CBF\u0CB2\u0CCD", " bill "],
+    ["\u0C38\u0C4B\u0C32\u0C3E\u0C30\u0C4D|\u0938\u094B\u0932\u0930|\u0938\u094B\u0932\u093E\u0930|\u0B9A\u0BCB\u0BB2\u0BBE\u0BB0\u0BCD|\u0CB8\u0CCB\u0CB2\u0CBE\u0CB0\u0CCD", " solar "],
+    ["\u0C38\u0C48\u0C1C\u0C41|\u0C38\u0C48\u0C1C\u0C4D|\u0938\u093E\u0907\u091C\u093C|\u0938\u093E\u0907\u091C|\u0B85\u0BB3\u0BB5\u0BC1|\u0C97\u0CBE\u0CA4\u0CCD\u0CB0|\u0CB8\u0CC8\u0C9C\u0CCD", " size "],
+    ["\u0C38\u0C2C\u0C4D\u0C38\u0C3F\u0C21\u0C40|\u0938\u092C\u094D\u0938\u093F\u0921\u0940|\u0BAE\u0BBE\u0BA9\u0BBF\u0BAF\u0BAE\u0BCD|\u0CB8\u0CAC\u0CCD\u0CB8\u0CBF\u0CA1\u0CBF", " subsidy "],
+    ["\u0C2A\u0C4D\u0C2F\u0C3E\u0C28\u0C46\u0C32\u0C4D\u0C38\u0C4D|\u0C2A\u0C4D\u0C2F\u0C3E\u0C28\u0C46\u0C32\u0C4D|\u092A\u0948\u0928\u0932|\u0BAA\u0BC7\u0BA9\u0BB2\u0BCD|\u0CAA\u0CCD\u0CAF\u0CBE\u0CA8\u0CC6\u0CB2\u0CCD", " panels "],
+    ["\u0C2C\u0C4D\u0C2F\u0C3E\u0C1F\u0C30\u0C40|\u092C\u0948\u091F\u0930\u0940|\u0BAA\u0BC7\u0B9F\u0BCD\u0B9F\u0BB0\u0BBF|\u0CAC\u0CCD\u0CAF\u0CBE\u0C9F\u0CB0\u0CBF", " battery "],
+    ["\u0C0E\u0C28\u0C4D\u0C28\u0C3F|\u0915\u093F\u0924\u0928\u0947|\u0B8E\u0BA4\u0BCD\u0BA4\u0BA9\u0BC8|\u0C8E\u0CB7\u0CCD\u0C9F\u0CC1", " how many "],
+    ["\u0C09\u0C24\u0C4D\u0C2A\u0C24\u0C4D\u0C24\u0C3F|\u0909\u0924\u094D\u092A\u093E\u0926\u0928|\u0B89\u0BB1\u0BCD\u0BAA\u0BA4\u0BCD\u0BA4\u0BBF|\u0C89\u0CA4\u0CCD\u0CAA\u0CBE\u0CA6\u0CA8\u0CC6", " generate "],
+    ["\u0C2A\u0C47\u0C2C\u0C4D\u0C2F\u0C3E\u0C15\u0C4D|\u092A\u0947\u092C\u0948\u0915|\u0BAA\u0BC7\u0BAA\u0BC7\u0B95\u0BCD|\u0CAA\u0CC7\u0CAC\u0CCD\u0CAF\u0CBE\u0C95\u0CCD", " payback "],
+    ["\u0C17\u0C3E\u0C32\u0C3F \u0C28\u0C3E\u0C23\u0C4D\u0C2F\u0C24|\u0C35\u0C3E\u0C2F\u0C41 \u0C28\u0C3E\u0C23\u0C4D\u0C2F\u0C24|\u0935\u093E\u092F\u0941 \u0917\u0941\u0923\u0935\u0924\u094D\u0924\u093E|\u0939\u0935\u093E \u0915\u0940 \u0917\u0941\u0923\u0935\u0924\u094D\u0924\u093E|\u0B95\u0BBE\u0BB1\u0BCD\u0BB1\u0BBF\u0BA9\u0BCD \u0BA4\u0BB0\u0BAE\u0BCD|\u0B95\u0BBE\u0BB1\u0BCD\u0BB1\u0BC1 \u0BA4\u0BB0\u0BAE\u0BCD|\u0C97\u0CBE\u0CB3\u0CBF\u0CAF \u0C97\u0CC1\u0CA3\u0CAE\u0C9F\u0CCD\u0C9F|\u0C97\u0CBE\u0CB3\u0CBF \u0C97\u0CC1\u0CA3\u0CAE\u0C9F\u0CCD\u0C9F", " air quality "],
+    ["\u0C15\u0C3E\u0C32\u0C41\u0C37\u0C4D\u0C2F\u0C02|\u092A\u094D\u0930\u0926\u0942\u0937\u0923|\u0BAE\u0BBE\u0B9A\u0BC1|\u0CAE\u0CBE\u0CB2\u0CBF\u0CA8\u0CCD\u0CAF", " pollution "],
+    ["\u0C2E\u0C3E\u0C38\u0C4D\u0C15\u0C4D|\u0C2E\u0C3E\u0C38\u0C4D\u0C15\u0C41|\u092E\u093E\u0938\u094D\u0915|\u0BAE\u0BC1\u0B95\u0B95\u0BCD\u0B95\u0BB5\u0B9A\u0BAE\u0BCD|\u0BAE\u0BBE\u0BB8\u0BCD\u0B95\u0BCD|\u0CAE\u0CBE\u0CB8\u0CCD\u0C95\u0CCD", " mask "],
+    ["\u0C0F\u0C15\u0C4D\u0C2F\u0C42\u0C10|\u090F\u0915\u094D\u092F\u0942\u0906\u0908|\u0B8F\u0B95\u0BCD\u0BAF\u0BC2\u0B90|\u0C8E\u0C95\u0CCD\u0CAF\u0CC2\u0C90", " aqi "],
+    // "what should I do now" in each language
+    ["\u0C07\u0C2A\u0C4D\u0C2A\u0C41\u0C21\u0C41 \u0C0F\u0C02 \u0C1A\u0C47\u0C2F\u0C3E\u0C32\u0C3F|\u0C08 \u0C30\u0C4B\u0C1C\u0C41 \u0C0F\u0C02 \u0C1A\u0C47\u0C2F\u0C3E\u0C32\u0C3F|\u0905\u092D\u0940 \u0915\u094D\u092F\u093E \u0915\u0930\u0928\u093E \u091A\u093E\u0939\u093F\u090F|\u0905\u092C \u0915\u094D\u092F\u093E \u0915\u0930\u0942\u0902|\u0906\u091C \u0915\u094D\u092F\u093E \u0915\u0930\u0947\u0902|\u0B87\u0BAA\u0BCD\u0BAA\u0BCB\u0BA4\u0BC1 \u0B8E\u0BA9\u0BCD\u0BA9 \u0B9A\u0BC6\u0BAF\u0BCD\u0BAF|\u0B87\u0BA9\u0BCD\u0BB1\u0BC1 \u0B8E\u0BA9\u0BCD\u0BA9 \u0B9A\u0BC6\u0BAF\u0BCD\u0BAF|\u0C88\u0C97 \u0C8F\u0CA8\u0CC1 \u0CAE\u0CBE\u0CA1\u0CAC\u0CC7\u0C95\u0CC1|\u0C87\u0C82\u0CA6\u0CC1 \u0C8F\u0CA8\u0CC1 \u0CAE\u0CBE\u0CA1\u0CAC\u0CC7\u0C95\u0CC1", " what should i do now "]
+  ];
+  MAP.forEach(function(m){ m[0] = new RegExp(m[0], "g"); });
+  var DIG = { "0": 0x0966, "1": 0x0C66, "2": 0x0BE6, "3": 0x0CE6 };   // zero digit of Devanagari, Telugu, Tamil, Kannada
+  window.gmNormalizeIndic = function(q){
+    var s = String(q);
+    if (!/[\u0900-\u0DFF]/.test(s)) return s;
+    Object.keys(DIG).forEach(function(k){ var z = DIG[k]; s = s.replace(new RegExp("[" + String.fromCharCode(z) + "-" + String.fromCharCode(z + 9) + "]", "g"), function(c){ return String(c.charCodeAt(0) - z); }); });
+    MAP.forEach(function(m){ s = s.replace(m[0], m[1]); });
+    return s.replace(/\s+/g, " ").trim();
+  };
+  // ---- 2. air quality answers now also understand the normalised words ----
+  var oldAir = window.GM_emberAir;
+  if (oldAir) window.GM_emberAir = function(q){ return oldAir(window.gmNormalizeIndic(q)); };
+  // ---- 3. "what should I do now": advice from today's weather, solar forecast and air quality ----
+  var ADV = /what (should|can) i do (now|today|right now)|what to do (now|today)|advice (for )?(now|today)|today'?s advice|what should i do now/;
+  function hr(ms){ return new Date(ms).toLocaleTimeString(loc(), { hour: "numeric" }); }
+  function adviceLines(skipAlert){
+    var w = window.GM_weather, r = window.GM_weatherRaw, a = window.GM_aq, L = [], i;
+    if (!w || !r || !r.daily) return null;
+    var sev = (w.alerts || []).filter(function(x){ return x.sev >= 2; })[0];
+    if (sev && !skipAlert && window.gmAlertText) L.push(emberEsc(window.gmAlertText(sev)));
+    if ((w.alerts || []).some(function(x){ return x.kind === "storm"; })) L.push(T("adv_storm"));
+    if (w.gustMax >= 40) L.push(T("adv_wind", { n: Math.round(w.gustMax) }));
+    var tmax = r.daily.temperature_2m_max[0]; if (tmax >= 38) L.push(T("adv_heat", { n: Math.round(tmax) }));
+    var h = r.hourly, now = Date.now();
+    if (h && h.precipitation_probability){ for (i = 0; i < h.time.length && i < 48; i++){ var tm = new Date(h.time[i]).getTime(); if (tm > now && tm < now + 86400000 && h.precipitation_probability[i] >= 50){ L.push(T("adv_rain", { t: hr(tm) })); break; } } }
+    if (r.daily.shortwave_radiation_sum){ var u = r.daily.shortwave_radiation_sum[0] / 3.6 * 0.75; L.push(T(u >= 4.3 * 1.1 ? "adv_solar_good" : u <= 4.3 * 0.7 ? "adv_solar_low" : "adv_solar_avg", { u: u.toFixed(1) })); }
+    if (a && a.b >= 2) L.push(T("wxs_aqt" + a.b));
+    return L;
+  }
+  function bullets(L){ return L.map(function(x){ return "\u2022 " + x; }).join("<br>"); }
+  window.GM_emberAdvice = function(q){
+    if (!ADV.test(q)) return false;
+    var L = adviceLines(false);
+    if (!L){ emcSay("<b>" + T("adv_title") + "</b><br>" + T("adv_nodata"), ""); return true; }
+    if (!L.length) L.push(T("adv_ok"));
+    emcSay("<b>" + T("adv_title") + "</b><br>" + bullets(L), "");
+    return true;
+  };
+  // ---- 3b. EMBER speaks first: once per severe weather alert (or Very poor / Severe air), a message appears in the
+  //          chat and a red dot pulses on the EMBER button until the chat is opened ----
+  var AKEY = "gm_ember_announced_v1";
+  function announce(){
+    var w = window.GM_weather; if (!w || typeof agentAddMsg !== "function") return;
+    var seen = []; try{ seen = JSON.parse(localStorage.getItem(AKEY) || "[]"); }catch(e){}
+    var parts = [], ids = [], a = window.GM_aq;
+    (w.alerts || []).forEach(function(x){ if (x.sev >= 2 && seen.indexOf(x.id) < 0 && window.gmAlertText){ ids.push(x.id); parts.push(emberEsc(window.gmAlertText(x))); } });
+    if (a && a.b >= 4){ var aid = "aq_" + a.b + "_" + new Date().toISOString().slice(0, 10); if (seen.indexOf(aid) < 0){ ids.push(aid); parts.push(T("adv_ping_aq", { name: T("wxs_aq" + a.b), n: a.aqi })); } }
+    if (!ids.length) return;
+    var L = (adviceLines(true) || []).slice(0, 3);
+    agentAddMsg("<b>\u26A0\uFE0F " + T("adv_ping_t") + "</b><br>" + parts.join("<br>") + (L.length ? "<br><br>" + bullets(L) : ""), "bot");
+    try{ localStorage.setItem(AKEY, JSON.stringify(seen.concat(ids).slice(-30))); }catch(e){}
+    var fab = document.getElementById("energyAgentFab"); if (fab) fab.classList.add("ember-ping");
+  }
+  // ---- test commands (type them in EMBER): "test heads-up" and "test notification" ----
+  function pingFab(){ var fab = document.getElementById("energyAgentFab"); if (fab) fab.classList.add("ember-ping"); }
+  window.GM_emberTest = function(q){
+    if (/^test (heads.?up|warning|alert)s?$/.test(q)){
+      emcSay("<b>\uD83E\uDDEA Test started</b><br>Close this chat now. In about 6 seconds EMBER will send a heads-up and a red dot will pulse on the EMBER button.", "");
+      setTimeout(function(){
+        var line = T("wx_line", { icon: "\u26C8\uFE0F", day: T("wx_today"), kind: T("wx_k_storm"), from: "4 PM", to: "6 PM", sfx: "" });
+        var L = [T("adv_storm")].concat((adviceLines(true) || []).filter(function(x){ return x !== T("adv_storm"); })).slice(0, 3);
+        agentAddMsg("<b>\u26A0\uFE0F " + T("adv_ping_t") + "</b><br>" + line + "<br><br>" + bullets(L), "bot");
+        pingFab();
+      }, 6000);
+      return true;
+    }
+    if (/^test (phone )?notifications?$/.test(q)){
+      if (typeof Notification === "undefined"){ emcSay("This phone or browser does not support notifications.", ""); return true; }
+      if (Notification.permission === "denied"){ emcSay("Notifications are blocked. Open Android Settings, Apps, GreenMap, Notifications and switch them on.", ""); return true; }
+      emcSay("<b>\uD83E\uDDEA Test started</b><br>Press the Home button or lock the screen. In about 6 seconds a notification should appear in your phone panel. Its sound follows your Notification Sound setting: only \u201CPhone default\u201D makes the phone play its own sound.", "");
+      var ask = Notification.permission === "default" ? Notification.requestPermission() : Promise.resolve("granted");
+      ask.then(function(){ setTimeout(function(){ if (window.gmSysNotify) window.gmSysNotify("GreenMap AI", "Test: this alert came to your phone panel.", "gmtest" + Date.now(), "GreenMap_App.html"); }, 6000); });
+      return true;
+    }
+    return false;
+  };
+  var annTimer = null;
+  function soon(){ clearTimeout(annTimer); annTimer = setTimeout(announce, 2500); }   // wait for the saved chat to load first
+  window.addEventListener("gm-weather", soon);
+  window.addEventListener("gm-aq", soon);
+  if (typeof window.toggleEnergyAgent === "function"){
+    var openAgent = window.toggleEnergyAgent;
+    window.toggleEnergyAgent = function(o){ var fab = document.getElementById("energyAgentFab"); if (fab) fab.classList.remove("ember-ping"); return openAgent.apply(this, arguments); };
+  }
+  // ---- 4. climate history (Open-Meteo archive, free, no key): records and what is usual for this month ----
+  var CKEY = "gm_clim_v1";
+  function dateStr(d){ return d.toISOString().slice(0, 10); }
+  function summarise(j, y0, y1){
+    var d = j.daily, t = d.time, i, mon = new Date().getMonth(), sh = 0, sl = 0, n = 0, hot = [-99, ""], cold = [99, ""], wet = [-1, ""], wind = [-1, ""];
+    for (i = 0; i < t.length; i++){
+      var tx = d.temperature_2m_max[i], tn = d.temperature_2m_min[i], p = d.precipitation_sum[i], wd = d.wind_speed_10m_max[i];
+      if (tx != null && tx > hot[0]) hot = [tx, t[i]];
+      if (tn != null && tn < cold[0]) cold = [tn, t[i]];
+      if (p != null && p > wet[0]) wet = [p, t[i]];
+      if (wd != null && wd > wind[0]) wind = [wd, t[i]];
+      if (new Date(t[i] + "T12:00").getMonth() === mon && tx != null && tn != null){ sh += tx; sl += tn; n++; }
+    }
+    return { hot: hot, cold: cold, wet: wet, wind: wind, mh: n ? sh / n : null, ml: n ? sl / n : null, y0: y0, y1: y1 };
+  }
+  async function loadClim(lat, lng){
+    var s = null;
+    try{ var c = JSON.parse(localStorage.getItem(CKEY) || "null"); if (c && Math.abs(c.lat - lat) < .1 && Math.abs(c.lng - lng) < .1 && Date.now() - c.ts < 30 * 86400000 && c.mon === new Date().getMonth()) s = c.s; }catch(e){}
+    if (!s){
+      try{
+        var end = new Date(Date.now() - 86400000 * 5), y1 = end.getFullYear(), y0 = y1 - 10;
+        var r = await fetch("https://archive-api.open-meteo.com/v1/archive?latitude=" + lat + "&longitude=" + lng + "&start_date=" + y0 + "-01-01&end_date=" + dateStr(end) + "&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,wind_speed_10m_max&timezone=auto");
+        if (r.ok){ s = summarise(await r.json(), y0, y1); localStorage.setItem(CKEY, JSON.stringify({ lat: lat, lng: lng, ts: Date.now(), mon: new Date().getMonth(), s: s })); }
+      }catch(e){}
+    }
+    if (!s) return;
+    window.GM_clim = s;
+    try{ window.dispatchEvent(new CustomEvent("gm-clim")); }catch(e){}
+  }
+  window.gmClimSummarise = summarise;
+  window.addEventListener("gm-weather", function(e){ var w = e.detail; if (w && w.lat != null && !window.GM_clim) loadClim(w.lat, w.lng); });
 })();
 </script>
 </body>
