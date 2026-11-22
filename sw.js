@@ -6,7 +6,7 @@ const CACHE = 'greenmap-v1';
 const SHELL = [
   'GreenMap_App.html', 'EnergyHub.html', 'Energy_Scope.html',
   'Smart_Energy_Search.html', 'Govt_Schemes.html', 'offline.html',
-  'manifest.webmanifest', 'icon-192.png', 'icon-512.png'
+  'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-ember.png', 'icon-delivery.png', 'badge-96.png'
 ];
 const CDN_HOSTS = ['unpkg.com', 'www.gstatic.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
@@ -68,4 +68,16 @@ self.addEventListener('fetch', function (e) {
   if (sameOrigin || CDN_HOSTS.indexOf(url.hostname) > -1) {
     e.respondWith(staleWhileRevalidate(req));
   }
+});
+
+// Tapping a phone notification opens (or focuses) the app on the right page
+self.addEventListener('notificationclick', function (e) {
+  e.notification.close();
+  var url = new URL((e.notification.data && e.notification.data.url) || 'GreenMap_App.html', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (list) {
+    for (var i = 0; i < list.length; i++) {
+      if ('focus' in list[i]) { return list[i].focus().then(function (c) { try { return c.navigate(url); } catch (x) {} }); }
+    }
+    return self.clients.openWindow(url);
+  }));
 });
