@@ -675,7 +675,32 @@ function renderLoadingPanel(label){
     '<div class="empty-panel">Fetching live weather for ' + esc(label) + '…</div>';
 }
 
-function renderLivePanel(placeName, sub, current, extraNoteHtml){
+// ---- Air quality (India NAQI bands from PM2.5 and PM10; Open-Meteo, modelled data, no key) ----
+var AQ_BP = { pm25: [[0,30,0,50],[30,60,50,100],[60,90,100,200],[90,120,200,300],[120,250,300,400],[250,380,400,500]],
+              pm10: [[0,50,0,50],[50,100,50,100],[100,250,100,200],[250,350,200,300],[350,430,300,400],[430,600,400,500]] };
+var AQ_NAME = ["Good", "Satisfactory", "Moderate", "Poor", "Very poor", "Severe"];
+var AQ_COL = ["#55a84f", "#a3c853", "#d9a21b", "#f29c38", "#e5493a", "#9b1c1c"];
+var AQ_TIP = ["The air is clean here.", "Fine for most people.", "People with asthma or heart or lung problems should limit long outdoor effort.", "Wear a mask outdoors and keep outdoor exercise short.", "Wear an N95 mask outside and skip outdoor exercise.", "Stay indoors if you can and wear an N95 mask if you go out."];
+function aqSub(c, t){ if (c == null || isNaN(c)) return 0; for (var i = 0; i < t.length; i++){ if (c <= t[i][1]) return t[i][2] + (c - t[i][0]) / (t[i][1] - t[i][0]) * (t[i][3] - t[i][2]); } return 500; }
+async function fetchAirQuality(lat, lng){
+  var res = await fetch("https://air-quality-api.open-meteo.com/v1/air-quality?latitude=" + lat + "&longitude=" + lng + "&current=pm2_5,pm10&timezone=auto");
+  var d = await res.json();
+  if (!d.current || d.current.pm2_5 == null) return null;
+  var a = Math.round(Math.max(aqSub(d.current.pm2_5, AQ_BP.pm25), aqSub(d.current.pm10, AQ_BP.pm10)));
+  var b = a <= 50 ? 0 : a <= 100 ? 1 : a <= 200 ? 2 : a <= 300 ? 3 : a <= 400 ? 4 : 5;
+  return { aqi: a, b: b, pm25: d.current.pm2_5, pm10: d.current.pm10 };
+}
+function aqiHtml(aq){
+  if (!aq) return '';
+  return '<div class="stat-row">' +
+    '<div class="stat-card"><div class="stat-label">😷 Air Quality (AQI)</div><div class="stat-value">' + aq.aqi + '</div>' +
+      '<div class="stat-rating" style="background:' + AQ_COL[aq.b] + ';color:#fff">' + AQ_NAME[aq.b] + '</div></div>' +
+    '<div class="stat-card"><div class="stat-label">PM2.5</div><div class="stat-value">' + Math.round(aq.pm25) + '</div><div class="stat-label">µg/m³</div></div>' +
+    '<div class="stat-card"><div class="stat-label">PM10</div><div class="stat-value">' + Math.round(aq.pm10) + '</div><div class="stat-label">µg/m³</div></div>' +
+    '</div><div class="district-note">' + AQ_TIP[aq.b] + ' Air quality is modelled (Open-Meteo), not a ground sensor, so it can differ from local readings.</div>';
+}
+
+function renderLivePanel(placeName, sub, current, extraNoteHtml, aq){
   var windRating = windRatingFromSpeed(current.wind_speed_10m);
   var solarRating = solarRatingFromRadiation(current.shortwave_radiation || 0);
   var html =
@@ -699,6 +724,7 @@ function renderLivePanel(placeName, sub, current, extraNoteHtml){
           '<div class="stat-rating ' + ratingClass(windRating) + '">' + windRating + '</div>' +
         '</div>' +
       '</div>' +
+      aqiHtml(aq) +
       '<div class="district-note">Live data via Open-Meteo, updated just now.</div>' +
     '</div>';
   document.getElementById("infoContainer").innerHTML = html;
@@ -708,8 +734,8 @@ async function showLiveForCoords(lat, lng, placeName, sub, extraNoteHtml){
   updateMap(lat, lng, 11);
   renderLoadingPanel(placeName);
   try {
-    var current = await fetchLiveWeather(lat, lng);
-    renderLivePanel(placeName, sub, current, extraNoteHtml);
+    var both = await Promise.all([fetchLiveWeather(lat, lng), fetchAirQuality(lat, lng).catch(function(){ return null; })]);   // air quality never blocks the weather
+    renderLivePanel(placeName, sub, both[0], extraNoteHtml, both[1]);
   } catch (err){
     document.getElementById("infoContainer").innerHTML =
       '<div class="empty-panel">Could not fetch live weather right now. Check your internet connection and try again.</div>';
@@ -1844,10 +1870,18 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
 (function(){
   if (window.gmSysNotify) return;
   var SYN = "gm_sysnotif_last";
-  window.gmSysNotify = function(title, body, tag, url){
+  function kindOf(n){
+    if (n.kind) return n.kind;
+    var t = ((n.title || "") + " " + (n.id || "")).toLowerCase();
+    if (n.type === "order" || /deliver|shipped|dispatch|parcel|handed|order/.test(t)) return "delivery";
+    if (n.type === "weather" || /^(aq_|sunset_|storm|rain|wind|heat|fog)/.test(String(n.id || "")) || /weather|air quality|aqi|sunset|ember/.test(t)) return "ember";
+    return "logo";
+  }
+  window.gmSysNotify = function(title, body, tag, url, kind){
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
     var silent = (localStorage.getItem("gm_notif_sound") || "chime") !== "system";   // only "phone default" uses the phone's own sound
-    var o = { body: body || "", icon: "icon-192.png", badge: "icon-192.png", tag: String(tag || "gm"), silent: silent, data: { url: url || "GreenMap_App.html" } };
+    var icon = kind === "ember" ? "icon-ember.png" : kind === "delivery" ? "icon-delivery.png" : "icon-192.png";   // EMBER alerts, delivery alerts, everything else the app logo
+    var o = { body: body || "", icon: icon, badge: "badge-96.png", tag: String(tag || "gm"), silent: silent, data: { url: url || "GreenMap_App.html" } };
     if (navigator.serviceWorker && navigator.serviceWorker.ready){
       navigator.serviceWorker.ready.then(function(r){ r.showNotification(title, o); }).catch(function(){ try{ new Notification(title, o); }catch(e){} });
     } else { try{ new Notification(title, o); }catch(e){} }
@@ -1857,7 +1891,7 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
       var last = parseInt(localStorage.getItem(SYN) || "0", 10);
       if (!last){ localStorage.setItem(SYN, String(Date.now())); return; }
       var fresh = items.filter(function(n){ return n.time > last; }).sort(function(a, b){ return a.time - b.time; }), newest = last;
-      fresh.slice(-3).forEach(function(n){ window.gmSysNotify(n.title, n.message, n.id, n.link || "GreenMap_App.html"); });
+      fresh.slice(-3).forEach(function(n){ window.gmSysNotify(n.title, n.message, n.id, n.link || "GreenMap_App.html", kindOf(n)); });
       fresh.forEach(function(n){ if (n.time > newest) newest = n.time; });
       if (newest > last) localStorage.setItem(SYN, String(newest));
     }catch(e){}
@@ -1866,7 +1900,7 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
   window.gmSysNotifyList = function(log){
     try{
       var page = location.pathname.split("/").pop() || "GreenMap_App.html";
-      window.gmSysNotifyNew((log || []).map(function(n){ return { id: n.id || ((n.title || "") + "|" + n.time), title: n.title, message: n.body || n.message || "", time: new Date(n.time).getTime(), link: page }; }));
+      window.gmSysNotifyNew((log || []).map(function(n){ return { id: n.id || ((n.title || "") + "|" + n.time), type: n.type, title: n.title, message: n.body || n.message || "", time: new Date(n.time).getTime(), link: page }; }));
     }catch(e){}
   };
 })();

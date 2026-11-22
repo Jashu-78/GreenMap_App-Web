@@ -2767,10 +2767,18 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
 (function(){
   if (window.gmSysNotify) return;
   var SYN = "gm_sysnotif_last";
-  window.gmSysNotify = function(title, body, tag, url){
+  function kindOf(n){
+    if (n.kind) return n.kind;
+    var t = ((n.title || "") + " " + (n.id || "")).toLowerCase();
+    if (n.type === "order" || /deliver|shipped|dispatch|parcel|handed|order/.test(t)) return "delivery";
+    if (n.type === "weather" || /^(aq_|sunset_|storm|rain|wind|heat|fog)/.test(String(n.id || "")) || /weather|air quality|aqi|sunset|ember/.test(t)) return "ember";
+    return "logo";
+  }
+  window.gmSysNotify = function(title, body, tag, url, kind){
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
     var silent = (localStorage.getItem("gm_notif_sound") || "chime") !== "system";   // only "phone default" uses the phone's own sound
-    var o = { body: body || "", icon: "icon-192.png", badge: "icon-192.png", tag: String(tag || "gm"), silent: silent, data: { url: url || "GreenMap_App.html" } };
+    var icon = kind === "ember" ? "icon-ember.png" : kind === "delivery" ? "icon-delivery.png" : "icon-192.png";   // EMBER alerts, delivery alerts, everything else the app logo
+    var o = { body: body || "", icon: icon, badge: "badge-96.png", tag: String(tag || "gm"), silent: silent, data: { url: url || "GreenMap_App.html" } };
     if (navigator.serviceWorker && navigator.serviceWorker.ready){
       navigator.serviceWorker.ready.then(function(r){ r.showNotification(title, o); }).catch(function(){ try{ new Notification(title, o); }catch(e){} });
     } else { try{ new Notification(title, o); }catch(e){} }
@@ -2780,7 +2788,7 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
       var last = parseInt(localStorage.getItem(SYN) || "0", 10);
       if (!last){ localStorage.setItem(SYN, String(Date.now())); return; }
       var fresh = items.filter(function(n){ return n.time > last; }).sort(function(a, b){ return a.time - b.time; }), newest = last;
-      fresh.slice(-3).forEach(function(n){ window.gmSysNotify(n.title, n.message, n.id, n.link || "GreenMap_App.html"); });
+      fresh.slice(-3).forEach(function(n){ window.gmSysNotify(n.title, n.message, n.id, n.link || "GreenMap_App.html", kindOf(n)); });
       fresh.forEach(function(n){ if (n.time > newest) newest = n.time; });
       if (newest > last) localStorage.setItem(SYN, String(newest));
     }catch(e){}
@@ -2789,7 +2797,7 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
   window.gmSysNotifyList = function(log){
     try{
       var page = location.pathname.split("/").pop() || "GreenMap_App.html";
-      window.gmSysNotifyNew((log || []).map(function(n){ return { id: n.id || ((n.title || "") + "|" + n.time), title: n.title, message: n.body || n.message || "", time: new Date(n.time).getTime(), link: page }; }));
+      window.gmSysNotifyNew((log || []).map(function(n){ return { id: n.id || ((n.title || "") + "|" + n.time), type: n.type, title: n.title, message: n.body || n.message || "", time: new Date(n.time).getTime(), link: page }; }));
     }catch(e){}
   };
 })();
