@@ -5354,20 +5354,44 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
   var SYN = "gm_sysnotif_last";
   function kindOf(n){
     if (n.kind) return n.kind;
-    var t = ((n.title || "") + " " + (n.id || "")).toLowerCase();
-    if (n.type === "order" || /deliver|shipped|dispatch|parcel|handed|order/.test(t)) return "delivery";
-    if (n.type === "weather" || /^(aq_|sunset_|storm|rain|wind|heat|fog)/.test(String(n.id || "")) || /weather|air quality|aqi|sunset|ember/.test(t)) return "ember";
+    var t = ((n.title || "") + " " + (n.message || "") + " " + (n.id || "")).toLowerCase(), id = String(n.id || "");
+    if (n.type === "weather" || /^(aq_|sunset_|storm|rain|wind|heat|fog)/.test(id) || /weather|air quality|aqi|sunset|ember|heads-up/.test(t)) return "ember";
+    if (/cancel/.test(t)) return "cancel";
+    if (/refund|money back|returned/.test(t)) return "refund";
+    if (/\b(delay|delayed|late|postponed)\b/.test(t)) return "delay";
+    if (/payment|paid/.test(t)) return "payment";
+    if (/delivered|handover|handed over/.test(t)) return "delivered";
+    if (/out for delivery|delivery partner/.test(t)) return "outfor";
+    if (/shipped|dispatch|reached|hub|in transit|on the way/.test(t)) return "transit";
+    if (/new order/.test(t)) return "cart";
+    if (/\b(rate|rating|ratings|rated|review)\b/.test(t)) return "star";
+    if (/order|parcel/.test(t) || n.type === "order") return "order";
+    if (/back in stock|restock|in stock/.test(t)) return "stock";
+    if (/discount|offer|deal|% off|sale/.test(t)) return "offer";
+    if (/new product|product added/.test(t)) return "product";
+    if (/new shop|shop added|shop opened/.test(t)) return "shop";
+    if (/follow/.test(t)) return "follower";
+    if (/scheme|subsidy|deadline|surya ghar|kusum/.test(t)) return "scheme";
+    if (/\baddress\b/.test(t)) return "address";
+    if (/welcome|thank you for joining/.test(t)) return "welcome";
+    if (/app update|new feature|new version/.test(t)) return "update";
+    if (/new user|signed in|feedback|unanswered/.test(t)) return "admin";
     return "logo";
   }
-  window.gmSysNotify = function(title, body, tag, url, kind){
+  var KIND_EMOJI = { ember: "\uD83D\uDD25", payment: "\uD83D\uDCB3", order: "\uD83D\uDCE6", transit: "\uD83D\uDE9A", outfor: "\uD83C\uDFCD\uFE0F", delivered: "\u2705", star: "\u2B50", shop: "\uD83C\uDFEA", product: "\uD83C\uDD95", stock: "\uD83D\uDD14", offer: "\uD83C\uDFF7\uFE0F", follower: "\uD83D\uDE4B", cart: "\uD83D\uDED2", scheme: "\uD83C\uDFDB\uFE0F", admin: "\uD83D\uDCAC", cancel: "\u274C", refund: "\uD83D\uDCB8", delay: "\u23F3", address: "\uD83D\uDCCD", welcome: "\uD83D\uDC4B", update: "\uD83D\uDE80", logo: "\uD83D\uDD14" };
+  // log=true also lists the notification in the app's bell (used by the EMBER test command), so phone and bell always match
+  window.gmSysNotify = function(title, body, tag, url, kind, log){
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
     var silent = (localStorage.getItem("gm_notif_sound") || "chime") !== "system";   // only "phone default" uses the phone's own sound
-    var icon = kind === "ember" ? "icon-ember.png" : kind === "delivery" ? "icon-delivery.png" : "icon-192.png";   // EMBER alerts, delivery alerts, everything else the app logo
+    kind = kind || "logo";
+    var icon = kind === "ember" ? "icon-ember.png" : kind === "logo" ? "icon-192.png" : "n-" + kind + ".png";   // right-hand picture follows the alert; left badge is the app logo
     var o = { body: body || "", icon: icon, badge: "badge-96.png", tag: String(tag || "gm"), silent: silent, data: { url: url || "GreenMap_App.html" } };
+    if (log){ try{ var pl = JSON.parse(localStorage.getItem("gm_phone_log_v1") || "[]"); pl.push({ id: String(tag), time: Date.now(), title: title, message: body || "", icon: KIND_EMOJI[kind] || "\uD83D\uDD14" }); localStorage.setItem("gm_phone_log_v1", JSON.stringify(pl.slice(-20))); if (typeof updateBellBadge === "function") updateBellBadge(); }catch(e){} }
     if (navigator.serviceWorker && navigator.serviceWorker.ready){
       navigator.serviceWorker.ready.then(function(r){ r.showNotification(title, o); }).catch(function(){ try{ new Notification(title, o); }catch(e){} });
     } else { try{ new Notification(title, o); }catch(e){} }
   };
+  window.gmPhoneLogNotifs = function(){ try{ return JSON.parse(localStorage.getItem("gm_phone_log_v1") || "[]").map(function(x){ return { id: x.id, type: "weather", icon: x.icon, title: x.title, message: x.message, link: "", time: x.time }; }); }catch(e){ return []; } };
   window.gmSysNotifyNew = function(items){
     try{
       var last = parseInt(localStorage.getItem(SYN) || "0", 10);

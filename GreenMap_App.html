@@ -244,6 +244,8 @@
 #homeScreen .agent-panel.open .ember-scene.mini{animation:emberArrive .55s cubic-bezier(.2,.8,.3,1) .12s both;}
 #homeScreen .agent-body{flex:1 1 0;min-height:0;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:10px;background:var(--bg);}
 #homeScreen .agent-msg{max-width:85%;padding:9px 13px;border-radius:14px;font-size:13.5px;line-height:1.42;}
+#homeScreen .agent-day{align-self:center;font-size:11px;padding:3px 12px;border-radius:12px;background:rgba(0,0,0,.12);margin:6px 0 2px;}
+#homeScreen .agent-time{display:block;text-align:right;font-size:10px;opacity:.6;margin-top:3px;line-height:1;}
 #homeScreen .agent-msg.bot{align-self:flex-start;background:var(--card);color:var(--textDark);border-bottom-left-radius:4px;}
 #homeScreen .agent-msg.user{align-self:flex-end;background:var(--primary);color:#fff;border-bottom-right-radius:4px;}
 #homeScreen .agent-chip-row{display:flex;flex-wrap:wrap;gap:7px;padding:10px 12px;border-top:1px solid var(--line);background:#fff;}
@@ -766,7 +768,13 @@
     var body = document.getElementById("agentChatBody");
     var div = document.createElement("div");
     div.className = "agent-msg " + (who || "bot");
-    div.innerHTML = text;
+    var now = new Date(), dayKey = now.toDateString(), chips = body.querySelectorAll(".agent-day"), lastDay = chips.length ? chips[chips.length - 1].getAttribute("data-day") : "";
+    var lc = "en-IN"; try{ lc = { en: "en-IN", te: "te-IN", hi: "hi-IN", ta: "ta-IN", kn: "kn-IN" }[gmLang()] || "en-IN"; }catch(e){}
+    if (lastDay !== dayKey){   // first message of a new day: show the date, like WhatsApp
+      var chip = document.createElement("div"); chip.className = "agent-day"; chip.setAttribute("data-day", dayKey);
+      chip.textContent = now.toLocaleDateString(lc, { weekday: "long", day: "numeric", month: "long" }); body.appendChild(chip);
+    }
+    div.innerHTML = text + '<span class="agent-time">' + now.toLocaleTimeString(lc, { hour: "numeric", minute: "2-digit" }) + '</span>';
     body.appendChild(div);
     body.scrollTop = body.scrollHeight;
     emberSaveChat();
@@ -3889,7 +3897,7 @@ async function fetchNotifications(){
   var localItems = getGovtSchemesLocalNotifs().filter(function(n){
     return !n.time || n.time > clearedBefore;
   });
-  items = items.concat(localItems).concat(getWeatherLocalNotifs().filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmAqNotifs ? window.gmAqNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmSunNotifs ? window.gmSunNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; }));
+  items = items.concat(localItems).concat(getWeatherLocalNotifs().filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmAqNotifs ? window.gmAqNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmSunNotifs ? window.gmSunNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmPhoneLogNotifs ? window.gmPhoneLogNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; }));
   items.sort(function(a, b){ return b.time - a.time; });
 
   return items;
@@ -6076,20 +6084,44 @@ var GMScene = (function(){
   // ---- phone notification panel (works while the app is open or alive in the background) ----
   function kindOf(n){
     if (n.kind) return n.kind;
-    var t = ((n.title || "") + " " + (n.id || "")).toLowerCase();
-    if (n.type === "order" || /deliver|shipped|dispatch|parcel|handed|order/.test(t)) return "delivery";
-    if (n.type === "weather" || /^(aq_|sunset_|storm|rain|wind|heat|fog)/.test(String(n.id || "")) || /weather|air quality|aqi|sunset|ember/.test(t)) return "ember";
+    var t = ((n.title || "") + " " + (n.message || "") + " " + (n.id || "")).toLowerCase(), id = String(n.id || "");
+    if (n.type === "weather" || /^(aq_|sunset_|storm|rain|wind|heat|fog)/.test(id) || /weather|air quality|aqi|sunset|ember|heads-up/.test(t)) return "ember";
+    if (/cancel/.test(t)) return "cancel";
+    if (/refund|money back|returned/.test(t)) return "refund";
+    if (/\b(delay|delayed|late|postponed)\b/.test(t)) return "delay";
+    if (/payment|paid/.test(t)) return "payment";
+    if (/delivered|handover|handed over/.test(t)) return "delivered";
+    if (/out for delivery|delivery partner/.test(t)) return "outfor";
+    if (/shipped|dispatch|reached|hub|in transit|on the way/.test(t)) return "transit";
+    if (/new order/.test(t)) return "cart";
+    if (/\b(rate|rating|ratings|rated|review)\b/.test(t)) return "star";
+    if (/order|parcel/.test(t) || n.type === "order") return "order";
+    if (/back in stock|restock|in stock/.test(t)) return "stock";
+    if (/discount|offer|deal|% off|sale/.test(t)) return "offer";
+    if (/new product|product added/.test(t)) return "product";
+    if (/new shop|shop added|shop opened/.test(t)) return "shop";
+    if (/follow/.test(t)) return "follower";
+    if (/scheme|subsidy|deadline|surya ghar|kusum/.test(t)) return "scheme";
+    if (/\baddress\b/.test(t)) return "address";
+    if (/welcome|thank you for joining/.test(t)) return "welcome";
+    if (/app update|new feature|new version/.test(t)) return "update";
+    if (/new user|signed in|feedback|unanswered/.test(t)) return "admin";
     return "logo";
   }
-  window.gmSysNotify = function(title, body, tag, url, kind){
+  var KIND_EMOJI = { ember: "\uD83D\uDD25", payment: "\uD83D\uDCB3", order: "\uD83D\uDCE6", transit: "\uD83D\uDE9A", outfor: "\uD83C\uDFCD\uFE0F", delivered: "\u2705", star: "\u2B50", shop: "\uD83C\uDFEA", product: "\uD83C\uDD95", stock: "\uD83D\uDD14", offer: "\uD83C\uDFF7\uFE0F", follower: "\uD83D\uDE4B", cart: "\uD83D\uDED2", scheme: "\uD83C\uDFDB\uFE0F", admin: "\uD83D\uDCAC", cancel: "\u274C", refund: "\uD83D\uDCB8", delay: "\u23F3", address: "\uD83D\uDCCD", welcome: "\uD83D\uDC4B", update: "\uD83D\uDE80", logo: "\uD83D\uDD14" };
+  // log=true also lists the notification in the app's bell (used by the EMBER test command), so phone and bell always match
+  window.gmSysNotify = function(title, body, tag, url, kind, log){
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
     var silent = (localStorage.getItem("gm_notif_sound") || "chime") !== "system";   // only "phone default" uses the phone's own sound
-    var icon = kind === "ember" ? "icon-ember.png" : kind === "delivery" ? "icon-delivery.png" : "icon-192.png";   // EMBER alerts, delivery alerts, everything else the app logo
+    kind = kind || "logo";
+    var icon = kind === "ember" ? "icon-ember.png" : kind === "logo" ? "icon-192.png" : "n-" + kind + ".png";   // right-hand picture follows the alert; left badge is the app logo
     var o = { body: body || "", icon: icon, badge: "badge-96.png", tag: String(tag || "gm"), silent: silent, data: { url: url || "GreenMap_App.html" } };
+    if (log){ try{ var pl = JSON.parse(localStorage.getItem("gm_phone_log_v1") || "[]"); pl.push({ id: String(tag), time: Date.now(), title: title, message: body || "", icon: KIND_EMOJI[kind] || "\uD83D\uDD14" }); localStorage.setItem("gm_phone_log_v1", JSON.stringify(pl.slice(-20))); if (typeof updateBellBadge === "function") updateBellBadge(); }catch(e){} }
     if (navigator.serviceWorker && navigator.serviceWorker.ready){
       navigator.serviceWorker.ready.then(function(r){ r.showNotification(title, o); }).catch(function(){ try{ new Notification(title, o); }catch(e){} });
     } else { try{ new Notification(title, o); }catch(e){} }
   };
+  window.gmPhoneLogNotifs = function(){ try{ return JSON.parse(localStorage.getItem("gm_phone_log_v1") || "[]").map(function(x){ return { id: x.id, type: "weather", icon: x.icon, title: x.title, message: x.message, link: "", time: x.time }; }); }catch(e){ return []; } };
   window.gmSysNotifyNew = function(items){
     try{
       var last = parseInt(localStorage.getItem(SYN) || "0", 10);
@@ -6306,9 +6338,15 @@ var GMScene = (function(){
     if (/^test (phone )?notifications?$/.test(q)){
       if (typeof Notification === "undefined"){ emcSay("This phone or browser does not support notifications.", ""); return true; }
       if (Notification.permission === "denied"){ emcSay("Notifications are blocked. Open Android Settings, Apps, GreenMap, Notifications and switch them on.", ""); return true; }
-      emcSay("<b>\uD83E\uDDEA Test started</b><br>Press the Home button or lock the screen. In about 6 seconds three notifications should appear in your phone panel, one with the EMBER picture, one with the delivery picture and one with the app logo. Its sound follows your Notification Sound setting: only \u201CPhone default\u201D makes the phone play its own sound.", "");
+      emcSay("<b>\uD83E\uDDEA Test started</b><br>Press the Home button or lock the screen. In about 6 seconds eight notifications should appear in your phone panel, each with its own picture, and they also appear in the bell. Its sound follows your Notification Sound setting: only \u201CPhone default\u201D makes the phone play its own sound.", "");
       var ask = Notification.permission === "default" ? Notification.requestPermission() : Promise.resolve("granted");
-      ask.then(function(){ [["ember", "EMBER alert test", "Air quality or weather alerts show the EMBER picture."], ["delivery", "Delivery alert test", "Order and delivery updates show the delivery picture."], ["logo", "GreenMap AI test", "Everything else shows the app logo."]].forEach(function(t, i){ setTimeout(function(){ if (window.gmSysNotify) window.gmSysNotify(t[1], t[2], "gmtest" + i + Date.now(), "GreenMap_App.html", t[0]); }, 6000 + i * 1500); }); });
+      ask.then(function(){
+        [["ember", "EMBER heads-up test", "Heavy rain is likely around 4 PM. Charge batteries first."], ["order", "Order placed successfully", "Your parcel is confirmed. (test)"], ["transit", "Shipped", "Your parcel is on the way. (test)"],
+         ["outfor", "Out for delivery", "Your parcel arrives today. (test)"], ["delivered", "Delivered", "Your parcel was delivered. (test)"], ["payment", "Payment successful", "\u20B9499 paid. (test)"],
+         ["star", "Rate your order", "How was your experience? (test)"], ["offer", "New offer near you", "20% off solar lamps. (test)"]].forEach(function(t, i){
+          setTimeout(function(){ if (window.gmSysNotify) window.gmSysNotify(t[1], t[2], "gmtest" + i + "_" + Date.now(), "GreenMap_App.html", t[0], true); }, 6000 + i * 1500);
+        });
+      });
       return true;
     }
     return false;
