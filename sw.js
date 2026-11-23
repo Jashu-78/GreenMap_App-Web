@@ -6,7 +6,7 @@ const CACHE = 'greenmap-v1';
 const SHELL = [
   'GreenMap_App.html', 'EnergyHub.html', 'Energy_Scope.html',
   'Smart_Energy_Search.html', 'Govt_Schemes.html', 'offline.html',
-  'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-ember.png', 'icon-delivery.png', 'badge-96.png'
+  'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'icon-ember.png', 'badge-96.png', 'n-payment.png', 'n-order.png', 'n-transit.png', 'n-outfor.png', 'n-delivered.png', 'n-star.png', 'n-shop.png', 'n-product.png', 'n-stock.png', 'n-offer.png', 'n-follower.png', 'n-cart.png', 'n-scheme.png', 'n-admin.png', 'n-cancel.png', 'n-refund.png', 'n-delay.png', 'n-address.png', 'n-welcome.png', 'n-update.png'
 ];
 const CDN_HOSTS = ['unpkg.com', 'www.gstatic.com', 'fonts.googleapis.com', 'fonts.gstatic.com'];
 
