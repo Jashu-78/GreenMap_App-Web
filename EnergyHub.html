@@ -5387,16 +5387,20 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
     var icon = kind === "ember" ? "icon-ember.png" : kind === "logo" ? "icon-192.png" : "n-" + kind + ".png";   // right-hand picture follows the alert; left badge is the app logo
     var o = { body: body || "", icon: icon, badge: "badge-96.png", tag: String(tag || "gm"), silent: silent, data: { url: url || "GreenMap_App.html" } };
     if (log){ try{ var pl = JSON.parse(localStorage.getItem("gm_phone_log_v1") || "[]"); pl.push({ id: String(tag), time: Date.now(), title: title, message: body || "", icon: KIND_EMOJI[kind] || "\uD83D\uDD14" }); localStorage.setItem("gm_phone_log_v1", JSON.stringify(pl.slice(-20))); if (typeof updateBellBadge === "function") updateBellBadge(); }catch(e){} }
-    if (navigator.serviceWorker && navigator.serviceWorker.ready){
-      navigator.serviceWorker.ready.then(function(r){ r.showNotification(title, o); }).catch(function(){ try{ new Notification(title, o); }catch(e){} });
-    } else { try{ new Notification(title, o); }catch(e){} }
+    var show = function(){
+      if (navigator.serviceWorker && navigator.serviceWorker.ready){
+        navigator.serviceWorker.ready.then(function(r){ r.showNotification(title, o); }).catch(function(){ try{ new Notification(title, o); }catch(e){} });
+      } else { try{ new Notification(title, o); }catch(e){} }
+    };
+    // if a picture file is missing on the server, fall back to the app logo instead of the grey letter
+    try{ fetch(icon, { method: "HEAD" }).then(function(r){ if (!r.ok) o.icon = "icon-192.png"; }).catch(function(){ o.icon = "icon-192.png"; }).then(show); }catch(e){ show(); }
   };
   window.gmPhoneLogNotifs = function(){ try{ return JSON.parse(localStorage.getItem("gm_phone_log_v1") || "[]").map(function(x){ return { id: x.id, type: "weather", icon: x.icon, title: x.title, message: x.message, link: "", time: x.time }; }); }catch(e){ return []; } };
   window.gmSysNotifyNew = function(items){
     try{
       var last = parseInt(localStorage.getItem(SYN) || "0", 10);
       if (!last){ localStorage.setItem(SYN, String(Date.now())); return; }
-      var fresh = items.filter(function(n){ return n.time > last; }).sort(function(a, b){ return a.time - b.time; }), newest = last;
+      var fresh = items.filter(function(n){ return n.time > last && !n.noPhone; }).sort(function(a, b){ return a.time - b.time; }), newest = last;
       fresh.slice(-3).forEach(function(n){ window.gmSysNotify(n.title, n.message, n.id, n.link || "GreenMap_App.html", kindOf(n)); });
       fresh.forEach(function(n){ if (n.time > newest) newest = n.time; });
       if (newest > last) localStorage.setItem(SYN, String(newest));
