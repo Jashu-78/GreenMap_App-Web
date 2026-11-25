@@ -3897,7 +3897,7 @@ async function fetchNotifications(){
   var localItems = getGovtSchemesLocalNotifs().filter(function(n){
     return !n.time || n.time > clearedBefore;
   });
-  items = items.concat(localItems).concat(getWeatherLocalNotifs().filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmAqNotifs ? window.gmAqNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmSunNotifs ? window.gmSunNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmPhoneLogNotifs ? window.gmPhoneLogNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; }));
+  items = items.concat(localItems).concat(getWeatherLocalNotifs().filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmAqNotifs ? window.gmAqNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmSunNotifs ? window.gmSunNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmPhoneLogNotifs ? window.gmPhoneLogNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; })).concat((window.gmSkyNotifs ? window.gmSkyNotifs() : []).filter(function(n){ return !n.time || n.time > clearedBefore; }));
   items.sort(function(a, b){ return b.time - a.time; });
 
   return items;
@@ -6082,17 +6082,34 @@ var GMScene = (function(){
     }); }catch(e){ return []; }
   };
   // ---- phone notification panel (works while the app is open or alive in the background) ----
+  function emberPic(n){   // which weather picture an EMBER alert gets
+    var id = String(n.id || ""), t = ((n.title || "") + " " + (n.message || "")).toLowerCase(), m = /^(?:weather_)?(rain|light|heavy|storm|wind|heat|fog|snow|cold)_/.exec(id);
+    if (m) return { light: "w-rain", rain: "w-rain", heavy: "w-heavy", storm: "w-storm", wind: "w-wind", heat: "w-heat", fog: "w-fog", snow: "w-snow", cold: "w-snow" }[m[1]];
+    if (/^aq_/.test(id) || /air quality|aqi/.test(t)) return "w-air";
+    if (/^sunset_/.test(id) || /sunset|sunrise/.test(t)) return "w-sunset";
+    if (/^sky_cloudy/.test(id) || /cloudy/.test(t)) return "w-cloud";
+    if (/^sky_partly/.test(id) || /partly/.test(t)) return "w-partly";
+    if (/^sky_sunny/.test(id) || /sunny/.test(t)) return "w-sun";
+    if (/thunder|storm/.test(t)) return "w-storm";
+    if (/heavy rain/.test(t)) return "w-heavy";
+    if (/rain|drizzle|shower/.test(t)) return "w-rain";
+    if (/wind|gust/.test(t)) return "w-wind";
+    if (/heat|hot/.test(t)) return "w-heat";
+    if (/fog/.test(t)) return "w-fog";
+    return "ember";
+  }
   function kindOf(n){
     if (n.kind) return n.kind;
     var t = ((n.title || "") + " " + (n.message || "") + " " + (n.id || "")).toLowerCase(), id = String(n.id || "");
-    if (n.type === "weather" || /^(aq_|sunset_|storm|rain|wind|heat|fog)/.test(id) || /weather|air quality|aqi|sunset|ember|heads-up/.test(t)) return "ember";
+    if (n.type === "weather" || /^(weather_|aq_|sunset_|sky_|storm|rain|wind|heat|fog)/.test(id) || /weather|air quality|aqi|sunset|ember|heads-up/.test(t)) return emberPic(n);
     if (/cancel/.test(t)) return "cancel";
     if (/refund|money back|returned/.test(t)) return "refund";
     if (/\b(delay|delayed|late|postponed)\b/.test(t)) return "delay";
     if (/payment|paid/.test(t)) return "payment";
     if (/delivered|handover|handed over/.test(t)) return "delivered";
     if (/out for delivery|delivery partner/.test(t)) return "outfor";
-    if (/shipped|dispatch|reached|hub|in transit|on the way/.test(t)) return "transit";
+    if (/reached|hub/.test(t)) return "hub";
+    if (/shipped|dispatch|in transit|on the way/.test(t)) return "transit";
     if (/new order/.test(t)) return "cart";
     if (/\b(rate|rating|ratings|rated|review)\b/.test(t)) return "star";
     if (/order|parcel/.test(t) || n.type === "order") return "order";
@@ -6108,19 +6125,26 @@ var GMScene = (function(){
     if (/new user|signed in|feedback|unanswered/.test(t)) return "admin";
     return "logo";
   }
-  var KIND_EMOJI = { ember: "\uD83D\uDD25", payment: "\uD83D\uDCB3", order: "\uD83D\uDCE6", transit: "\uD83D\uDE9A", outfor: "\uD83C\uDFCD\uFE0F", delivered: "\u2705", star: "\u2B50", shop: "\uD83C\uDFEA", product: "\uD83C\uDD95", stock: "\uD83D\uDD14", offer: "\uD83C\uDFF7\uFE0F", follower: "\uD83D\uDE4B", cart: "\uD83D\uDED2", scheme: "\uD83C\uDFDB\uFE0F", admin: "\uD83D\uDCAC", cancel: "\u274C", refund: "\uD83D\uDCB8", delay: "\u23F3", address: "\uD83D\uDCCD", welcome: "\uD83D\uDC4B", update: "\uD83D\uDE80", logo: "\uD83D\uDD14" };
+  var KIND_EMOJI = { ember: "\uD83D\uDEA8", "w-sun": "\u2600\uFE0F", "w-cloud": "\u2601\uFE0F", "w-partly": "\u26C5", "w-rain": "\uD83C\uDF27\uFE0F", "w-heavy": "\uD83C\uDF27\uFE0F", "w-storm": "\u26C8\uFE0F", "w-wind": "\uD83D\uDCA8", "w-heat": "\uD83C\uDF21\uFE0F", "w-fog": "\uD83C\uDF2B\uFE0F", "w-snow": "\u2744\uFE0F", "w-air": "\uD83D\uDE37", "w-sunset": "\uD83C\uDF05",
+    payment: "\uD83D\uDCB3", order: "\uD83D\uDCE6", hub: "\uD83C\uDFEC", transit: "\uD83D\uDE9A", outfor: "\uD83C\uDFCD\uFE0F", delivered: "\u2705", star: "\u2B50", shop: "\uD83C\uDFEA", product: "\uD83C\uDD95", stock: "\uD83D\uDD14", offer: "\uD83C\uDFF7\uFE0F", follower: "\uD83D\uDE4B", cart: "\uD83D\uDED2", scheme: "\uD83C\uDFDB\uFE0F", admin: "\uD83D\uDCAC", cancel: "\u274C", refund: "\uD83D\uDCB8", delay: "\u23F3", address: "\uD83D\uDCCD", welcome: "\uD83D\uDC4B", update: "\uD83D\uDE80", logo: "\uD83D\uDD14" };
+  // EMBER alerts: title "EMBER Alert", EMBER picture in colour on the left, the weather picture on the right.
+  // Everything else: the GreenMap logo on the left, a picture for the alert on the right.
+  // (Android draws the small left picture in one colour from its shape; the colour file is still supplied.)
   // log=true also lists the notification in the app's bell (used by the EMBER test command), so phone and bell always match
   window.gmSysNotify = function(title, body, tag, url, kind, log){
     if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
     var silent = (localStorage.getItem("gm_notif_sound") || "chime") !== "system";   // only "phone default" uses the phone's own sound
     kind = kind || "logo";
-    var icon = kind === "ember" ? "icon-ember.png" : kind === "logo" ? "icon-192.png" : "n-" + kind + ".png";   // right-hand picture follows the alert; left badge is the app logo
-    var o = { body: body || "", icon: icon, badge: "badge-96.png", tag: String(tag || "gm"), silent: silent, data: { url: url || "GreenMap_App.html" } };
+    var ember = kind === "ember" || /^w-/.test(kind);
+    var icon = kind === "ember" ? "icon-ember.png" : /^w-/.test(kind) ? kind + ".png" : kind === "logo" ? "icon-192.png" : "n-" + kind + ".png";
+    var shownTitle = title, shownBody = body || "";
+    if (ember){ shownTitle = "\uD83D\uDEA8 EMBER Alert"; shownBody = title + (body ? " \u2014 " + body : ""); }
+    var o = { body: shownBody, icon: icon, badge: ember ? "badge-ember.png" : "badge-96.png", tag: String(tag || "gm"), silent: silent, data: { url: url || "GreenMap_App.html" } };
     if (log){ try{ var pl = JSON.parse(localStorage.getItem("gm_phone_log_v1") || "[]"); pl.push({ id: String(tag), time: Date.now(), title: title, message: body || "", icon: KIND_EMOJI[kind] || "\uD83D\uDD14" }); localStorage.setItem("gm_phone_log_v1", JSON.stringify(pl.slice(-20))); if (typeof updateBellBadge === "function") updateBellBadge(); }catch(e){} }
     var show = function(){
       if (navigator.serviceWorker && navigator.serviceWorker.ready){
-        navigator.serviceWorker.ready.then(function(r){ r.showNotification(title, o); }).catch(function(){ try{ new Notification(title, o); }catch(e){} });
-      } else { try{ new Notification(title, o); }catch(e){} }
+        navigator.serviceWorker.ready.then(function(r){ r.showNotification(shownTitle, o); }).catch(function(){ try{ new Notification(shownTitle, o); }catch(e){} });
+      } else { try{ new Notification(shownTitle, o); }catch(e){} }
     };
     // if a picture file is missing on the server, fall back to the app logo instead of the grey letter
     try{ fetch(icon, { method: "HEAD" }).then(function(r){ if (!r.ok) o.icon = "icon-192.png"; }).catch(function(){ o.icon = "icon-192.png"; }).then(show); }catch(e){ show(); }
@@ -6181,28 +6205,44 @@ var GMScene = (function(){
     var a = window.GM_aq; if (!a) return null;
     return (a.b <= 1 ? "\uD83C\uDF3F " : a.b === 2 ? "\uD83D\uDE10 " : "\uD83D\uDE37 ") + T("wxs_air") + ": " + T("wxs_aq" + a.b) + " (AQI " + a.aqi + ")";
   }
-  function paint(text, animate){
+  function paint(text, animate, idx){
     var sp = st.el.firstChild;
     if (!sp || !sp.classList || !sp.classList.contains("gmf")){ st.el.innerHTML = '<span class="gmf"></span>'; sp = st.el.firstChild; }
     var reduce = false; try{ reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches; }catch(e){}
-    if (!animate || reduce){ sp.textContent = text; return; }
+    if (!animate || reduce){ sp.textContent = text; st.shown = idx; return; }
     sp.classList.add("out");
-    setTimeout(function(){ sp.textContent = text; sp.classList.remove("out"); sp.classList.add("pre"); void sp.offsetWidth; sp.classList.remove("pre"); }, 330);
+    setTimeout(function(){ sp.textContent = text; st.shown = idx; sp.classList.remove("out"); sp.classList.add("pre"); void sp.offsetWidth; sp.classList.remove("pre"); }, 330);
   }
-  function tick(){ if (document.hidden || st.lines.length < 2) return; st.i = (st.i + 1) % st.lines.length; paint(st.lines[st.i].t, true); }
+  function tick(){ if (document.hidden || st.lines.length < 2) return; st.i = (st.i + 1) % st.lines.length; paint(st.lines[st.i].t, true, st.i); }
   // called by gmUpdateTodayLine with the line it picked (alert, order, solar sentence)
-  function handleTap(k){
+  // ---- daily sky alert: one bell item and phone notification a day for a sunny, partly cloudy or cloudy day ----
+  var SKLOG = "gm_sky_log_v1", SKY_EMOJI = { sunny: "\u2600\uFE0F", partly: "\u26C5", cloudy: "\u2601\uFE0F" };
+  function skyLog(key, text){
+    var kind = key.replace("today_", ""), day = new Date().toISOString().slice(0, 10);
+    try{
+      var log = JSON.parse(localStorage.getItem(SKLOG) || "[]");
+      if (log.some(function(x){ return x.day === day; })) return;
+      log.push({ id: "sky_" + kind + "_" + day, day: day, time: Date.now(), text: text, kind: kind });
+      localStorage.setItem(SKLOG, JSON.stringify(log.slice(-5)));
+      if (typeof updateBellBadge === "function") updateBellBadge();
+    }catch(e){}
+  }
+  window.gmSkyNotifs = function(){
+    try{ return JSON.parse(localStorage.getItem(SKLOG) || "[]").map(function(x){ return { id: x.id, type: "weather", icon: SKY_EMOJI[x.kind] || "\u2601\uFE0F", title: x.text, message: "", link: "", time: x.time }; }); }catch(e){ return []; }
+  };
+  function handleTap(k, alert){
     if (k === "orders"){ if (typeof toggleNotifications === "function") toggleNotifications(true); return; }
     if (typeof toggleEnergyAgent === "function") toggleEnergyAgent(true);
-    setTimeout(function(){ var f = k === "aq" ? window.GM_aqCard : k === "sun" ? window.GM_sunCard : window.GM_adviceCard; if (f) f(); }, 350);
+    setTimeout(function(){ var f = k === "aq" ? window.GM_aqCard : k === "sun" ? window.GM_sunCard : k === "solar" ? window.GM_solarCard : window.GM_adviceCard; if (k === "alert" && window.GM_alertCard) window.GM_alertCard(alert); else if (f) f(); }, 350);
   }
   window.gmFlipLines = function(el, base, pick){
-    var bk = pick && pick.alert ? "alert" : (pick && pick.key && /order/i.test(pick.key) ? "orders" : "solar");
-    var lines = [{ t: base, k: bk }, { t: sunLine(), k: "sun" }, { t: aqLine(), k: "aq" }].filter(function(x){ return x.t; }), key = lines.map(function(x){ return x.t; }).join("|");
-    if (!st.bound){ st.bound = true; el.addEventListener("click", function(e){ e.stopPropagation(); var c = st.lines[st.i]; handleTap(c && c.k); }); }
+    var bk = pick && pick.alert ? "alert" : (pick && pick.key && /order/i.test(pick.key) ? "orders" : (pick && pick.key ? "solar" : "day"));
+    var lines = [{ t: base, k: bk, a: pick && pick.alert }, { t: sunLine(), k: "sun" }, { t: aqLine(), k: "aq" }].filter(function(x){ return x.t; }), key = lines.map(function(x){ return x.t; }).join("|");
+    if (pick && pick.key && !pick.alert && /sunny|partly|cloudy/.test(pick.key)) skyLog(pick.key, base);
+    if (!st.bound){ st.bound = true; el.addEventListener("click", function(e){ e.stopPropagation(); var c = st.lines[st.shown || 0]; handleTap(c && c.k, c && c.a); }); }
     st.el = el; el.classList.add("gm-flip");
     if (key === st.key) return;
-    st.key = key; st.lines = lines; st.i = 0; paint(lines[0].t, false);
+    st.key = key; st.lines = lines; st.i = 0; paint(lines[0].t, false, 0);
     if (st.timer){ clearInterval(st.timer); st.timer = null; }
     if (lines.length > 1) st.timer = setInterval(tick, 5000);
   };
@@ -6235,7 +6275,7 @@ var GMScene = (function(){
 /* EMBER in Telugu, Hindi, Tamil and Kannada for air quality and calculator questions, the "what should I do now" answer,
    and the climate history behind the weather screen. */
 (function(){
-  var D = {"en": {"adv_title": "What to do now", "adv_nodata": "I do not have weather for your area yet. Allow location and open the weather screen.", "adv_ok": "No special warning right now. Enjoy the day.", "adv_solar_good": "Strong sun today (about {u} units per kW). Run the pump, washing machine or water heater between 10 am and 3 pm.", "adv_solar_avg": "Average sun today (about {u} units per kW). Run heavy appliances around noon.", "adv_solar_low": "Weak sun today (about {u} units per kW). Do not count on solar for heavy loads and save battery for the evening.", "adv_rain": "Rain is likely around {t}. Charge batteries and finish outdoor work before then.", "adv_storm": "Thunderstorm risk. Unplug sensitive devices and stay indoors during the storm.", "adv_wind": "Strong gusts up to {n} km/h. Secure or brake small wind turbines and loose panels.", "adv_heat": "Very hot, up to {n}°C. Panel output dips a little in heat. Use fans and shade to cut the AC load.", "wxs_cl_title": "Climate here, {y0} to {y1}", "wxs_cl_hot": "Hottest day", "wxs_cl_cold": "Coldest day", "wxs_cl_wet": "Wettest day", "wxs_cl_wind": "Windiest day", "wxs_cl_avg": "Usual for {m}: high {h}°, low {l}°", "wxs_cl_warm": "Today is {d}° warmer than usual for this time of year.", "wxs_cl_cool": "Today is {d}° cooler than usual for this time of year.", "wxs_cl_same": "About normal for this time of year.", "adv_ping_t": "EMBER heads-up", "adv_ping_aq": "Air quality is {name} right now (AQI {n}).", "sun_rise_at": "Sunrise: {t}", "sun_set_at": "Sunset: {t}"}, "hi": {"adv_title": "अभी क्या करें", "adv_nodata": "आपके क्षेत्र का मौसम अभी उपलब्ध नहीं है। लोकेशन की अनुमति दें और मौसम स्क्रीन खोलें।", "adv_ok": "अभी कोई विशेष चेतावनी नहीं है। दिन का आनंद लें।", "adv_solar_good": "आज तेज़ धूप है (लगभग {u} यूनिट प्रति kW)। पंप, वॉशिंग मशीन या वॉटर हीटर सुबह 10 से दोपहर 3 बजे के बीच चलाएं।", "adv_solar_avg": "आज सामान्य धूप है (लगभग {u} यूनिट प्रति kW)। भारी उपकरण दोपहर के आसपास चलाएं।", "adv_solar_low": "आज धूप कमज़ोर है (लगभग {u} यूनिट प्रति kW)। भारी लोड के लिए सोलर पर निर्भर न रहें और बैटरी शाम के लिए बचाएं।", "adv_rain": "लगभग {t} बजे बारिश की संभावना है। उससे पहले बैटरी चार्ज करें और बाहर का काम निपटा लें।", "adv_storm": "आंधी-तूफ़ान का खतरा है। संवेदनशील उपकरण प्लग से निकालें और तूफ़ान में घर के अंदर रहें।", "adv_wind": "{n} km/h तक तेज़ झोंके हैं। छोटी पवन चक्कियों और ढीले पैनलों को सुरक्षित करें या ब्रेक लगाएं।", "adv_heat": "बहुत गर्मी है, {n}°C तक। गर्मी में पैनल का उत्पादन थोड़ा घटता है। पंखे और छाया से एसी का भार कम करें।", "wxs_cl_title": "यहाँ की जलवायु, {y0} से {y1}", "wxs_cl_hot": "सबसे गर्म दिन", "wxs_cl_cold": "सबसे ठंडा दिन", "wxs_cl_wet": "सबसे बारिश वाला दिन", "wxs_cl_wind": "सबसे तेज़ हवा का दिन", "wxs_cl_avg": "{m} के लिए सामान्य: अधिकतम {h}°, न्यूनतम {l}°", "wxs_cl_warm": "आज साल के इस समय के सामान्य से {d}° ज़्यादा गर्म है।", "wxs_cl_cool": "आज साल के इस समय के सामान्य से {d}° ज़्यादा ठंडा है।", "wxs_cl_same": "साल के इस समय के लिए लगभग सामान्य।", "adv_ping_t": "EMBER की चेतावनी", "adv_ping_aq": "अभी वायु गुणवत्ता {name} है (AQI {n})।", "sun_rise_at": "सूर्योदय: {t}", "sun_set_at": "सूर्यास्त: {t}"}, "te": {"adv_title": "ఇప్పుడు ఏం చేయాలి", "adv_nodata": "మీ ప్రాంతానికి వాతావరణ సమాచారం ఇంకా లేదు. లొకేషన్ అనుమతి ఇచ్చి వాతావరణ స్క్రీన్ తెరవండి.", "adv_ok": "ప్రస్తుతం ప్రత్యేక హెచ్చరిక ఏదీ లేదు. రోజును ఆస్వాదించండి.", "adv_solar_good": "ఈ రోజు ఎండ బలంగా ఉంది (kWకి సుమారు {u} యూనిట్లు). పంప్, వాషింగ్ మెషిన్ లేదా వాటర్ హీటర్‌ను ఉదయం 10 నుంచి మధ్యాహ్నం 3 మధ్య నడపండి.", "adv_solar_avg": "ఈ రోజు ఎండ సాధారణంగా ఉంది (kWకి సుమారు {u} యూనిట్లు). భారీ పరికరాలను మధ్యాహ్నం సమయంలో నడపండి.", "adv_solar_low": "ఈ రోజు ఎండ బలహీనంగా ఉంది (kWకి సుమారు {u} యూనిట్లు). భారీ లోడ్లకు సోలార్‌పై ఆధారపడవద్దు, బ్యాటరీని సాయంత్రానికి ఆదా చేయండి.", "adv_rain": "సుమారు {t} సమయంలో వర్షం పడే అవకాశం ఉంది. ఆ లోపు బ్యాటరీలు ఛార్జ్ చేసి బయటి పని ముగించండి.", "adv_storm": "ఉరుములతో కూడిన తుఫాను ప్రమాదం ఉంది. సున్నితమైన పరికరాలను ప్లగ్ నుంచి తీసివేసి, తుఫాను సమయంలో ఇంట్లోనే ఉండండి.", "adv_wind": "{n} km/h వరకు బలమైన గాలి ఝంకారాలు ఉన్నాయి. చిన్న విండ్ టర్బైన్లను, వదులైన ప్యానెల్స్‌ను భద్రపరచండి లేదా బ్రేక్ వేయండి.", "adv_heat": "చాలా వేడిగా ఉంది, {n}°C వరకు. వేడిలో ప్యానెల్ ఉత్పత్తి కొంచెం తగ్గుతుంది. ఫ్యాన్లు, నీడ వాడి ఏసీ లోడ్ తగ్గించండి.", "wxs_cl_title": "ఇక్కడి వాతావరణం, {y0} నుంచి {y1} వరకు", "wxs_cl_hot": "అత్యంత వేడి రోజు", "wxs_cl_cold": "అత్యంత చల్లని రోజు", "wxs_cl_wet": "అత్యధిక వర్షం కురిసిన రోజు", "wxs_cl_wind": "అత్యంత గాలి వీచిన రోజు", "wxs_cl_avg": "{m}కి సాధారణం: గరిష్ఠం {h}°, కనిష్ఠం {l}°", "wxs_cl_warm": "ఈ రోజు ఏడాదిలో ఈ సమయానికి సాధారణం కంటే {d}° ఎక్కువ వేడిగా ఉంది.", "wxs_cl_cool": "ఈ రోజు ఏడాదిలో ఈ సమయానికి సాధారణం కంటే {d}° చల్లగా ఉంది.", "wxs_cl_same": "ఏడాదిలో ఈ సమయానికి సుమారు సాధారణంగా ఉంది.", "adv_ping_t": "EMBER హెచ్చరిక", "adv_ping_aq": "ప్రస్తుతం గాలి నాణ్యత {name} (AQI {n}).", "sun_rise_at": "సూర్యోదయం: {t}", "sun_set_at": "సూర్యాస్తమయం: {t}"}, "ta": {"adv_title": "இப்போது என்ன செய்யலாம்", "adv_nodata": "உங்கள் பகுதிக்கான வானிலை இன்னும் இல்லை. இருப்பிட அனுமதி அளித்து வானிலைத் திரையைத் திறக்கவும்.", "adv_ok": "இப்போது சிறப்பு எச்சரிக்கை எதுவும் இல்லை. நாளை இனிமையாகக் கழியுங்கள்.", "adv_solar_good": "இன்று வெயில் வலுவாக உள்ளது (kW-க்கு சுமார் {u} யூனிட்). பம்ப், துணி துவைக்கும் இயந்திரம் அல்லது வாட்டர் ஹீட்டரை காலை 10 முதல் பிற்பகல் 3 மணிக்குள் இயக்குங்கள்.", "adv_solar_avg": "இன்று வெயில் சராசரியாக உள்ளது (kW-க்கு சுமார் {u} யூனிட்). கனமான சாதனங்களை மதிய நேரத்தில் இயக்குங்கள்.", "adv_solar_low": "இன்று வெயில் பலவீனமாக உள்ளது (kW-க்கு சுமார் {u} யூனிட்). கனமான மின்சுமைக்கு சோலாரை நம்ப வேண்டாம், பேட்டரியை மாலைக்காகச் சேமியுங்கள்.", "adv_rain": "சுமார் {t} மணிக்கு மழை பெய்ய வாய்ப்பு உள்ளது. அதற்கு முன் பேட்டரிகளை சார்ஜ் செய்து வெளிவேலைகளை முடியுங்கள்.", "adv_storm": "இடியுடன் கூடிய புயல் ஆபத்து உள்ளது. உணர்திறன் சாதனங்களின் பிளக்கை அகற்றி, புயலின்போது வீட்டிலேயே இருங்கள்.", "adv_wind": "{n} km/h வரை பலத்த காற்று வீசும். சிறிய காற்றாலைகளையும் தளர்வான பேனல்களையும் பாதுகாப்பாக வையுங்கள் அல்லது பிரேக் போடுங்கள்.", "adv_heat": "மிகவும் வெப்பம், {n}°C வரை. வெப்பத்தில் பேனல் உற்பத்தி சற்றுக் குறையும். மின்விசிறிகளையும் நிழலையும் பயன்படுத்தி ஏசி சுமையைக் குறையுங்கள்.", "wxs_cl_title": "இங்குள்ள காலநிலை, {y0} முதல் {y1} வரை", "wxs_cl_hot": "மிகவும் வெப்பமான நாள்", "wxs_cl_cold": "மிகவும் குளிரான நாள்", "wxs_cl_wet": "அதிக மழை பெய்த நாள்", "wxs_cl_wind": "அதிக காற்று வீசிய நாள்", "wxs_cl_avg": "{m} மாதத்திற்கான வழக்கம்: அதிகபட்சம் {h}°, குறைந்தபட்சம் {l}°", "wxs_cl_warm": "இன்று ஆண்டின் இந்த நேரத்தின் வழக்கத்தை விட {d}° அதிக வெப்பம்.", "wxs_cl_cool": "இன்று ஆண்டின் இந்த நேரத்தின் வழக்கத்தை விட {d}° குளிர்ச்சி.", "wxs_cl_same": "ஆண்டின் இந்த நேரத்திற்கு ஏறக்குறைய வழக்கமானது.", "adv_ping_t": "EMBER எச்சரிக்கை", "adv_ping_aq": "இப்போது காற்றின் தரம் {name} (AQI {n}).", "sun_rise_at": "சூரிய உதயம்: {t}", "sun_set_at": "சூரிய அஸ்தமனம்: {t}"}, "kn": {"adv_title": "ಈಗ ಏನು ಮಾಡಬೇಕು", "adv_nodata": "ನಿಮ್ಮ ಪ್ರದೇಶದ ಹವಾಮಾನ ಇನ್ನೂ ಲಭ್ಯವಿಲ್ಲ. ಸ್ಥಳದ ಅನುಮತಿ ನೀಡಿ ಹವಾಮಾನ ಪರದೆಯನ್ನು ತೆರೆಯಿರಿ.", "adv_ok": "ಈಗ ವಿಶೇಷ ಎಚ್ಚರಿಕೆ ಇಲ್ಲ. ದಿನವನ್ನು ಆನಂದಿಸಿ.", "adv_solar_good": "ಇಂದು ಬಿಸಿಲು ಬಲವಾಗಿದೆ (kWಗೆ ಸುಮಾರು {u} ಯೂನಿಟ್). ಪಂಪ್, ವಾಷಿಂಗ್ ಮೆಷಿನ್ ಅಥವಾ ವಾಟರ್ ಹೀಟರ್ ಅನ್ನು ಬೆಳಿಗ್ಗೆ 10 ರಿಂದ ಮಧ್ಯಾಹ್ನ 3 ರ ನಡುವೆ ಓಡಿಸಿ.", "adv_solar_avg": "ಇಂದು ಬಿಸಿಲು ಸಾಮಾನ್ಯವಾಗಿದೆ (kWಗೆ ಸುಮಾರು {u} ಯೂನಿಟ್). ಭಾರವಾದ ಉಪಕರಣಗಳನ್ನು ಮಧ್ಯಾಹ್ನದ ಸುಮಾರಿಗೆ ಓಡಿಸಿ.", "adv_solar_low": "ಇಂದು ಬಿಸಿಲು ದುರ್ಬಲವಾಗಿದೆ (kWಗೆ ಸುಮಾರು {u} ಯೂನಿಟ್). ಭಾರವಾದ ಲೋಡ್‌ಗಳಿಗೆ ಸೋಲಾರ್ ಮೇಲೆ ಅವಲಂಬಿಸಬೇಡಿ, ಬ್ಯಾಟರಿಯನ್ನು ಸಂಜೆಗೆ ಉಳಿಸಿ.", "adv_rain": "ಸುಮಾರು {t}ಕ್ಕೆ ಮಳೆ ಬರುವ ಸಾಧ್ಯತೆ ಇದೆ. ಅದಕ್ಕೂ ಮೊದಲು ಬ್ಯಾಟರಿ ಚಾರ್ಜ್ ಮಾಡಿ ಹೊರಗಿನ ಕೆಲಸ ಮುಗಿಸಿ.", "adv_storm": "ಗುಡುಗು ಸಹಿತ ಚಂಡಮಾರುತದ ಅಪಾಯವಿದೆ. ಸೂಕ್ಷ್ಮ ಸಾಧನಗಳ ಪ್ಲಗ್ ತೆಗೆದು, ಚಂಡಮಾರುತದ ವೇಳೆ ಮನೆಯೊಳಗೆ ಇರಿ.", "adv_wind": "{n} km/h ವರೆಗೆ ಬಲವಾದ ಗಾಳಿ ಬೀಸುತ್ತದೆ. ಸಣ್ಣ ವಿಂಡ್ ಟರ್ಬೈನ್‌ಗಳನ್ನೂ ಸಡಿಲ ಪ್ಯಾನೆಲ್‌ಗಳನ್ನೂ ಭದ್ರಪಡಿಸಿ ಅಥವಾ ಬ್ರೇಕ್ ಹಾಕಿ.", "adv_heat": "ತುಂಬಾ ಬಿಸಿಲು, {n}°C ವರೆಗೆ. ಬಿಸಿಯಲ್ಲಿ ಪ್ಯಾನೆಲ್ ಉತ್ಪಾದನೆ ಸ್ವಲ್ಪ ಕಡಿಮೆಯಾಗುತ್ತದೆ. ಫ್ಯಾನ್ ಮತ್ತು ನೆರಳು ಬಳಸಿ ಎಸಿ ಲೋಡ್ ಕಡಿಮೆ ಮಾಡಿ.", "wxs_cl_title": "ಇಲ್ಲಿನ ಹವಾಮಾನ, {y0} ರಿಂದ {y1} ವರೆಗೆ", "wxs_cl_hot": "ಅತ್ಯಂತ ಬಿಸಿ ದಿನ", "wxs_cl_cold": "ಅತ್ಯಂತ ತಂಪಾದ ದಿನ", "wxs_cl_wet": "ಅತಿ ಹೆಚ್ಚು ಮಳೆ ಬಂದ ದಿನ", "wxs_cl_wind": "ಅತಿ ಹೆಚ್ಚು ಗಾಳಿ ಬೀಸಿದ ದಿನ", "wxs_cl_avg": "{m} ತಿಂಗಳಿಗೆ ಸಾಮಾನ್ಯ: ಗರಿಷ್ಠ {h}°, ಕನಿಷ್ಠ {l}°", "wxs_cl_warm": "ಇಂದು ವರ್ಷದ ಈ ಸಮಯದ ಸಾಮಾನ್ಯಕ್ಕಿಂತ {d}° ಹೆಚ್ಚು ಬಿಸಿಯಾಗಿದೆ.", "wxs_cl_cool": "ಇಂದು ವರ್ಷದ ಈ ಸಮಯದ ಸಾಮಾನ್ಯಕ್ಕಿಂತ {d}° ತಂಪಾಗಿದೆ.", "wxs_cl_same": "ವರ್ಷದ ಈ ಸಮಯಕ್ಕೆ ಸುಮಾರು ಸಾಮಾನ್ಯ.", "adv_ping_t": "EMBER ಎಚ್ಚರಿಕೆ", "adv_ping_aq": "ಈಗ ಗಾಳಿಯ ಗುಣಮಟ್ಟ {name} (AQI {n}).", "sun_rise_at": "ಸೂರ್ಯೋದಯ: {t}", "sun_set_at": "ಸೂರ್ಯಾಸ್ತ: {t}"}};
+  var D = {"en": {"adv_title": "What to do now", "adv_nodata": "I do not have weather for your area yet. Allow location and open the weather screen.", "adv_ok": "No special warning right now. Enjoy the day.", "adv_solar_good": "Strong sun today (about {u} units per kW). Run the pump, washing machine or water heater between 10 am and 3 pm.", "adv_solar_avg": "Average sun today (about {u} units per kW). Run heavy appliances around noon.", "adv_solar_low": "Weak sun today (about {u} units per kW). Do not count on solar for heavy loads and save battery for the evening.", "adv_rain": "Rain is likely around {t}. Charge batteries and finish outdoor work before then.", "adv_storm": "Thunderstorm risk. Unplug sensitive devices and stay indoors during the storm.", "adv_wind": "Strong gusts up to {n} km/h. Secure or brake small wind turbines and loose panels.", "adv_heat": "Very hot, up to {n}°C. Panel output dips a little in heat. Use fans and shade to cut the AC load.", "wxs_cl_title": "Climate here, {y0} to {y1}", "wxs_cl_hot": "Hottest day", "wxs_cl_cold": "Coldest day", "wxs_cl_wet": "Wettest day", "wxs_cl_wind": "Windiest day", "wxs_cl_avg": "Usual for {m}: high {h}°, low {l}°", "wxs_cl_warm": "Today is {d}° warmer than usual for this time of year.", "wxs_cl_cool": "Today is {d}° cooler than usual for this time of year.", "wxs_cl_same": "About normal for this time of year.", "adv_ping_t": "EMBER Alert", "adv_ping_aq": "Air quality is {name} right now (AQI {n}).", "sun_rise_at": "Sunrise: {t}", "sun_set_at": "Sunset: {t}", "adv_a_light": "Light rain is possible. Keep an umbrella handy; solar output will dip a little.", "adv_a_rain": "Rain is likely from {t}. Charge batteries and finish outdoor work before then.", "adv_a_heavy": "Heavy rain is likely from {t}. Charge batteries, avoid travel and keep outdoor wiring dry.", "adv_a_storm": "Thunderstorm from {t}. Unplug sensitive devices and stay indoors during the storm.", "adv_a_wind": "Strong gusts from {t}. Secure or brake small wind turbines and loose panels.", "adv_a_heat": "Very hot from {t}. Panel output dips a little in heat; use fans and shade to cut the AC load.", "adv_a_fog": "Fog from {t}. Drive slowly; solar output will be low in the morning.", "adv_also": "Also coming", "adv_sol_t": "Solar today", "adv_sol_best": "Best hours: 10 am to 3 pm."}, "hi": {"adv_title": "अभी क्या करें", "adv_nodata": "आपके क्षेत्र का मौसम अभी उपलब्ध नहीं है। लोकेशन की अनुमति दें और मौसम स्क्रीन खोलें।", "adv_ok": "अभी कोई विशेष चेतावनी नहीं है। दिन का आनंद लें।", "adv_solar_good": "आज तेज़ धूप है (लगभग {u} यूनिट प्रति kW)। पंप, वॉशिंग मशीन या वॉटर हीटर सुबह 10 से दोपहर 3 बजे के बीच चलाएं।", "adv_solar_avg": "आज सामान्य धूप है (लगभग {u} यूनिट प्रति kW)। भारी उपकरण दोपहर के आसपास चलाएं।", "adv_solar_low": "आज धूप कमज़ोर है (लगभग {u} यूनिट प्रति kW)। भारी लोड के लिए सोलर पर निर्भर न रहें और बैटरी शाम के लिए बचाएं।", "adv_rain": "लगभग {t} बजे बारिश की संभावना है। उससे पहले बैटरी चार्ज करें और बाहर का काम निपटा लें।", "adv_storm": "आंधी-तूफ़ान का खतरा है। संवेदनशील उपकरण प्लग से निकालें और तूफ़ान में घर के अंदर रहें।", "adv_wind": "{n} km/h तक तेज़ झोंके हैं। छोटी पवन चक्कियों और ढीले पैनलों को सुरक्षित करें या ब्रेक लगाएं।", "adv_heat": "बहुत गर्मी है, {n}°C तक। गर्मी में पैनल का उत्पादन थोड़ा घटता है। पंखे और छाया से एसी का भार कम करें।", "wxs_cl_title": "यहाँ की जलवायु, {y0} से {y1}", "wxs_cl_hot": "सबसे गर्म दिन", "wxs_cl_cold": "सबसे ठंडा दिन", "wxs_cl_wet": "सबसे बारिश वाला दिन", "wxs_cl_wind": "सबसे तेज़ हवा का दिन", "wxs_cl_avg": "{m} के लिए सामान्य: अधिकतम {h}°, न्यूनतम {l}°", "wxs_cl_warm": "आज साल के इस समय के सामान्य से {d}° ज़्यादा गर्म है।", "wxs_cl_cool": "आज साल के इस समय के सामान्य से {d}° ज़्यादा ठंडा है।", "wxs_cl_same": "साल के इस समय के लिए लगभग सामान्य।", "adv_ping_t": "EMBER अलर्ट", "adv_ping_aq": "अभी वायु गुणवत्ता {name} है (AQI {n})।", "sun_rise_at": "सूर्योदय: {t}", "sun_set_at": "सूर्यास्त: {t}", "adv_a_light": "हल्की बारिश की संभावना है। छाता साथ रखें; सोलर उत्पादन थोड़ा घटेगा।", "adv_a_rain": "{t} से बारिश की संभावना है। उससे पहले बैटरी चार्ज करें और बाहर का काम निपटा लें।", "adv_a_heavy": "{t} से भारी बारिश की संभावना है। बैटरी चार्ज करें, यात्रा से बचें और बाहर की वायरिंग सूखी रखें।", "adv_a_storm": "{t} से आंधी-तूफ़ान की संभावना है। संवेदनशील उपकरण प्लग से निकालें और तूफ़ान में घर के अंदर रहें।", "adv_a_wind": "{t} से तेज़ झोंके चलेंगे। छोटी पवन चक्कियों और ढीले पैनलों को सुरक्षित करें या ब्रेक लगाएं।", "adv_a_heat": "{t} से बहुत गर्मी होगी। गर्मी में पैनल का उत्पादन थोड़ा घटता है; पंखे और छाया से एसी का भार कम करें।", "adv_a_fog": "{t} से कोहरा रहेगा। धीरे चलाएं; सुबह सोलर उत्पादन कम रहेगा।", "adv_also": "आगे आने वाले अलर्ट", "adv_sol_t": "आज का सोलर", "adv_sol_best": "सबसे अच्छा समय: सुबह 10 से दोपहर 3 बजे।"}, "te": {"adv_title": "ఇప్పుడు ఏం చేయాలి", "adv_nodata": "మీ ప్రాంతానికి వాతావరణ సమాచారం ఇంకా లేదు. లొకేషన్ అనుమతి ఇచ్చి వాతావరణ స్క్రీన్ తెరవండి.", "adv_ok": "ప్రస్తుతం ప్రత్యేక హెచ్చరిక ఏదీ లేదు. రోజును ఆస్వాదించండి.", "adv_solar_good": "ఈ రోజు ఎండ బలంగా ఉంది (kWకి సుమారు {u} యూనిట్లు). పంప్, వాషింగ్ మెషిన్ లేదా వాటర్ హీటర్‌ను ఉదయం 10 నుంచి మధ్యాహ్నం 3 మధ్య నడపండి.", "adv_solar_avg": "ఈ రోజు ఎండ సాధారణంగా ఉంది (kWకి సుమారు {u} యూనిట్లు). భారీ పరికరాలను మధ్యాహ్నం సమయంలో నడపండి.", "adv_solar_low": "ఈ రోజు ఎండ బలహీనంగా ఉంది (kWకి సుమారు {u} యూనిట్లు). భారీ లోడ్లకు సోలార్‌పై ఆధారపడవద్దు, బ్యాటరీని సాయంత్రానికి ఆదా చేయండి.", "adv_rain": "సుమారు {t} సమయంలో వర్షం పడే అవకాశం ఉంది. ఆ లోపు బ్యాటరీలు ఛార్జ్ చేసి బయటి పని ముగించండి.", "adv_storm": "ఉరుములతో కూడిన తుఫాను ప్రమాదం ఉంది. సున్నితమైన పరికరాలను ప్లగ్ నుంచి తీసివేసి, తుఫాను సమయంలో ఇంట్లోనే ఉండండి.", "adv_wind": "{n} km/h వరకు బలమైన గాలి ఝంకారాలు ఉన్నాయి. చిన్న విండ్ టర్బైన్లను, వదులైన ప్యానెల్స్‌ను భద్రపరచండి లేదా బ్రేక్ వేయండి.", "adv_heat": "చాలా వేడిగా ఉంది, {n}°C వరకు. వేడిలో ప్యానెల్ ఉత్పత్తి కొంచెం తగ్గుతుంది. ఫ్యాన్లు, నీడ వాడి ఏసీ లోడ్ తగ్గించండి.", "wxs_cl_title": "ఇక్కడి వాతావరణం, {y0} నుంచి {y1} వరకు", "wxs_cl_hot": "అత్యంత వేడి రోజు", "wxs_cl_cold": "అత్యంత చల్లని రోజు", "wxs_cl_wet": "అత్యధిక వర్షం కురిసిన రోజు", "wxs_cl_wind": "అత్యంత గాలి వీచిన రోజు", "wxs_cl_avg": "{m}కి సాధారణం: గరిష్ఠం {h}°, కనిష్ఠం {l}°", "wxs_cl_warm": "ఈ రోజు ఏడాదిలో ఈ సమయానికి సాధారణం కంటే {d}° ఎక్కువ వేడిగా ఉంది.", "wxs_cl_cool": "ఈ రోజు ఏడాదిలో ఈ సమయానికి సాధారణం కంటే {d}° చల్లగా ఉంది.", "wxs_cl_same": "ఏడాదిలో ఈ సమయానికి సుమారు సాధారణంగా ఉంది.", "adv_ping_t": "EMBER హెచ్చరిక", "adv_ping_aq": "ప్రస్తుతం గాలి నాణ్యత {name} (AQI {n}).", "sun_rise_at": "సూర్యోదయం: {t}", "sun_set_at": "సూర్యాస్తమయం: {t}", "adv_a_light": "తేలికపాటి వర్షం పడే అవకాశం ఉంది. గొడుగు దగ్గర ఉంచుకోండి; సోలార్ ఉత్పత్తి కొంచెం తగ్గుతుంది.", "adv_a_rain": "{t} నుంచి వర్షం పడే అవకాశం ఉంది. ఆ లోపు బ్యాటరీలు ఛార్జ్ చేసి బయటి పని ముగించండి.", "adv_a_heavy": "{t} నుంచి భారీ వర్షం పడే అవకాశం ఉంది. బ్యాటరీలు ఛార్జ్ చేయండి, ప్రయాణాలు మానండి, బయటి వైరింగ్‌ను పొడిగా ఉంచండి.", "adv_a_storm": "{t} నుంచి ఉరుములతో తుఫాను అవకాశం ఉంది. సున్నితమైన పరికరాలను ప్లగ్ నుంచి తీసివేసి, తుఫాను సమయంలో ఇంట్లోనే ఉండండి.", "adv_a_wind": "{t} నుంచి బలమైన గాలి ఝంకారాలు ఉంటాయి. చిన్న విండ్ టర్బైన్లను, వదులైన ప్యానెల్స్‌ను భద్రపరచండి లేదా బ్రేక్ వేయండి.", "adv_a_heat": "{t} నుంచి చాలా వేడిగా ఉంటుంది. వేడిలో ప్యానెల్ ఉత్పత్తి కొంచెం తగ్గుతుంది; ఫ్యాన్లు, నీడ వాడి ఏసీ లోడ్ తగ్గించండి.", "adv_a_fog": "{t} నుంచి పొగమంచు ఉంటుంది. నెమ్మదిగా నడపండి; ఉదయం సోలార్ ఉత్పత్తి తక్కువగా ఉంటుంది.", "adv_also": "రాబోయే హెచ్చరికలు", "adv_sol_t": "ఈ రోజు సోలార్", "adv_sol_best": "ఉత్తమ సమయం: ఉదయం 10 నుంచి మధ్యాహ్నం 3 వరకు."}, "ta": {"adv_title": "இப்போது என்ன செய்யலாம்", "adv_nodata": "உங்கள் பகுதிக்கான வானிலை இன்னும் இல்லை. இருப்பிட அனுமதி அளித்து வானிலைத் திரையைத் திறக்கவும்.", "adv_ok": "இப்போது சிறப்பு எச்சரிக்கை எதுவும் இல்லை. நாளை இனிமையாகக் கழியுங்கள்.", "adv_solar_good": "இன்று வெயில் வலுவாக உள்ளது (kW-க்கு சுமார் {u} யூனிட்). பம்ப், துணி துவைக்கும் இயந்திரம் அல்லது வாட்டர் ஹீட்டரை காலை 10 முதல் பிற்பகல் 3 மணிக்குள் இயக்குங்கள்.", "adv_solar_avg": "இன்று வெயில் சராசரியாக உள்ளது (kW-க்கு சுமார் {u} யூனிட்). கனமான சாதனங்களை மதிய நேரத்தில் இயக்குங்கள்.", "adv_solar_low": "இன்று வெயில் பலவீனமாக உள்ளது (kW-க்கு சுமார் {u} யூனிட்). கனமான மின்சுமைக்கு சோலாரை நம்ப வேண்டாம், பேட்டரியை மாலைக்காகச் சேமியுங்கள்.", "adv_rain": "சுமார் {t} மணிக்கு மழை பெய்ய வாய்ப்பு உள்ளது. அதற்கு முன் பேட்டரிகளை சார்ஜ் செய்து வெளிவேலைகளை முடியுங்கள்.", "adv_storm": "இடியுடன் கூடிய புயல் ஆபத்து உள்ளது. உணர்திறன் சாதனங்களின் பிளக்கை அகற்றி, புயலின்போது வீட்டிலேயே இருங்கள்.", "adv_wind": "{n} km/h வரை பலத்த காற்று வீசும். சிறிய காற்றாலைகளையும் தளர்வான பேனல்களையும் பாதுகாப்பாக வையுங்கள் அல்லது பிரேக் போடுங்கள்.", "adv_heat": "மிகவும் வெப்பம், {n}°C வரை. வெப்பத்தில் பேனல் உற்பத்தி சற்றுக் குறையும். மின்விசிறிகளையும் நிழலையும் பயன்படுத்தி ஏசி சுமையைக் குறையுங்கள்.", "wxs_cl_title": "இங்குள்ள காலநிலை, {y0} முதல் {y1} வரை", "wxs_cl_hot": "மிகவும் வெப்பமான நாள்", "wxs_cl_cold": "மிகவும் குளிரான நாள்", "wxs_cl_wet": "அதிக மழை பெய்த நாள்", "wxs_cl_wind": "அதிக காற்று வீசிய நாள்", "wxs_cl_avg": "{m} மாதத்திற்கான வழக்கம்: அதிகபட்சம் {h}°, குறைந்தபட்சம் {l}°", "wxs_cl_warm": "இன்று ஆண்டின் இந்த நேரத்தின் வழக்கத்தை விட {d}° அதிக வெப்பம்.", "wxs_cl_cool": "இன்று ஆண்டின் இந்த நேரத்தின் வழக்கத்தை விட {d}° குளிர்ச்சி.", "wxs_cl_same": "ஆண்டின் இந்த நேரத்திற்கு ஏறக்குறைய வழக்கமானது.", "adv_ping_t": "EMBER எச்சரிக்கை", "adv_ping_aq": "இப்போது காற்றின் தரம் {name} (AQI {n}).", "sun_rise_at": "சூரிய உதயம்: {t}", "sun_set_at": "சூரிய அஸ்தமனம்: {t}", "adv_a_light": "லேசான மழைக்கு வாய்ப்பு உள்ளது. குடை கையில் வைத்திருங்கள்; சோலார் உற்பத்தி சற்றுக் குறையும்.", "adv_a_rain": "{t} முதல் மழை பெய்ய வாய்ப்பு உள்ளது. அதற்கு முன் பேட்டரிகளை சார்ஜ் செய்து வெளிவேலைகளை முடியுங்கள்.", "adv_a_heavy": "{t} முதல் கனமழைக்கு வாய்ப்பு உள்ளது. பேட்டரிகளை சார்ஜ் செய்யுங்கள், பயணத்தைத் தவிர்க்கவும், வெளிப்புற வயரிங்கை உலர்வாக வையுங்கள்.", "adv_a_storm": "{t} முதல் இடியுடன் கூடிய புயலுக்கு வாய்ப்பு உள்ளது. உணர்திறன் சாதனங்களின் பிளக்கை அகற்றி, புயலின்போது வீட்டிலேயே இருங்கள்.", "adv_a_wind": "{t} முதல் பலத்த காற்று வீசும். சிறிய காற்றாலைகளையும் தளர்வான பேனல்களையும் பாதுகாப்பாக வையுங்கள் அல்லது பிரேக் போடுங்கள்.", "adv_a_heat": "{t} முதல் மிகவும் வெப்பமாக இருக்கும். வெப்பத்தில் பேனல் உற்பத்தி சற்றுக் குறையும்; மின்விசிறிகளையும் நிழலையும் பயன்படுத்தி ஏசி சுமையைக் குறையுங்கள்.", "adv_a_fog": "{t} முதல் மூடுபனி இருக்கும். மெதுவாக ஓட்டுங்கள்; காலையில் சோலார் உற்பத்தி குறைவாக இருக்கும்.", "adv_also": "வரவிருக்கும் எச்சரிக்கைகள்", "adv_sol_t": "இன்றைய சோலார்", "adv_sol_best": "சிறந்த நேரம்: காலை 10 முதல் பிற்பகல் 3 வரை."}, "kn": {"adv_title": "ಈಗ ಏನು ಮಾಡಬೇಕು", "adv_nodata": "ನಿಮ್ಮ ಪ್ರದೇಶದ ಹವಾಮಾನ ಇನ್ನೂ ಲಭ್ಯವಿಲ್ಲ. ಸ್ಥಳದ ಅನುಮತಿ ನೀಡಿ ಹವಾಮಾನ ಪರದೆಯನ್ನು ತೆರೆಯಿರಿ.", "adv_ok": "ಈಗ ವಿಶೇಷ ಎಚ್ಚರಿಕೆ ಇಲ್ಲ. ದಿನವನ್ನು ಆನಂದಿಸಿ.", "adv_solar_good": "ಇಂದು ಬಿಸಿಲು ಬಲವಾಗಿದೆ (kWಗೆ ಸುಮಾರು {u} ಯೂನಿಟ್). ಪಂಪ್, ವಾಷಿಂಗ್ ಮೆಷಿನ್ ಅಥವಾ ವಾಟರ್ ಹೀಟರ್ ಅನ್ನು ಬೆಳಿಗ್ಗೆ 10 ರಿಂದ ಮಧ್ಯಾಹ್ನ 3 ರ ನಡುವೆ ಓಡಿಸಿ.", "adv_solar_avg": "ಇಂದು ಬಿಸಿಲು ಸಾಮಾನ್ಯವಾಗಿದೆ (kWಗೆ ಸುಮಾರು {u} ಯೂನಿಟ್). ಭಾರವಾದ ಉಪಕರಣಗಳನ್ನು ಮಧ್ಯಾಹ್ನದ ಸುಮಾರಿಗೆ ಓಡಿಸಿ.", "adv_solar_low": "ಇಂದು ಬಿಸಿಲು ದುರ್ಬಲವಾಗಿದೆ (kWಗೆ ಸುಮಾರು {u} ಯೂನಿಟ್). ಭಾರವಾದ ಲೋಡ್‌ಗಳಿಗೆ ಸೋಲಾರ್ ಮೇಲೆ ಅವಲಂಬಿಸಬೇಡಿ, ಬ್ಯಾಟರಿಯನ್ನು ಸಂಜೆಗೆ ಉಳಿಸಿ.", "adv_rain": "ಸುಮಾರು {t}ಕ್ಕೆ ಮಳೆ ಬರುವ ಸಾಧ್ಯತೆ ಇದೆ. ಅದಕ್ಕೂ ಮೊದಲು ಬ್ಯಾಟರಿ ಚಾರ್ಜ್ ಮಾಡಿ ಹೊರಗಿನ ಕೆಲಸ ಮುಗಿಸಿ.", "adv_storm": "ಗುಡುಗು ಸಹಿತ ಚಂಡಮಾರುತದ ಅಪಾಯವಿದೆ. ಸೂಕ್ಷ್ಮ ಸಾಧನಗಳ ಪ್ಲಗ್ ತೆಗೆದು, ಚಂಡಮಾರುತದ ವೇಳೆ ಮನೆಯೊಳಗೆ ಇರಿ.", "adv_wind": "{n} km/h ವರೆಗೆ ಬಲವಾದ ಗಾಳಿ ಬೀಸುತ್ತದೆ. ಸಣ್ಣ ವಿಂಡ್ ಟರ್ಬೈನ್‌ಗಳನ್ನೂ ಸಡಿಲ ಪ್ಯಾನೆಲ್‌ಗಳನ್ನೂ ಭದ್ರಪಡಿಸಿ ಅಥವಾ ಬ್ರೇಕ್ ಹಾಕಿ.", "adv_heat": "ತುಂಬಾ ಬಿಸಿಲು, {n}°C ವರೆಗೆ. ಬಿಸಿಯಲ್ಲಿ ಪ್ಯಾನೆಲ್ ಉತ್ಪಾದನೆ ಸ್ವಲ್ಪ ಕಡಿಮೆಯಾಗುತ್ತದೆ. ಫ್ಯಾನ್ ಮತ್ತು ನೆರಳು ಬಳಸಿ ಎಸಿ ಲೋಡ್ ಕಡಿಮೆ ಮಾಡಿ.", "wxs_cl_title": "ಇಲ್ಲಿನ ಹವಾಮಾನ, {y0} ರಿಂದ {y1} ವರೆಗೆ", "wxs_cl_hot": "ಅತ್ಯಂತ ಬಿಸಿ ದಿನ", "wxs_cl_cold": "ಅತ್ಯಂತ ತಂಪಾದ ದಿನ", "wxs_cl_wet": "ಅತಿ ಹೆಚ್ಚು ಮಳೆ ಬಂದ ದಿನ", "wxs_cl_wind": "ಅತಿ ಹೆಚ್ಚು ಗಾಳಿ ಬೀಸಿದ ದಿನ", "wxs_cl_avg": "{m} ತಿಂಗಳಿಗೆ ಸಾಮಾನ್ಯ: ಗರಿಷ್ಠ {h}°, ಕನಿಷ್ಠ {l}°", "wxs_cl_warm": "ಇಂದು ವರ್ಷದ ಈ ಸಮಯದ ಸಾಮಾನ್ಯಕ್ಕಿಂತ {d}° ಹೆಚ್ಚು ಬಿಸಿಯಾಗಿದೆ.", "wxs_cl_cool": "ಇಂದು ವರ್ಷದ ಈ ಸಮಯದ ಸಾಮಾನ್ಯಕ್ಕಿಂತ {d}° ತಂಪಾಗಿದೆ.", "wxs_cl_same": "ವರ್ಷದ ಈ ಸಮಯಕ್ಕೆ ಸುಮಾರು ಸಾಮಾನ್ಯ.", "adv_ping_t": "EMBER ಎಚ್ಚರಿಕೆ", "adv_ping_aq": "ಈಗ ಗಾಳಿಯ ಗುಣಮಟ್ಟ {name} (AQI {n}).", "sun_rise_at": "ಸೂರ್ಯೋದಯ: {t}", "sun_set_at": "ಸೂರ್ಯಾಸ್ತ: {t}", "adv_a_light": "ಹಗುರ ಮಳೆ ಬರುವ ಸಾಧ್ಯತೆ ಇದೆ. ಕೊಡೆ ಹತ್ತಿರ ಇಟ್ಟುಕೊಳ್ಳಿ; ಸೋಲಾರ್ ಉತ್ಪಾದನೆ ಸ್ವಲ್ಪ ಕಡಿಮೆಯಾಗುತ್ತದೆ.", "adv_a_rain": "{t}ರಿಂದ ಮಳೆ ಬರುವ ಸಾಧ್ಯತೆ ಇದೆ. ಅದಕ್ಕೂ ಮೊದಲು ಬ್ಯಾಟರಿ ಚಾರ್ಜ್ ಮಾಡಿ ಹೊರಗಿನ ಕೆಲಸ ಮುಗಿಸಿ.", "adv_a_heavy": "{t}ರಿಂದ ಭಾರಿ ಮಳೆ ಬರುವ ಸಾಧ್ಯತೆ ಇದೆ. ಬ್ಯಾಟರಿ ಚಾರ್ಜ್ ಮಾಡಿ, ಪ್ರಯಾಣ ತಪ್ಪಿಸಿ, ಹೊರಗಿನ ವೈರಿಂಗ್ ಒಣಗಿಸಿ ಇಡಿ.", "adv_a_storm": "{t}ರಿಂದ ಗುಡುಗು ಸಹಿತ ಚಂಡಮಾರುತದ ಸಾಧ್ಯತೆ ಇದೆ. ಸೂಕ್ಷ್ಮ ಸಾಧನಗಳ ಪ್ಲಗ್ ತೆಗೆದು, ಚಂಡಮಾರುತದ ವೇಳೆ ಮನೆಯೊಳಗೆ ಇರಿ.", "adv_a_wind": "{t}ರಿಂದ ಬಲವಾದ ಗಾಳಿ ಬೀಸುತ್ತದೆ. ಸಣ್ಣ ವಿಂಡ್ ಟರ್ಬೈನ್‌ಗಳನ್ನೂ ಸಡಿಲ ಪ್ಯಾನೆಲ್‌ಗಳನ್ನೂ ಭದ್ರಪಡಿಸಿ ಅಥವಾ ಬ್ರೇಕ್ ಹಾಕಿ.", "adv_a_heat": "{t}ರಿಂದ ತುಂಬಾ ಬಿಸಿಲು ಇರುತ್ತದೆ. ಬಿಸಿಯಲ್ಲಿ ಪ್ಯಾನೆಲ್ ಉತ್ಪಾದನೆ ಸ್ವಲ್ಪ ಕಡಿಮೆಯಾಗುತ್ತದೆ; ಫ್ಯಾನ್ ಮತ್ತು ನೆರಳು ಬಳಸಿ ಎಸಿ ಲೋಡ್ ಕಡಿಮೆ ಮಾಡಿ.", "adv_a_fog": "{t}ರಿಂದ ಮಂಜು ಇರುತ್ತದೆ. ನಿಧಾನವಾಗಿ ಚಲಾಯಿಸಿ; ಬೆಳಿಗ್ಗೆ ಸೋಲಾರ್ ಉತ್ಪಾದನೆ ಕಡಿಮೆ ಇರುತ್ತದೆ.", "adv_also": "ಮುಂದೆ ಬರುವ ಎಚ್ಚರಿಕೆಗಳು", "adv_sol_t": "ಇಂದಿನ ಸೋಲಾರ್", "adv_sol_best": "ಉತ್ತಮ ಸಮಯ: ಬೆಳಿಗ್ಗೆ 10 ರಿಂದ ಮಧ್ಯಾಹ್ನ 3 ರವರೆಗೆ."}};
   Object.keys(D).forEach(function(l){ if (window.I18N && window.I18N[l]) Object.assign(window.I18N[l], D[l]); });
   function T(k, v){ try{ return window.gmT(k, v); }catch(e){ return k; } }
   function loc(){ try{ return { en: "en-IN", te: "te-IN", hi: "hi-IN", ta: "ta-IN", kn: "kn-IN" }[window.gmLang()] || "en-IN"; }catch(e){ return "en-IN"; } }
@@ -6276,40 +6316,64 @@ var GMScene = (function(){
   // ---- 3. "what should I do now": advice from today's weather, solar forecast and air quality ----
   var ADV = /what (should|can) i do (now|today|right now)|what to do (now|today)|advice (for )?(now|today)|today'?s advice|what should i do now/;
   function hr(ms){ return new Date(ms).toLocaleTimeString(loc(), { hour: "numeric" }); }
+  function plain(h){ return String(h).replace(/<span class="agent-time">.*?<\/span>/g, "").replace(/<[^>]+>/g, "").replace(/\s+/g, " ").trim(); }
+  // a card opened by tapping the flipping line: if the same card is already the last message, just scroll to it
+  function cardOnce(html){
+    var body = document.getElementById("agentChatBody");
+    if (body){ var msgs = body.querySelectorAll(".agent-msg.bot"), last = msgs[msgs.length - 1]; if (last && plain(last.innerHTML) === plain(html)){ body.scrollTop = body.scrollHeight; return; } }
+    emcSay(html, "");
+  }
+  function bullets(L){ return L.map(function(x){ return "\u2022 " + x; }).join("<br>"); }
+  var ADV_KEY = { light: "adv_a_light", rain: "adv_a_rain", heavy: "adv_a_heavy", storm: "adv_a_storm", wind: "adv_a_wind", heat: "adv_a_heat", fog: "adv_a_fog" };
+  function alertAdvice(a){ return ADV_KEY[a.kind] ? T(ADV_KEY[a.kind], { t: hr(a.startMs) }) : ""; }
+  // upcoming alerts use the app's own alert windows, the same ones the flipping line and the bell use
+  function upcoming(w){ var now = Date.now(); return (w.alerts || []).filter(function(x){ return x.sev >= 1 && x.endMs > now && x.startMs <= now + 36 * 3600000; }); }
   function adviceLines(skipAlert){
-    var w = window.GM_weather, r = window.GM_weatherRaw, a = window.GM_aq, L = [], i;
+    var w = window.GM_weather, r = window.GM_weatherRaw, a = window.GM_aq, L = [], kinds = {};
     if (!w || !r || !r.daily) return null;
-    var sev = (w.alerts || []).filter(function(x){ return x.sev >= 2; })[0];
-    if (sev && !skipAlert && window.gmAlertText) L.push(emberEsc(window.gmAlertText(sev)));
-    if ((w.alerts || []).some(function(x){ return x.kind === "storm"; })) L.push(T("adv_storm"));
-    if (w.gustMax >= 40) L.push(T("adv_wind", { n: Math.round(w.gustMax) }));
-    var tmax = r.daily.temperature_2m_max[0]; if (tmax >= 38) L.push(T("adv_heat", { n: Math.round(tmax) }));
-    var h = r.hourly, now = Date.now();
-    if (h && h.precipitation_probability){ for (i = 0; i < h.time.length && i < 48; i++){ var tm = new Date(h.time[i]).getTime(); if (tm > now && tm < now + 86400000 && h.precipitation_probability[i] >= 50){ L.push(T("adv_rain", { t: hr(tm) })); break; } } }
+    upcoming(w).slice(0, 2).forEach(function(x){ kinds[x.kind] = 1; if (!skipAlert && window.gmAlertText) L.push(emberEsc(window.gmAlertText(x))); var v = alertAdvice(x); if (v) L.push(v); });
+    if (!kinds.wind && w.gustMax >= 40) L.push(T("adv_wind", { n: Math.round(w.gustMax) }));
+    var tmax = r.daily.temperature_2m_max[0]; if (!kinds.heat && tmax >= 38) L.push(T("adv_heat", { n: Math.round(tmax) }));
     if (r.daily.shortwave_radiation_sum){ var u = r.daily.shortwave_radiation_sum[0] / 3.6 * 0.75; L.push(T(u >= 4.3 * 1.1 ? "adv_solar_good" : u <= 4.3 * 0.7 ? "adv_solar_low" : "adv_solar_avg", { u: u.toFixed(1) })); }
     if (a && a.b >= 2) L.push(T("wxs_aqt" + a.b));
     return L;
   }
-  function bullets(L){ return L.map(function(x){ return "\u2022 " + x; }).join("<br>"); }
-  window.GM_adviceCard = function(){
+  function adviceHtml(){
     var L = adviceLines(false);
-    if (!L){ emcSay("<b>" + T("adv_title") + "</b><br>" + T("adv_nodata"), ""); return; }
+    if (!L) return "<b>" + T("adv_title") + "</b><br>" + T("adv_nodata");
     if (!L.length) L.push(T("adv_ok"));
-    emcSay("<b>" + T("adv_title") + "</b><br>" + bullets(L), "");
+    return "<b>" + T("adv_title") + "</b><br>" + bullets(L);
+  }
+  window.GM_adviceCard = function(){ cardOnce(adviceHtml()); };
+  window.GM_emberAdvice = function(q){ if (!ADV.test(q)) return false; emcSay(adviceHtml(), ""); return true; };
+  // tapping an ALERT on the flipping line: explain exactly that alert, then list what else is coming
+  window.GM_alertCard = function(a){
+    if (!a || !window.gmAlertText){ window.GM_adviceCard(); return; }
+    var L = [], d = window.gmAlertDetail ? window.gmAlertDetail(a) : "", v = alertAdvice(a), w = window.GM_weather;
+    if (d) L.push(emberEsc(d)); if (v) L.push(v);
+    var others = w ? upcoming(w).filter(function(x){ return x.id !== a.id; }).slice(0, 2) : [];
+    var html = "<b>" + emberEsc(window.gmAlertText(a)) + "</b>" + (L.length ? "<br>" + bullets(L) : "");
+    if (others.length) html += "<br><br><b>" + T("adv_also") + "</b><br>" + bullets(others.map(function(x){ var y = alertAdvice(x); return emberEsc(window.gmAlertText(x)) + (y ? " \u2014 " + y : ""); }));
+    cardOnce(html);
   };
-  window.GM_emberAdvice = function(q){ if (!ADV.test(q)) return false; window.GM_adviceCard(); return true; };
+  // tapping the sunny / cloudy solar sentence
+  window.GM_solarCard = function(){
+    var r = window.GM_weatherRaw; if (!r || !r.daily || !r.daily.shortwave_radiation_sum){ window.GM_adviceCard(); return; }
+    var u = r.daily.shortwave_radiation_sum[0] / 3.6 * 0.75;
+    cardOnce("<b>" + T("adv_sol_t") + "</b><br>" + bullets([T(u >= 4.3 * 1.1 ? "adv_solar_good" : u <= 4.3 * 0.7 ? "adv_solar_low" : "adv_solar_avg", { u: u.toFixed(1) }), T("adv_sol_best")]));
+  };
   function rd(x){ return x == null ? "-" : Math.round(x); }
   window.GM_aqCard = function(){   // opened by tapping the air-quality line under the greeting
     var a = window.GM_aq;
-    if (!a){ emcSay("<b>" + T("wxs_air") + "</b><br>" + T("wxs_air_wait"), ""); return; }
-    emcSay("<b>" + T("wxs_air") + " \u00B7 " + emberEsc(a.place) + ": AQI " + a.aqi + " (" + T("wxs_aq" + a.b) + ")</b><br>PM2.5 " + rd(a.pm25) + ", PM10 " + rd(a.pm10) + ", CO " + rd(a.co) + ", NO\u2082 " + rd(a.no2) + ", SO\u2082 " + rd(a.so2) + ", O\u2083 " + rd(a.o3) + " \u00B5g/m\u00B3<br>" + T("wxs_aqt" + a.b) + "<br><i>" + a.src + "</i>", "");
+    if (!a){ cardOnce("<b>" + T("wxs_air") + "</b><br>" + T("wxs_air_wait")); return; }
+    cardOnce("<b>" + T("wxs_air") + " \u00B7 " + emberEsc(a.place) + ": AQI " + a.aqi + " (" + T("wxs_aq" + a.b) + ")</b><br>PM2.5 " + rd(a.pm25) + ", PM10 " + rd(a.pm10) + ", CO " + rd(a.co) + ", NO\u2082 " + rd(a.no2) + ", SO\u2082 " + rd(a.so2) + ", O\u2083 " + rd(a.o3) + " \u00B5g/m\u00B3<br>" + T("wxs_aqt" + a.b) + "<br><i>" + a.src + "</i>");
   };
   window.GM_sunCard = function(){   // opened by tapping the sunset line under the greeting
-    var r = window.GM_weatherRaw; if (!r || !r.daily){ emcSay("<b>" + T("adv_title") + "</b><br>" + T("adv_nodata"), ""); return; }
+    var r = window.GM_weatherRaw; if (!r || !r.daily){ cardOnce("<b>" + T("adv_title") + "</b><br>" + T("adv_nodata")); return; }
     function ck(iso){ return new Date(iso).toLocaleTimeString(loc(), { hour: "numeric", minute: "2-digit" }); }
     var L = [T("sun_rise_at", { t: ck(r.daily.sunrise[0]) }), T("sun_set_at", { t: ck(r.daily.sunset[0]) })];
     if (r.daily.shortwave_radiation_sum){ var u = r.daily.shortwave_radiation_sum[0] / 3.6 * 0.75; L.push(T(u >= 4.3 * 1.1 ? "adv_solar_good" : u <= 4.3 * 0.7 ? "adv_solar_low" : "adv_solar_avg", { u: u.toFixed(1) })); }
-    emcSay("<b>" + T("wxs_sun") + "</b><br>" + bullets(L), "");
+    cardOnce("<b>" + T("wxs_sun") + "</b><br>" + bullets(L));
   };
   // ---- 3b. EMBER speaks first: once per severe weather alert (or Very poor / Severe air), a message appears in the
   //          chat and a red dot pulses on the EMBER button until the chat is opened ----
@@ -6317,12 +6381,12 @@ var GMScene = (function(){
   function announce(){
     var w = window.GM_weather; if (!w || typeof agentAddMsg !== "function") return;
     var seen = []; try{ seen = JSON.parse(localStorage.getItem(AKEY) || "[]"); }catch(e){}
-    var parts = [], ids = [], a = window.GM_aq;
-    (w.alerts || []).forEach(function(x){ if (x.sev >= 2 && seen.indexOf(x.id) < 0 && window.gmAlertText){ ids.push(x.id); parts.push(emberEsc(window.gmAlertText(x))); } });
+    var parts = [], ids = [], adv = [], a = window.GM_aq;
+    (w.alerts || []).forEach(function(x){ if (x.sev >= 2 && seen.indexOf(x.id) < 0 && window.gmAlertText){ ids.push(x.id); parts.push(emberEsc(window.gmAlertText(x))); var v = x.startMs ? alertAdvice(x) : ""; if (v) adv.push(v); } });
     if (a && a.b >= 4){ var aid = "aq_" + a.b + "_" + new Date().toISOString().slice(0, 10); if (seen.indexOf(aid) < 0){ ids.push(aid); parts.push(T("adv_ping_aq", { name: T("wxs_aq" + a.b), n: a.aqi })); } }
     if (!ids.length) return;
-    var L = (adviceLines(true) || []).slice(0, 3);
-    agentAddMsg("<b>\u26A0\uFE0F " + T("adv_ping_t") + "</b><br>" + parts.join("<br>") + (L.length ? "<br><br>" + bullets(L) : ""), "bot");
+    var L = adv.concat((adviceLines(true) || []).filter(function(y){ return adv.indexOf(y) < 0; })).slice(0, 3);   // the advice for the announced alert comes first
+    agentAddMsg("<b>\uD83D\uDEA8 " + T("adv_ping_t") + "</b><br>" + parts.join("<br>") + (L.length ? "<br><br>" + bullets(L) : ""), "bot");
     try{ localStorage.setItem(AKEY, JSON.stringify(seen.concat(ids).slice(-30))); }catch(e){}
     var fab = document.getElementById("energyAgentFab"); if (fab) fab.classList.add("ember-ping");
   }
@@ -6334,7 +6398,7 @@ var GMScene = (function(){
       setTimeout(function(){
         var line = T("wx_line", { icon: "\u26C8\uFE0F", day: T("wx_today"), kind: T("wx_k_storm"), from: "4 PM", to: "6 PM", sfx: "" });
         var L = [T("adv_storm")].concat((adviceLines(true) || []).filter(function(x){ return x !== T("adv_storm"); })).slice(0, 3);
-        agentAddMsg("<b>\u26A0\uFE0F " + T("adv_ping_t") + "</b><br>" + line + "<br><br>" + bullets(L), "bot");
+        agentAddMsg("<b>\uD83D\uDEA8 " + T("adv_ping_t") + "</b><br>" + line + "<br><br>" + bullets(L), "bot");
         pingFab();
       }, 6000);
       return true;
@@ -6342,12 +6406,13 @@ var GMScene = (function(){
     if (/^test (phone )?notifications?$/.test(q)){
       if (typeof Notification === "undefined"){ emcSay("This phone or browser does not support notifications.", ""); return true; }
       if (Notification.permission === "denied"){ emcSay("Notifications are blocked. Open Android Settings, Apps, GreenMap, Notifications and switch them on.", ""); return true; }
-      emcSay("<b>\uD83E\uDDEA Test started</b><br>Press the Home button or lock the screen. In about 6 seconds eight notifications should appear in your phone panel, each with its own picture, and they also appear in the bell. Its sound follows your Notification Sound setting: only \u201CPhone default\u201D makes the phone play its own sound.", "");
+      emcSay("<b>\uD83E\uDDEA Test started</b><br>Press the Home button or lock the screen. In about 6 seconds ten notifications should appear in your phone panel: five EMBER alerts with weather pictures, then five order alerts. They also appear in the bell. Its sound follows your Notification Sound setting: only \u201CPhone default\u201D makes the phone play its own sound.", "");
       var ask = Notification.permission === "default" ? Notification.requestPermission() : Promise.resolve("granted");
       ask.then(function(){
-        [["ember", "EMBER heads-up test", "Heavy rain is likely around 4 PM. Charge batteries first."], ["order", "Order placed successfully", "Your parcel is confirmed. (test)"], ["transit", "Shipped", "Your parcel is on the way. (test)"],
-         ["outfor", "Out for delivery", "Your parcel arrives today. (test)"], ["delivered", "Delivered", "Your parcel was delivered. (test)"], ["payment", "Payment successful", "\u20B9499 paid. (test)"],
-         ["star", "Rate your order", "How was your experience? (test)"], ["offer", "New offer near you", "20% off solar lamps. (test)"]].forEach(function(t, i){
+        [["w-cloud", "\u2601\uFE0F Cloudy: solar output will be lower today.", ""], ["w-rain", "\uD83C\uDF27\uFE0F Rain likely around 4 PM. Charge batteries first.", ""], ["w-storm", "\u26C8\uFE0F Thunderstorm possible this evening. Unplug sensitive devices.", ""],
+         ["w-air", "\uD83D\uDE37 Air quality: Poor (AQI 232). Wear a mask outdoors.", ""], ["w-sunset", "\uD83C\uDF05 Sunset in 40 min, at 5:41 pm.", ""],
+         ["order", "Order placed successfully", "Your parcel is confirmed. (test)"], ["transit", "Shipped", "Your parcel is on the way. (test)"], ["outfor", "Out for delivery", "Your parcel arrives today. (test)"],
+         ["delivered", "Delivered", "Your parcel was delivered. (test)"], ["payment", "Payment successful", "\u20B9499 paid. (test)"]].forEach(function(t, i){
           setTimeout(function(){ if (window.gmSysNotify) window.gmSysNotify(t[1], t[2], "gmtest" + i + "_" + Date.now(), "GreenMap_App.html", t[0], true); }, 6000 + i * 1500);
         });
       });
