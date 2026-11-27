@@ -1,0 +1,26 @@
+# Publishes the app to Firebase Hosting (https://greenmap-ai.web.app) on every push.
+# The address that Android shows in notifications then reads "greenmap-ai.web.app"
+# instead of your GitHub name. Put this file in .github/workflows/
+name: Deploy to Firebase Hosting
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "*.html"
+      - "sw.js"
+      - "manifest.webmanifest"
+      - "*.png"
+      - "firebase.json"
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: FirebaseExtended/action-hosting-deploy@v0
+        with:
+          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+          projectId: greenmap-ai
+          channelId: live
